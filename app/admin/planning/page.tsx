@@ -239,9 +239,15 @@ export default function AdminCalendrierPage() {
         const tarif = courseTarifs[0]; // Premier tarif par défaut pour affichage
         const dispos = finalDisponibilites.filter((d: Disponibilite) => d.courseId === course.id);
 
-        const photographesValides = dispos.filter(
-          (d: Disponibilite) => d.statut === 'validated' || d.statut === 'teamLeader'
-        ).length;
+        const photographesValides = dispos.filter((d: Disponibilite) => {
+          if (d.statut !== 'validated' && d.statut !== 'teamLeader') return false;
+
+          // Exclure les admins non rémunérés
+          const user = allAdmins.find((a: Admin) => a.id === d.photographeId);
+          const isNonRemunere = user && (user.nonRemunere === 'TRUE' || user.nonRemunere === true);
+
+          return !isNonRemunere;
+        }).length;
 
         const photographesDisponibles = dispos.filter(
           (d: Disponibilite) => d.statut === 'available' || d.statut === 'validated' || d.statut === 'teamLeader'
@@ -423,9 +429,15 @@ export default function AdminCalendrierPage() {
       const coursesWithData = courses.map((course) => {
         const dispos = updatedDisponibilites.filter((d) => d.courseId === course.id);
 
-        const photographesValides = dispos.filter(
-          (d) => d.statut === 'validated' || d.statut === 'teamLeader'
-        ).length;
+        const photographesValides = dispos.filter((d) => {
+          if (d.statut !== 'validated' && d.statut !== 'teamLeader') return false;
+
+          // Exclure les admins non rémunérés
+          const user = admins.find((a) => a.id === d.photographeId);
+          const isNonRemunere = user && (user.nonRemunere === 'TRUE' || user.nonRemunere === true);
+
+          return !isNonRemunere;
+        }).length;
 
         const photographesDisponibles = dispos.filter(
           (d) => d.statut === 'available' || d.statut === 'validated' || d.statut === 'teamLeader'
@@ -849,14 +861,14 @@ export default function AdminCalendrierPage() {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
-            <Link href="/admin/calendrier/stats">
+            <Link href="/admin/planning/stats">
               <ArrowUpDown className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Statistiques</span>
               <span className="sm:hidden">Stats</span>
             </Link>
           </Button>
           <Button size="sm" asChild className="w-full sm:w-auto">
-            <Link href="/admin/calendrier/new">
+            <Link href="/admin/planning/new">
               <Plus className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Nouvelle course</span>
               <span className="sm:hidden">Nouvelle</span>
@@ -1157,7 +1169,7 @@ export default function AdminCalendrierPage() {
                           <div className="flex items-center justify-between gap-1 mb-0.5">
                               <div className="flex items-center gap-1.5 flex-1">
                                 <Link
-                                  href={`/admin/calendrier/${course.id}`}
+                                  href={`/admin/planning/${course.id}`}
                                   className="font-semibold hover:underline text-xs hover:text-primary transition-colors"
                                 >
                                   {course.nom}

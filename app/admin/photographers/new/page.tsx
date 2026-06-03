@@ -129,7 +129,7 @@ export default function NewPhotographerPage() {
       <div className="flex h-full items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-green-600">Photographe créé avec succès !</CardTitle>
+            <CardTitle className="text-gray-600">Photographe créé avec succès !</CardTitle>
             <CardDescription>
               Voici les identifiants à communiquer au photographe
             </CardDescription>

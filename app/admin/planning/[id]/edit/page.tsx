@@ -121,7 +121,7 @@ export default function EditCoursePage() {
     } catch (error) {
       console.error('Erreur chargement course:', error);
       toast.error('Impossible de charger la course');
-      router.push('/admin/calendrier');
+      router.push('/admin/planning');
     } finally {
       setLoading(false);
     }
@@ -179,7 +179,7 @@ export default function EditCoursePage() {
       toast.success('Course et tarif modifiés avec succès');
 
       // Redirection
-      router.push(`/admin/calendrier/${courseId}`);
+      router.push(`/admin/planning/${courseId}`);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
       console.error('Erreur mise à jour course:', error);
@@ -205,7 +205,7 @@ export default function EditCoursePage() {
       {/* Header */}
       <div className="px-6 py-5 border-b border-gray-100">
         <div className="flex items-center gap-4">
-          <Link href={`/admin/calendrier/${courseId}`}>
+          <Link href={`/admin/planning/${courseId}`}>
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Retour
@@ -474,7 +474,7 @@ export default function EditCoursePage() {
 
             {/* Actions */}
             <div className="flex justify-end gap-4">
-              <Link href={`/admin/calendrier/${courseId}`}>
+              <Link href={`/admin/planning/${courseId}`}>
                 <Button type="button" variant="outline">
                   Annuler
                 </Button>

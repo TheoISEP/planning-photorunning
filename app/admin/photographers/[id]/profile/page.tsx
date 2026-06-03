@@ -130,7 +130,7 @@ export default function PhotographerProfileAdminPage() {
                 </Button>
               </Link>
               {photographer.actif ? (
-                <Badge className="bg-green-100 text-green-800 border-green-300">Actif</Badge>
+                <Badge className="bg-gray-100 text-gray-800 border-gray-300">Actif</Badge>
               ) : (
                 <Badge className="bg-gray-100 text-gray-800 border-gray-300">Inactif</Badge>
               )}
@@ -325,7 +325,7 @@ export default function PhotographerProfileAdminPage() {
                             Expire bientôt
                           </Badge>
                         ) : (
-                          <Badge className="bg-green-100 text-green-800 border-green-300">
+                          <Badge className="bg-gray-100 text-gray-800 border-gray-300">
                             Valide
                           </Badge>
                         )}
@@ -363,7 +363,7 @@ export default function PhotographerProfileAdminPage() {
                             Expire bientôt
                           </Badge>
                         ) : (
-                          <Badge className="bg-green-100 text-green-800 border-green-300">
+                          <Badge className="bg-gray-100 text-gray-800 border-gray-300">
                             Valide
                           </Badge>
                         )}

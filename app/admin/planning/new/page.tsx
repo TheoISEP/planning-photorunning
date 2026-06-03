@@ -110,7 +110,7 @@ export default function NewCalendrierEventPage() {
 		toast.success('Course créée avec succès');
 
 		// Redirection immédiate vers le calendrier
-		window.location.href = '/admin/calendrier';
+		window.location.href = '/admin/planning';
 
 		// Créer en arrière-plan (ne bloque pas la navigation)
 		Promise.all([
@@ -142,7 +142,7 @@ export default function NewCalendrierEventPage() {
 			{/* En-tête */}
 			<div>
 				<Button variant="ghost" size="sm" asChild className="mb-4">
-					<Link href="/admin/calendrier">
+					<Link href="/admin/planning">
 						<ArrowLeft className="h-4 w-4 mr-2" />
 						Retour au calendrier
 					</Link>

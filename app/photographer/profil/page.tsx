@@ -192,7 +192,7 @@ export default function PhotographerProfilePage() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-green-600 mx-auto"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-600 mx-auto"></div>
           <p className="mt-4 text-sm text-gray-600">Chargement du profil...</p>
         </div>
       </div>
@@ -206,7 +206,7 @@ export default function PhotographerProfilePage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Avatar className="h-12 w-12">
-              <AvatarFallback className="bg-green-100 text-green-600 text-lg">
+              <AvatarFallback className="bg-gray-100 text-gray-600 text-lg">
                 {getInitials()}
               </AvatarFallback>
             </Avatar>
@@ -459,7 +459,7 @@ export default function PhotographerProfilePage() {
                             Expire bientôt
                           </Badge>
                         ) : (
-                          <Badge className="bg-green-100 text-green-800 border-green-300">
+                          <Badge className="bg-gray-100 text-gray-800 border-gray-300">
                             Valide
                           </Badge>
                         )}
@@ -507,7 +507,7 @@ export default function PhotographerProfilePage() {
                             Expire bientôt
                           </Badge>
                         ) : (
-                          <Badge className="bg-green-100 text-green-800 border-green-300">
+                          <Badge className="bg-gray-100 text-gray-800 border-gray-300">
                             Valide
                           </Badge>
                         )}

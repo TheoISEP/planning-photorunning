@@ -112,10 +112,10 @@ function NavLink({
 			title={collapsed ? item.label : undefined}
 			aria-current={active ? "page" : undefined}
 			className={cn(
-				"group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-green-500/30",
+				"group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-500/30",
 				active
-					? "bg-green-600 text-white shadow-lg dark:bg-green-700"
-					: "text-muted-foreground hover:text-foreground hover:bg-green-100 dark:hover:bg-green-900/20"
+					? "bg-gray-600 text-white shadow-lg dark:bg-gray-700"
+					: "text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-900/20"
 			)}
 		>
 			<Icon className={cn("size-4 shrink-0 transition-colors", active ? "text-white" : "text-muted-foreground group-hover:text-foreground")} />
@@ -199,7 +199,7 @@ function PhotographerUserMenu({ user }: { user: { email: string; nom: string; pr
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem
-					className="text-green-600 focus:text-green-600"
+					className="text-gray-600 focus:text-gray-600"
 					onSelect={handleLogout}
 				>
 					<LogOut className="size-4" />
@@ -238,12 +238,12 @@ export function PhotographerShell({ children, user }: { children: React.ReactNod
 					)}
 				>
 					<div className={cn(
-						"flex h-full flex-col rounded-2xl border shadow-xl transition-all duration-300 bg-green-50 dark:bg-green-950/20",
+						"flex h-full flex-col rounded-2xl border shadow-xl transition-all duration-300 bg-gray-50 dark:bg-gray-950/20",
 						collapsed ? "w-[56px]" : "w-full"
 					)}>
 						<div className={cn("flex items-center justify-between gap-2 px-3 py-4 border-b", collapsed && "justify-center px-2")}>
-							<Link href="/photographer/calendrier" className={cn("flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-green-100 dark:hover:bg-green-900/20", collapsed && "px-1")}>
-								<div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-lg bg-green-600 flex items-center justify-center">
+							<Link href="/photographer/calendrier" className={cn("flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-gray-900/20", collapsed && "px-1")}>
+								<div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-lg bg-gray-600 flex items-center justify-center">
 									<span className="text-white font-bold text-sm">PR</span>
 								</div>
 								<div className={cn("leading-tight", collapsed && "sr-only")}>
@@ -262,7 +262,7 @@ export function PhotographerShell({ children, user }: { children: React.ReactNod
 								type="button"
 								variant="ghost"
 								size="sm"
-								className={cn("w-full justify-between rounded-lg text-muted-foreground hover:text-foreground hover:bg-green-100 dark:hover:bg-green-900/20", collapsed && "justify-center px-0")}
+								className={cn("w-full justify-between rounded-lg text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-900/20", collapsed && "justify-center px-0")}
 								onClick={() => setCollapsed((v) => !v)}
 							>
 								<span className={cn("text-xs", collapsed && "sr-only")}>Réduire</span>
@@ -288,11 +288,11 @@ export function PhotographerShell({ children, user }: { children: React.ReactNod
 											</DialogTrigger>
 											<DialogContent
 												showCloseButton
-												className="left-0 top-0 h-dvh w-full max-w-[90vw] translate-x-0 translate-y-0 rounded-r-2xl p-0 data-[state=open]:slide-in-from-left-2 data-[state=closed]:slide-out-to-left-2 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20"
+												className="left-0 top-0 h-dvh w-full max-w-[90vw] translate-x-0 translate-y-0 rounded-r-2xl p-0 data-[state=open]:slide-in-from-left-2 data-[state=closed]:slide-out-to-left-2 bg-gradient-to-br from-gray-50 to-gray-50 dark:from-gray-950/20 dark:to-gray-950/20"
 											>
 												<DialogHeader className="px-4 pt-6 pb-4 border-b">
 													<div className="flex items-center gap-3">
-														<div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-green-600 flex items-center justify-center">
+														<div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-gray-600 flex items-center justify-center">
 															<span className="text-white font-bold text-lg">PR</span>
 														</div>
 														<div>

@@ -28,7 +28,7 @@ export default function PhotographerLayout({ children }: { children: React.React
         }
         const data = await res.json();
         if (data.user.role !== 'photographer') {
-          router.push('/admin/calendrier');
+          router.push('/admin/planning');
           return;
         }
         setUser(data.user);
@@ -46,7 +46,7 @@ export default function PhotographerLayout({ children }: { children: React.React
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-green-600 mx-auto"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-600 mx-auto"></div>
           <p className="mt-4 text-sm text-muted-foreground">Chargement...</p>
         </div>
       </div>

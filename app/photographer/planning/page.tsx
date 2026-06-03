@@ -204,7 +204,7 @@ export default function PhotographerCalendrierPage() {
       pending: 'bg-yellow-100 border-yellow-300 text-yellow-900 hover:bg-yellow-200',
       available: 'bg-blue-100 border-blue-300 text-blue-900 hover:bg-blue-200',
       unavailable: 'bg-gray-200 border-gray-400 text-gray-900 hover:bg-gray-300',
-      validated: 'bg-green-100 border-green-300 text-green-900 hover:bg-green-200',
+      validated: 'bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200',
       teamLeader: 'bg-purple-100 border-purple-300 text-purple-900 hover:bg-purple-200',
       rejected: 'bg-red-100 border-red-300 text-red-900 hover:bg-red-200',
     };
@@ -268,7 +268,7 @@ export default function PhotographerCalendrierPage() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-green-600 mx-auto"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-600 mx-auto"></div>
           <p className="mt-4 text-sm text-muted-foreground">Chargement...</p>
         </div>
       </div>
@@ -296,7 +296,7 @@ export default function PhotographerCalendrierPage() {
       {/* Statistiques personnelles - cachées sur mobile */}
       <TooltipProvider>
         <div className="hidden md:grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3 flex-shrink-0">
-          <Card className="shadow-md border-green-100">
+          <Card className="shadow-md border-gray-100">
             <CardContent className="p-3.5 md:p-4">
               <div className="flex items-start justify-between mb-2">
                 <div className="text-[11px] md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">
@@ -338,7 +338,7 @@ export default function PhotographerCalendrierPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md border-green-200 bg-green-50/50">
+          <Card className="shadow-md border-gray-200 bg-gray-50/50">
             <CardContent className="p-3.5 md:p-4">
               <div className="flex items-start justify-between mb-2">
                 <div className="text-[11px] md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">
@@ -355,7 +355,7 @@ export default function PhotographerCalendrierPage() {
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="text-xl md:text-2xl font-bold text-green-700 leading-tight">{formatCurrency(myStats.montantTotal)}</div>
+              <div className="text-xl md:text-2xl font-bold text-gray-700 leading-tight">{formatCurrency(myStats.montantTotal)}</div>
             </CardContent>
           </Card>
 
@@ -400,17 +400,17 @@ export default function PhotographerCalendrierPage() {
           {/* En-tête */}
           <div className="sticky top-0 z-20">
             <div
-              className="grid gap-0 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900 border-b-2 border-green-600/30"
+              className="grid gap-0 bg-gradient-to-r from-gray-100 to-gray-100 dark:from-gray-900 dark:to-gray-900 border-b-2 border-gray-600/30"
               style={{ gridTemplateColumns: 'minmax(180px, 1fr) 100px minmax(120px, 150px)', minWidth: '100%' }}
             >
               <div
-                className="sticky left-0 z-30 p-3 pr-2 border-r-2 border-green-600/40 font-semibold text-sm bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900"
+                className="sticky left-0 z-30 p-3 pr-2 border-r-2 border-gray-600/40 font-semibold text-sm bg-gradient-to-r from-gray-100 to-gray-100 dark:from-gray-900 dark:to-gray-900"
                 style={{ position: 'sticky', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
               >
                 Course
               </div>
               <div
-                className="sticky z-30 p-3 pr-2 border-r-2 border-green-600/40 font-semibold text-sm bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900"
+                className="sticky z-30 p-3 pr-2 border-r-2 border-gray-600/40 font-semibold text-sm bg-gradient-to-r from-gray-100 to-gray-100 dark:from-gray-900 dark:to-gray-900"
                 style={{ position: 'sticky', left: 'minmax(180px, 1fr)', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
               >
                 Date
@@ -483,7 +483,7 @@ export default function PhotographerCalendrierPage() {
                         {myValidatedCount > 0 ? `${myValidatedCount} validée${myValidatedCount > 1 ? 's' : ''}` : '-'}
                       </div>
                       {myMonthlyAmount > 0 && (
-                        <div className="text-green-700 dark:text-green-400 mt-0.5 font-bold">
+                        <div className="text-gray-700 dark:text-gray-400 mt-0.5 font-bold">
                           {formatCurrency(myMonthlyAmount)}
                         </div>
                       )}
@@ -505,11 +505,11 @@ export default function PhotographerCalendrierPage() {
                     const isValidated = myDispo && (myDispo.statut === 'validated' || myDispo.statut === 'teamLeader');
                     const isRejected = myDispo && myDispo.statut === 'rejected';
 
-                    const bgColor = courseIdx % 2 === 0 ? 'bg-green-50 dark:bg-green-950' : 'bg-emerald-50 dark:bg-emerald-950';
+                    const bgColor = courseIdx % 2 === 0 ? 'bg-gray-50 dark:bg-gray-950' : 'bg-gray-50 dark:bg-gray-950';
                     const rowBgColor = isValidated
                       ? myDispo.statut === 'teamLeader'
                         ? 'bg-purple-50 dark:bg-purple-950/30'
-                        : 'bg-green-100 dark:bg-green-900/40'
+                        : 'bg-gray-100 dark:bg-gray-900/40'
                       : bgColor;
 
                     // Détection des changements de week-end
@@ -523,7 +523,7 @@ export default function PhotographerCalendrierPage() {
                         {/* Séparateur de week-end */}
                         {isNewWeekend && (
                           <div
-                            className="border-t border-green-300/30 dark:border-green-700/30"
+                            className="border-t border-gray-300/30 dark:border-gray-700/30"
                             style={{ gridColumn: '1 / -1', height: '1px' }}
                           />
                         )}
@@ -532,16 +532,16 @@ export default function PhotographerCalendrierPage() {
                           className={cn(
                             'grid gap-0 border-b transition-all duration-200',
                             rowBgColor,
-                            isValidated && 'border-l-4 border-l-green-600 hover:bg-green-200 shadow-sm',
+                            isValidated && 'border-l-4 border-l-gray-600 hover:bg-gray-200 shadow-sm',
                             myDispo?.statut === 'teamLeader' && 'border-l-4 border-l-purple-600 hover:bg-purple-200',
-                            isRejected && 'opacity-40 hover:opacity-60 border-green-200/50',
-                            !isValidated && !isRejected && 'border-green-200/50 hover:bg-green-100'
+                            isRejected && 'opacity-40 hover:opacity-60 border-gray-200/50',
+                            !isValidated && !isRejected && 'border-gray-200/50 hover:bg-gray-100'
                           )}
                           style={{ gridTemplateColumns: 'minmax(180px, 1fr) 100px minmax(120px, 150px)', minWidth: '100%' }}
                         >
                         {/* Colonne Course */}
                         <div
-                          className={cn('sticky left-0 z-10 p-3 pr-2 border-r-2 border-green-600/40', rowBgColor)}
+                          className={cn('sticky left-0 z-10 p-3 pr-2 border-r-2 border-gray-600/40', rowBgColor)}
                           style={{ position: 'sticky', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
                         >
                           <div className="flex items-center gap-1.5 mb-1">
@@ -552,7 +552,7 @@ export default function PhotographerCalendrierPage() {
                               href={`/photographer/calendrier/${course.id}`}
                               className={cn(
                                 'font-semibold hover:underline text-sm touch-manipulation',
-                                isValidated && 'text-green-800',
+                                isValidated && 'text-gray-800',
                                 myDispo?.statut === 'teamLeader' && 'text-purple-800'
                               )}
                             >
@@ -567,7 +567,7 @@ export default function PhotographerCalendrierPage() {
                                 <span
                                   className={cn(
                                     'text-sm font-bold',
-                                    myDispo?.statut === 'teamLeader' ? 'text-purple-700' : 'text-green-700'
+                                    myDispo?.statut === 'teamLeader' ? 'text-purple-700' : 'text-gray-700'
                                   )}
                                 >
                                   💰{' '}
@@ -587,7 +587,7 @@ export default function PhotographerCalendrierPage() {
 
                         {/* Colonne Date */}
                         <div
-                          className={cn('sticky z-10 p-3 pr-2 flex flex-col justify-center border-r-2 border-green-600/40', rowBgColor)}
+                          className={cn('sticky z-10 p-3 pr-2 flex flex-col justify-center border-r-2 border-gray-600/40', rowBgColor)}
                           style={{ position: 'sticky', left: 'minmax(180px, 1fr)', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
                         >
                           <div className="text-sm font-semibold">{format(new Date(course.dateDebut), 'dd/MM', { locale: fr })}</div>
@@ -610,7 +610,7 @@ export default function PhotographerCalendrierPage() {
                                   onValueChange={(value) => currentUser && handleStatusChange(myDispo.id, value, course.id, currentUser.id)}
                                 >
                                   <SelectTrigger
-                                    className={`h-10 md:h-9 text-sm w-full min-w-[110px] border transition-all focus:border-green-600 px-3 font-medium touch-manipulation ${getStatusColorClass(
+                                    className={`h-10 md:h-9 text-sm w-full min-w-[110px] border transition-all focus:border-gray-600 px-3 font-medium touch-manipulation ${getStatusColorClass(
                                       myDispo.statut
                                     )}`}
                                   >

@@ -39,7 +39,7 @@ export default function LoginPage() {
 
       // Redirection selon le rôle
       if (data.user.role === 'admin') {
-        router.push('/admin/calendrier');
+        router.push('/admin/planning');
       } else {
         router.push('/photographer/calendrier');
       }
@@ -53,7 +53,7 @@ export default function LoginPage() {
     <Card className="w-full max-w-md bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-lg rounded-xl">
       <CardHeader className="space-y-3 text-center pt-8">
         <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-full bg-green-600 flex items-center justify-center shadow-lg">
+          <div className="w-16 h-16 rounded-full bg-gray-600 flex items-center justify-center shadow-lg">
             <span className="text-white font-bold text-2xl">PR</span>
           </div>
         </div>
@@ -110,7 +110,7 @@ export default function LoginPage() {
 
           <Button
             type="submit"
-            className="w-full bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+            className="w-full bg-gray-600 hover:bg-gray-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
             disabled={loading}
           >
             {loading ? 'Connexion...' : 'Se connecter'}

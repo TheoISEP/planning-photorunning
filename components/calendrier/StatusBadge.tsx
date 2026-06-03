@@ -18,7 +18,7 @@ const statusBadgeVariants = cva(
 
 				// Processing statuses (admin only)
 				inProgress: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-				done: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+				done: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300",
 			},
 		},
 		defaultVariants: {

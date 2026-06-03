@@ -26,7 +26,7 @@ function PercentBadge({ value }: { value: number }) {
   if (value === 0) return null;
   const isPositive = value > 0;
   const Icon = isPositive ? TrendingUp : TrendingDown;
-  const color = isPositive ? "text-green-600" : "text-red-600";
+  const color = isPositive ? "text-gray-600" : "text-red-600";
 
   return (
     <div className={cn("flex items-center gap-1 text-xs", color)}>
@@ -145,7 +145,7 @@ export default function AdminStatsPage() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-green-600 mx-auto"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-600 mx-auto"></div>
           <p className="mt-4 text-sm text-muted-foreground">Chargement des statistiques...</p>
         </div>
       </div>
@@ -167,7 +167,7 @@ export default function AdminStatsPage() {
       {/* En-tête */}
       <div>
         <Button variant="ghost" size="sm" asChild className="mb-4">
-          <Link href="/admin/calendrier">
+          <Link href="/admin/planning">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Retour au calendrier
           </Link>

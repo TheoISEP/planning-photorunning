@@ -92,7 +92,7 @@ const getStatusColorClass = (status: string) => {
     pending: 'bg-yellow-100 border-yellow-300 text-yellow-900 hover:bg-yellow-200',
     available: 'bg-blue-100 border-blue-300 text-blue-900 hover:bg-blue-200',
     unavailable: 'bg-gray-200 border-gray-400 text-gray-900 hover:bg-gray-300',
-    validated: 'bg-green-100 border-green-300 text-green-900 hover:bg-green-200',
+    validated: 'bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200',
     teamLeader: 'bg-purple-100 border-purple-300 text-purple-900 hover:bg-purple-200',
     rejected: 'bg-red-100 border-red-300 text-red-900 hover:bg-red-200',
   };
@@ -755,7 +755,7 @@ export default function AdminCalendrierPage() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-green-600 mx-auto"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-600 mx-auto"></div>
           <p className="mt-4 text-sm text-muted-foreground">Chargement du calendrier...</p>
         </div>
       </div>
@@ -768,7 +768,7 @@ export default function AdminCalendrierPage() {
       <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between flex-shrink-0">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/admin/calendrier">
+            <Link href="/admin/planning">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Retour au calendrier
@@ -782,14 +782,14 @@ export default function AdminCalendrierPage() {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
-            <Link href="/admin/calendrier/stats">
+            <Link href="/admin/planning/stats">
               <ArrowUpDown className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Statistiques</span>
               <span className="sm:hidden">Stats</span>
             </Link>
           </Button>
           <Button size="sm" asChild className="w-full sm:w-auto">
-            <Link href="/admin/calendrier/new">
+            <Link href="/admin/planning/new">
               <Plus className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Nouvelle course</span>
               <span className="sm:hidden">Nouvelle</span>
@@ -985,7 +985,7 @@ export default function AdminCalendrierPage() {
                 <div key={admin.id} className="p-2 text-center">
                   <Link
                     href={`/admin/admins/${admin.id}/profile`}
-                    className="hover:text-green-700 hover:underline transition-colors font-bold text-xs flex flex-col items-center"
+                    className="hover:text-gray-700 hover:underline transition-colors font-bold text-xs flex flex-col items-center"
                     title={`${admin.prenom} ${admin.nom}`}
                   >
                     <div className="truncate w-full">{admin.prenom}</div>
@@ -999,7 +999,7 @@ export default function AdminCalendrierPage() {
                 <div key={photographer.id} className="p-2 text-center">
                   <Link
                     href={`/admin/photographers/${photographer.id}/profile`}
-                    className="hover:text-green-700 hover:underline transition-colors text-xs flex flex-col items-center"
+                    className="hover:text-gray-700 hover:underline transition-colors text-xs flex flex-col items-center"
                     title={`${photographer.prenom} ${photographer.nom}`}
                   >
                     <div className="truncate w-full">{photographer.prenom}</div>
@@ -1055,14 +1055,14 @@ export default function AdminCalendrierPage() {
               const validatedCount = course.photographesValides;
               const availableCount = course.photographesDisponibles;
               const bgColor = courseIdx % 2 === 0
-                ? "bg-green-50 dark:bg-green-950"
-                : "bg-emerald-50 dark:bg-emerald-950";
+                ? "bg-gray-50 dark:bg-gray-950"
+                : "bg-gray-50 dark:bg-gray-950";
 
               return (
                 <div
                   key={course.id}
                   className={cn(
-                    "grid gap-0 border-b border-green-200/50 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors",
+                    "grid gap-0 border-b border-gray-200/50 hover:bg-gray-100 dark:hover:bg-gray-900/30 transition-colors",
                     bgColor
                   )}
                   style={{
@@ -1073,7 +1073,7 @@ export default function AdminCalendrierPage() {
                   {/* Colonne infos course - STICKY */}
                   <div
                     className={cn(
-                      "sticky left-0 z-10 p-2 pr-1.5 border-r-2 border-green-600/40",
+                      "sticky left-0 z-10 p-2 pr-1.5 border-r-2 border-gray-600/40",
                       bgColor
                     )}
                     style={{ position: 'sticky', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
@@ -1082,7 +1082,7 @@ export default function AdminCalendrierPage() {
                     <div className="flex items-center justify-between gap-1 mb-0.5">
                       <div className="flex items-center gap-1.5 flex-1">
                         <Link
-                          href={`/admin/calendrier/${course.id}`}
+                          href={`/admin/planning/${course.id}`}
                           className="font-semibold hover:underline text-xs hover:text-primary transition-colors"
                         >
                           {course.nom}
@@ -1133,7 +1133,7 @@ export default function AdminCalendrierPage() {
                   {/* Colonne Date - STICKY */}
                   <div
                     className={cn(
-                      "sticky z-10 p-2 pr-1.5 flex flex-col justify-start items-start gap-0.5 border-r-2 border-green-600/40",
+                      "sticky z-10 p-2 pr-1.5 flex flex-col justify-start items-start gap-0.5 border-r-2 border-gray-600/40",
                       bgColor
                     )}
                     style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
@@ -1161,7 +1161,7 @@ export default function AdminCalendrierPage() {
                           value={dispo.statut}
                           disabled={true}
                         >
-                          <SelectTrigger className={`h-7 text-[9px] w-full border transition-all focus:border-green-600 px-0.5 font-medium ${getStatusColorClass(dispo.statut)}`}>
+                          <SelectTrigger className={`h-7 text-[9px] w-full border transition-all focus:border-gray-600 px-0.5 font-medium ${getStatusColorClass(dispo.statut)}`}>
                             <SelectValue>
                               {getStatusLabel(dispo.statut)}
                             </SelectValue>
@@ -1187,7 +1187,7 @@ export default function AdminCalendrierPage() {
                             </SelectItem>
                             <SelectItem value="validated">
                               <div className="flex items-center gap-2">
-                                <div className="h-2 w-2 rounded-full bg-green-500" />
+                                <div className="h-2 w-2 rounded-full bg-gray-500" />
                                 <span className="text-xs">Validé</span>
                               </div>
                             </SelectItem>
@@ -1250,7 +1250,7 @@ export default function AdminCalendrierPage() {
                           value={dispo.statut}
                           disabled={true}
                         >
-                          <SelectTrigger className={`h-7 text-[9px] w-full border transition-all focus:border-green-600 px-0.5 font-medium ${getStatusColorClass(dispo.statut)}`}>
+                          <SelectTrigger className={`h-7 text-[9px] w-full border transition-all focus:border-gray-600 px-0.5 font-medium ${getStatusColorClass(dispo.statut)}`}>
                             <SelectValue>
                               {getStatusLabel(dispo.statut)}
                             </SelectValue>
@@ -1276,7 +1276,7 @@ export default function AdminCalendrierPage() {
                             </SelectItem>
                             <SelectItem value="validated">
                               <div className="flex items-center gap-2">
-                                <div className="h-2 w-2 rounded-full bg-green-500" />
+                                <div className="h-2 w-2 rounded-full bg-gray-500" />
                                 <span className="text-xs">Validé</span>
                               </div>
                             </SelectItem>
@@ -1405,7 +1405,7 @@ export default function AdminCalendrierPage() {
                 setShowArchiveSuccessDialog(false);
                 router.push('/admin/archives');
               }}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-gray-600 hover:bg-gray-700"
             >
               Voir les archives
             </Button>

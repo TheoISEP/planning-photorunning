@@ -96,7 +96,7 @@ export default function AdminsListPage() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-green-600 mx-auto"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-600 mx-auto"></div>
           <p className="mt-4 text-sm text-gray-600">Chargement...</p>
         </div>
       </div>
@@ -205,7 +205,7 @@ export default function AdminsListPage() {
                         className="cursor-pointer"
                       >
                         {admin.actif ? (
-                          <Badge className="bg-green-100 text-green-800 border-green-300">
+                          <Badge className="bg-gray-100 text-gray-800 border-gray-300">
                             Actif
                           </Badge>
                         ) : (

@@ -141,7 +141,7 @@ export default function MonComptePage() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-green-600 mx-auto"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-600 mx-auto"></div>
           <p className="mt-4 text-sm text-gray-600">Chargement...</p>
         </div>
       </div>
@@ -153,7 +153,7 @@ export default function MonComptePage() {
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <p className="text-lg font-medium text-gray-900">Profil introuvable</p>
-          <Button className="mt-4" variant="outline" onClick={() => router.push('/admin/calendrier')}>
+          <Button className="mt-4" variant="outline" onClick={() => router.push('/admin/planning')}>
             Retour au calendrier
           </Button>
         </div>
@@ -165,8 +165,8 @@ export default function MonComptePage() {
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
         <div className="flex items-center gap-3">
-          <div className="bg-green-100 p-2 rounded-lg">
-            <User className="h-6 w-6 text-green-600" />
+          <div className="bg-gray-100 p-2 rounded-lg">
+            <User className="h-6 w-6 text-gray-600" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Mon compte</h1>
@@ -317,7 +317,7 @@ export default function MonComptePage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push('/admin/calendrier')}
+            onClick={() => router.push('/admin/planning')}
           >
             Annuler
           </Button>

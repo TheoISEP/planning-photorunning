@@ -110,7 +110,7 @@ export default function AdminCalendrierEventDetailPage() {
 
 			const foundCourse = coursesData.courses?.find((c: Course) => c.id === eventId);
 			if (!foundCourse) {
-				router.push('/admin/calendrier');
+				router.push('/admin/planning');
 				return;
 			}
 
@@ -163,7 +163,7 @@ export default function AdminCalendrierEventDetailPage() {
 
 		} catch (error) {
 			console.error('Erreur chargement course:', error);
-			router.push('/admin/calendrier');
+			router.push('/admin/planning');
 		} finally {
 			setLoading(false);
 		}
@@ -324,7 +324,7 @@ export default function AdminCalendrierEventDetailPage() {
 					className="mb-4"
 					onClick={() => {
 						// Force un rechargement complet de la page
-						window.location.href = '/admin/calendrier';
+						window.location.href = '/admin/planning';
 					}}
 				>
 					<ArrowLeft className="h-4 w-4 mr-2" />
@@ -343,7 +343,7 @@ export default function AdminCalendrierEventDetailPage() {
 						</p>
 					</div>
 					<Button size="sm" asChild className="w-full sm:w-auto">
-						<Link href={`/admin/calendrier/${eventId}/edit`}>
+						<Link href={`/admin/planning/${eventId}/edit`}>
 							<Edit className="h-4 w-4 mr-2" />
 							Modifier
 						</Link>
@@ -549,7 +549,7 @@ export default function AdminCalendrierEventDetailPage() {
 										>
 											<div className="flex items-center gap-3">
 												<Avatar>
-													<AvatarFallback className={isTeamLeader ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700"}>
+													<AvatarFallback className={isTeamLeader ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-700"}>
 														{photographer.prenom[0]}{photographer.nom[0]}
 													</AvatarFallback>
 												</Avatar>
@@ -570,7 +570,7 @@ export default function AdminCalendrierEventDetailPage() {
 												</div>
 											</div>
 											<div className="text-right">
-												<div className="font-semibold text-green-600">
+												<div className="font-semibold text-gray-600">
 													{salary.toLocaleString("fr-FR")} €
 												</div>
 												{isTeamLeader && tarif && (
@@ -641,7 +641,7 @@ export default function AdminCalendrierEventDetailPage() {
 						>
 							Annuler
 						</Button>
-						<Button onClick={confirmStatusChange} className="bg-green-600 hover:bg-green-700">
+						<Button onClick={confirmStatusChange} className="bg-gray-600 hover:bg-gray-700">
 							Confirmer
 						</Button>
 					</DialogFooter>

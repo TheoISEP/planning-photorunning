@@ -200,7 +200,7 @@ export default function PhotographerCourseDetailPage() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-green-600 mx-auto"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-600 mx-auto"></div>
           <p className="mt-4 text-sm text-muted-foreground">Chargement...</p>
         </div>
       </div>
@@ -313,20 +313,20 @@ export default function PhotographerCourseDetailPage() {
                           key={member.id}
                           className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
                             isCurrentUser
-                              ? 'bg-green-50 border-green-300 dark:bg-green-900/20'
+                              ? 'bg-gray-50 border-gray-300 dark:bg-gray-900/20'
                               : 'bg-card hover:bg-accent/50'
                           }`}
                         >
                           <div className="flex items-center gap-3">
                             <Avatar>
-                              <AvatarFallback className={member.statut === 'teamLeader' ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700"}>
+                              <AvatarFallback className={member.statut === 'teamLeader' ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-700"}>
                                 {getInitials(member.prenom, member.nom)}
                               </AvatarFallback>
                             </Avatar>
                             <div>
                               <p className="font-medium">
                                 {member.prenom} {member.nom}
-                                {isCurrentUser && <span className="text-xs text-green-600 ml-2">(Vous)</span>}
+                                {isCurrentUser && <span className="text-xs text-gray-600 ml-2">(Vous)</span>}
                               </p>
                               <p className="text-sm text-muted-foreground">
                                 {member.statut === 'teamLeader' ? (
@@ -398,7 +398,7 @@ export default function PhotographerCourseDetailPage() {
 
                 {disponibilite.statut === 'available' && (
                   <div className="space-y-3">
-                    <p className="text-sm text-green-600 font-medium">Disponibilité déclarée</p>
+                    <p className="text-sm text-gray-600 font-medium">Disponibilité déclarée</p>
                     <Button
                       className="w-full"
                       variant="outline"
@@ -422,8 +422,8 @@ export default function PhotographerCourseDetailPage() {
                 )}
 
                 {disponibilite.statut === 'validated' && (
-                  <div className="bg-green-50 border border-green-200 rounded-md p-3">
-                    <p className="text-sm text-green-800 font-medium">
+                  <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+                    <p className="text-sm text-gray-800 font-medium">
                       ✓ Vous êtes affecté à cette course
                     </p>
                   </div>

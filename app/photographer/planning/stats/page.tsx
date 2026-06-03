@@ -26,7 +26,7 @@ function PercentBadge({ value }: { value: number }) {
   if (value === 0) return null;
   const isPositive = value > 0;
   const Icon = isPositive ? TrendingUp : TrendingDown;
-  const color = isPositive ? "text-green-600" : "text-red-600";
+  const color = isPositive ? "text-gray-600" : "text-red-600";
 
   return (
     <div className={cn("flex items-center gap-1 text-xs", color)}>
@@ -148,7 +148,7 @@ export default function PhotographerStatsPage() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-green-600 mx-auto"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-600 mx-auto"></div>
           <p className="mt-4 text-sm text-muted-foreground">Chargement des statistiques...</p>
         </div>
       </div>
@@ -246,7 +246,7 @@ export default function PhotographerStatsPage() {
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Performance {new Date().getFullYear()}</h2>
         <div className="grid gap-4 md:grid-cols-2">
-          <Card className="bg-gradient-to-br from-green-500/10 to-green-600/20 dark:from-green-500/20 dark:to-green-600/30 border-green-500/30">
+          <Card className="bg-gradient-to-br from-gray-500/10 to-gray-600/20 dark:from-gray-500/20 dark:to-gray-600/30 border-gray-500/30">
             <CardHeader className="pb-3">
               <CardDescription>Revenus totaux {new Date().getFullYear()}</CardDescription>
               <CardTitle className="text-3xl">{formatCurrency(yearlyStats.montantTotal)}</CardTitle>
@@ -302,7 +302,7 @@ export default function PhotographerStatsPage() {
                 </div>
                 <div className="flex justify-between text-sm border-t pt-2 mt-2">
                   <span className="text-muted-foreground">Revenus</span>
-                  <span className="font-bold text-green-600">{formatCurrency(month.montantTotal)}</span>
+                  <span className="font-bold text-gray-600">{formatCurrency(month.montantTotal)}</span>
                 </div>
               </CardContent>
             </Card>

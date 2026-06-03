@@ -142,7 +142,7 @@ export default function PhotographerDashboardPage() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-green-600 mx-auto"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-600 mx-auto"></div>
           <p className="mt-4 text-sm text-gray-600">Chargement des statistiques...</p>
         </div>
       </div>
@@ -178,7 +178,7 @@ export default function PhotographerDashboardPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">CA du mois</span>
-                  <span className="text-lg font-bold text-green-600">
+                  <span className="text-lg font-bold text-gray-600">
                     {formatCurrency(currentMonthStats?.CA || 0)}
                   </span>
                 </div>
@@ -238,7 +238,7 @@ export default function PhotographerDashboardPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-gray-600">Total courses</CardTitle>
-                <Calendar className="h-5 w-5 text-green-600" />
+                <Calendar className="h-5 w-5 text-gray-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900">{yearlyStats.totalCourses}</div>
@@ -249,7 +249,7 @@ export default function PhotographerDashboardPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-gray-600">CA annuel</CardTitle>
-                <Euro className="h-5 w-5 text-green-700" />
+                <Euro className="h-5 w-5 text-gray-700" />
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900">
@@ -264,7 +264,7 @@ export default function PhotographerDashboardPage() {
                 <CardTitle className="text-sm font-medium text-gray-600">
                   Moyenne mensuelle
                 </CardTitle>
-                <TrendingUp className="h-5 w-5 text-green-800" />
+                <TrendingUp className="h-5 w-5 text-gray-800" />
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900">

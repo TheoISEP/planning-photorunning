@@ -877,9 +877,9 @@ export default function AdminCalendrierPage() {
         </div>
       </div>
 
-      {/* Cartes récapitulatives compactes */}
+      {/* Cartes récapitulatives compactes - cachées sur mobile */}
       <TooltipProvider>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-2">
+        <div className="hidden md:grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-2">
           <Card>
             <CardContent className="px-2 py-2 md:px-3 md:py-3">
               <div className="flex items-center justify-between mb-1">

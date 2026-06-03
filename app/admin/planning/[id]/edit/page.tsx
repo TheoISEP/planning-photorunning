@@ -36,6 +36,10 @@ const courseSchema = z.object({
   supplementaire: z.string().optional(),
   hotelValid: z.boolean().optional(),
   transportValid: z.boolean().optional(),
+  hotelPrice: z.string().optional(),
+  transportPrice: z.string().optional(),
+  foodPrice: z.string().optional(),
+  comOrga: z.string().optional(),
 });
 
 type CourseFormValues = z.infer<typeof courseSchema>;
@@ -63,6 +67,10 @@ export default function EditCoursePage() {
       supplementaire: '',
       hotelValid: false,
       transportValid: false,
+      hotelPrice: '',
+      transportPrice: '',
+      foodPrice: '',
+      comOrga: '',
     },
   });
 
@@ -117,6 +125,10 @@ export default function EditCoursePage() {
         supplementaire: course.supplementaire || '',
         hotelValid: course.hotelValid === 'TRUE' || course.hotelValid === true,
         transportValid: course.transportValid === 'TRUE' || course.transportValid === true,
+        hotelPrice: course.hotelPrice || '',
+        transportPrice: course.transportPrice || '',
+        foodPrice: course.foodPrice || '',
+        comOrga: course.comOrga || '',
       });
     } catch (error) {
       console.error('Erreur chargement course:', error);
@@ -145,6 +157,10 @@ export default function EditCoursePage() {
         supplementaire: data.supplementaire || '',
         hotelValid: data.hotelValid ? 'TRUE' : 'FALSE',
         transportValid: data.transportValid ? 'TRUE' : 'FALSE',
+        hotelPrice: data.hotelPrice || '',
+        transportPrice: data.transportPrice || '',
+        foodPrice: data.foodPrice || '',
+        comOrga: data.comOrga || '',
       };
 
       const courseRes = await fetch(`/api/courses/${courseId}`, {
@@ -469,6 +485,73 @@ export default function EditCoursePage() {
                     </FormItem>
                   )}
                 />
+              </CardContent>
+            </Card>
+
+            {/* Section 5: Coûts */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Coûts de la course</CardTitle>
+                <CardDescription>Budget et dépenses liées à l&apos;événement</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="hotelPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Prix de l&apos;hôtel (€)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="transportPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Prix des transports (€)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="foodPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Prix de la nourriture (€)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="comOrga"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Commission organisateur (€)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </CardContent>
             </Card>
 

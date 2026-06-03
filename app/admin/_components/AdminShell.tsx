@@ -10,6 +10,7 @@ import {
 	Camera,
 	ChevronLeft,
 	ChevronRight,
+	Euro,
 	LayoutGrid,
 	LogOut,
 	Menu,
@@ -45,6 +46,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
 	{ href: "/admin/planning", label: "Calendrier", icon: LayoutGrid },
+	{ href: "/admin/costs", label: "Récap coûts", icon: Euro },
 	{ href: "/admin/archives", label: "Archives", icon: Archive },
 	{ href: "/admin/photographers", label: "Photographes", icon: Camera },
 	{ href: "/admin/admins", label: "Admins", icon: Shield },

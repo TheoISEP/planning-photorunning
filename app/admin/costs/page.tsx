@@ -245,14 +245,14 @@ export default function CostsRecapPage() {
           })
           .map(([monthKey, monthCourses]) => {
             // Calculer les totaux du mois
-            const monthTotals = {
-              hotel: monthCourses.reduce((sum, c) => sum + (Number(c.hotelPrice) || 0), 0),
-              transport: monthCourses.reduce((sum, c) => sum + (Number(c.transportPrice) || 0), 0),
-              food: monthCourses.reduce((sum, c) => sum + (Number(c.foodPrice) || 0), 0),
-              comOrga: monthCourses.reduce((sum, c) => sum + (Number(c.comOrga) || 0), 0),
-              photos: monthCourses.reduce((sum, c) => sum + calculatePhotoCost(c.id), 0),
-            };
-            monthTotals.total = monthTotals.hotel + monthTotals.transport + monthTotals.food + monthTotals.comOrga + monthTotals.photos;
+            const hotel = monthCourses.reduce((sum, c) => sum + (Number(c.hotelPrice) || 0), 0);
+            const transport = monthCourses.reduce((sum, c) => sum + (Number(c.transportPrice) || 0), 0);
+            const food = monthCourses.reduce((sum, c) => sum + (Number(c.foodPrice) || 0), 0);
+            const comOrga = monthCourses.reduce((sum, c) => sum + (Number(c.comOrga) || 0), 0);
+            const photos = monthCourses.reduce((sum, c) => sum + calculatePhotoCost(c.id), 0);
+            const total = hotel + transport + food + comOrga + photos;
+
+            const monthTotals = { hotel, transport, food, comOrga, photos, total };
 
             return (
               <Card key={monthKey}>

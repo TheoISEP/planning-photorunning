@@ -48,7 +48,7 @@ interface PhotographerStats {
   tauxReussite?: number;
 }
 
-export default function PhotographerPlanningPage() {
+export default function PhotographerCalendrierPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -280,12 +280,12 @@ export default function PhotographerPlanningPage() {
       {/* En-tête */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between flex-shrink-0">
         <div>
-          <h1 className="text-lg sm:text-xl font-bold tracking-tight">Mon Planning</h1>
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight">Mon Calendrier</h1>
           <p className="text-xs sm:text-sm text-muted-foreground">Gérez vos disponibilités</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Button variant="outline" size="sm" asChild className="w-full sm:w-auto h-10 sm:h-9">
-            <Link href="/photographer/planning/stats">
+            <Link href="/photographer/calendrier/stats">
               <ArrowUpDown className="h-4 w-4 mr-2" />
               Mes statistiques
             </Link>
@@ -293,9 +293,9 @@ export default function PhotographerPlanningPage() {
         </div>
       </div>
 
-      {/* Statistiques personnelles */}
+      {/* Statistiques personnelles - cachées sur mobile */}
       <TooltipProvider>
-        <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3 flex-shrink-0">
+        <div className="hidden md:grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3 flex-shrink-0">
           <Card className="shadow-md border-green-100">
             <CardContent className="p-3.5 md:p-4">
               <div className="flex items-start justify-between mb-2">
@@ -549,7 +549,7 @@ export default function PhotographerPlanningPage() {
                               <span className="text-base">{myDispo?.statut === 'teamLeader' ? '👑' : '✓'}</span>
                             )}
                             <Link
-                              href={`/photographer/planning/${course.id}`}
+                              href={`/photographer/calendrier/${course.id}`}
                               className={cn(
                                 'font-semibold hover:underline text-sm touch-manipulation',
                                 isValidated && 'text-green-800',

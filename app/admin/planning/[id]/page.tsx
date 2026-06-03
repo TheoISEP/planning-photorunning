@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Calendar, MapPin, Users, Euro, FileText, Edit, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusBadge } from "@/components/planning";
+import { StatusBadge } from "@/components/calendrier";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -70,7 +70,7 @@ interface Disponibilite {
 	statut: 'pending' | 'available' | 'unavailable' | 'validated' | 'teamLeader' | 'rejected';
 }
 
-export default function AdminPlanningEventDetailPage() {
+export default function AdminCalendrierEventDetailPage() {
 	const params = useParams();
 	const router = useRouter();
 	const eventId = params.id as string;
@@ -110,7 +110,7 @@ export default function AdminPlanningEventDetailPage() {
 
 			const foundCourse = coursesData.courses?.find((c: Course) => c.id === eventId);
 			if (!foundCourse) {
-				router.push('/admin/planning');
+				router.push('/admin/calendrier');
 				return;
 			}
 
@@ -163,7 +163,7 @@ export default function AdminPlanningEventDetailPage() {
 
 		} catch (error) {
 			console.error('Erreur chargement course:', error);
-			router.push('/admin/planning');
+			router.push('/admin/calendrier');
 		} finally {
 			setLoading(false);
 		}
@@ -324,11 +324,11 @@ export default function AdminPlanningEventDetailPage() {
 					className="mb-4"
 					onClick={() => {
 						// Force un rechargement complet de la page
-						window.location.href = '/admin/planning';
+						window.location.href = '/admin/calendrier';
 					}}
 				>
 					<ArrowLeft className="h-4 w-4 mr-2" />
-					Retour au planning
+					Retour au calendrier
 				</Button>
 				<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div className="flex-1">
@@ -343,7 +343,7 @@ export default function AdminPlanningEventDetailPage() {
 						</p>
 					</div>
 					<Button size="sm" asChild className="w-full sm:w-auto">
-						<Link href={`/admin/planning/${eventId}/edit`}>
+						<Link href={`/admin/calendrier/${eventId}/edit`}>
 							<Edit className="h-4 w-4 mr-2" />
 							Modifier
 						</Link>

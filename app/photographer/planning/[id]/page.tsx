@@ -8,7 +8,7 @@ import { fr } from 'date-fns/locale';
 import { ArrowLeft, Calendar, MapPin, FileText, Users, Euro, Star, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StatusBadge } from '@/components/planning/StatusBadge';
+import { StatusBadge } from '@/components/calendrier/StatusBadge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 
@@ -212,8 +212,8 @@ export default function PhotographerCourseDetailPage() {
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <p className="text-lg font-medium">Course introuvable</p>
-          <Link href="/photographer/planning" className="mt-4 inline-block">
-            <Button variant="outline">Retour au planning</Button>
+          <Link href="/photographer/calendrier" className="mt-4 inline-block">
+            <Button variant="outline">Retour au calendrier</Button>
           </Link>
         </div>
       </div>
@@ -229,7 +229,7 @@ export default function PhotographerCourseDetailPage() {
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-4 mb-2">
-              <Link href="/photographer/planning">
+              <Link href="/photographer/calendrier">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Retour

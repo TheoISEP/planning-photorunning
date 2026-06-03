@@ -33,6 +33,8 @@ interface Course {
   archived?: string;
   archivedAt?: string;
   archivedBy?: string;
+  hotelValid?: string | boolean;
+  transportValid?: string | boolean;
 }
 
 interface Photographer {
@@ -100,7 +102,7 @@ const getStatusColorClass = (status: string) => {
   return colors[status] || 'bg-white border-gray-300';
 };
 
-export default function AdminPlanningPage() {
+export default function AdminCalendrierPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<CourseWithData[]>([]);
@@ -829,7 +831,7 @@ export default function AdminPlanningPage() {
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-green-600 mx-auto"></div>
-          <p className="mt-4 text-sm text-muted-foreground">Chargement du planning...</p>
+          <p className="mt-4 text-sm text-muted-foreground">Chargement du calendrier...</p>
         </div>
       </div>
     );
@@ -840,21 +842,21 @@ export default function AdminPlanningPage() {
       {/* En-tête */}
       <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-base sm:text-lg font-bold tracking-tight">Planning des courses</h1>
+          <h1 className="text-base sm:text-lg font-bold tracking-tight">Calendrier des courses</h1>
           <p className="text-xs text-muted-foreground">
             Gérez les affectations des photographes sur les courses
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
-            <Link href="/admin/planning/stats">
+            <Link href="/admin/calendrier/stats">
               <ArrowUpDown className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Statistiques</span>
               <span className="sm:hidden">Stats</span>
             </Link>
           </Button>
           <Button size="sm" asChild className="w-full sm:w-auto">
-            <Link href="/admin/planning/new">
+            <Link href="/admin/calendrier/new">
               <Plus className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Nouvelle course</span>
               <span className="sm:hidden">Nouvelle</span>
@@ -1155,7 +1157,7 @@ export default function AdminPlanningPage() {
                           <div className="flex items-center justify-between gap-1 mb-0.5">
                               <div className="flex items-center gap-1.5 flex-1">
                                 <Link
-                                  href={`/admin/planning/${course.id}`}
+                                  href={`/admin/calendrier/${course.id}`}
                                   className="font-semibold hover:underline text-xs hover:text-primary transition-colors"
                                 >
                                   {course.nom}
@@ -1165,6 +1167,15 @@ export default function AdminPlanningPage() {
                                 ) : (
                                   <span className="text-[10px]">🟠</span>
                                 )}
+                                {/* Badges Hotel et Transport */}
+                                <div className="flex items-center gap-0.5">
+                                  {course.hotelValid && (
+                                    <span className={`text-[9px] font-bold px-1 py-0.5 rounded border ${course.hotelValid === 'TRUE' || course.hotelValid === true ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300'}`}>H</span>
+                                  )}
+                                  {course.transportValid && (
+                                    <span className={`text-[9px] font-bold px-1 py-0.5 rounded border ${course.transportValid === 'TRUE' || course.transportValid === true ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300'}`}>T</span>
+                                  )}
+                                </div>
                               </div>
                               <Button
                                 variant="ghost"
@@ -1424,7 +1435,7 @@ export default function AdminPlanningPage() {
 
           <div className="py-4">
             <p className="text-sm text-muted-foreground">
-              Cette course sera retirée du planning principal et déplacée dans la section Archives. Vous pourrez la désarchiver à tout moment.
+              Cette course sera retirée du calendrier principal et déplacée dans la section Archives. Vous pourrez la désarchiver à tout moment.
             </p>
           </div>
 

@@ -44,7 +44,7 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-	{ href: "/admin/planning", label: "Planning", icon: LayoutGrid },
+	{ href: "/admin/calendrier", label: "Calendrier", icon: LayoutGrid },
 	{ href: "/admin/archives", label: "Archives", icon: Archive },
 	{ href: "/admin/photographers", label: "Photographes", icon: Camera },
 	{ href: "/admin/admins", label: "Admins", icon: Shield },
@@ -55,7 +55,7 @@ type Crumb = { label: string; href?: string };
 
 function getAdminMeta(pathname: string): { title: string; crumbs: Crumb[]; primaryAction?: { href: string; label: string } } {
 	const parts = pathname.split("/").filter(Boolean);
-	const crumbs: Crumb[] = [{ label: "Admin", href: "/admin/planning" }];
+	const crumbs: Crumb[] = [{ label: "Admin", href: "/admin/calendrier" }];
 
 	if (parts.length < 2) return { title: "Admin", crumbs };
 
@@ -84,27 +84,27 @@ function getAdminMeta(pathname: string): { title: string; crumbs: Crumb[]; prima
 		return { title: "Détails de l'admin", crumbs };
 	}
 
-	if (section === "planning") {
-		crumbs.push({ label: "Planning", href: "/admin/planning" });
+	if (section === "calendrier") {
+		crumbs.push({ label: "Calendrier", href: "/admin/calendrier" });
 
-		// /admin/planning
+		// /admin/calendrier
 		if (parts.length === 2) {
-			return { title: "Planning", crumbs };
+			return { title: "Calendrier", crumbs };
 		}
 
-		// /admin/planning/new
+		// /admin/calendrier/new
 		if (parts[2] === "new") {
 			crumbs.push({ label: "Nouveau" });
 			return { title: "Nouvelle course", crumbs };
 		}
 
-		// /admin/planning/stats
+		// /admin/calendrier/stats
 		if (parts[2] === "stats") {
 			crumbs.push({ label: "Statistiques" });
-			return { title: "Statistiques planning", crumbs };
+			return { title: "Statistiques calendrier", crumbs };
 		}
 
-		// /admin/planning/[id]
+		// /admin/calendrier/[id]
 		crumbs.push({ label: `Course` });
 		return { title: "Détail de la course", crumbs };
 	}
@@ -224,9 +224,9 @@ function AdminUserMenu({ user }: { user: { email: string; nom: string } | null }
 					<UserCircle className="size-4" />
 					Mon compte
 				</DropdownMenuItem>
-				<DropdownMenuItem onSelect={() => router.push("/admin/planning")}>
+				<DropdownMenuItem onSelect={() => router.push("/admin/calendrier")}>
 					<LayoutGrid className="size-4" />
-					Planning
+					Calendrier
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem
@@ -273,7 +273,7 @@ export function AdminShell({ children, user }: { children: React.ReactNode; user
 						collapsed ? "w-[56px]" : "w-full"
 					)}>
 						<div className={cn("flex items-center justify-between gap-2 px-3 py-4 border-b", collapsed && "justify-center px-2")}>
-							<Link href="/admin/planning" className={cn("flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-green-100 dark:hover:bg-green-900/20", collapsed && "px-1")}>
+							<Link href="/admin/calendrier" className={cn("flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-green-100 dark:hover:bg-green-900/20", collapsed && "px-1")}>
 								<div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-lg bg-green-600 flex items-center justify-center">
 									<span className="text-white font-bold text-sm">PR</span>
 								</div>

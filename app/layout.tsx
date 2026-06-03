@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Planning Photographes - PhotoRunning",
-  description: "Gestion du planning et des disponibilités des photographes PhotoRunning",
+  title: "Calendrier Photographes - PhotoRunning",
+  description: "Gestion du calendrier et des disponibilités des photographes PhotoRunning",
 };
 
 export default function RootLayout({

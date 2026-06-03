@@ -44,7 +44,7 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-	{ href: "/photographer/planning", label: "Planning", icon: LayoutGrid },
+	{ href: "/photographer/calendrier", label: "Calendrier", icon: LayoutGrid },
 	{ href: "/photographer/archives", label: "Archives", icon: Archive },
 	{ href: "/photographer/profil", label: "Mon compte", icon: UserCircle },
 ];
@@ -53,27 +53,27 @@ type Crumb = { label: string; href?: string };
 
 function getPhotographerMeta(pathname: string): { title: string; crumbs: Crumb[]; primaryAction?: { href: string; label: string } } {
 	const parts = pathname.split("/").filter(Boolean);
-	const crumbs: Crumb[] = [{ label: "Photographe", href: "/photographer/planning" }];
+	const crumbs: Crumb[] = [{ label: "Photographe", href: "/photographer/calendrier" }];
 
 	if (parts.length < 2) return { title: "Photographe", crumbs };
 
 	const section = parts[1];
 
-	if (section === "planning") {
-		crumbs.push({ label: "Planning", href: "/photographer/planning" });
+	if (section === "calendrier") {
+		crumbs.push({ label: "Calendrier", href: "/photographer/calendrier" });
 
-		// /photographer/planning
+		// /photographer/calendrier
 		if (parts.length === 2) {
-			return { title: "Planning", crumbs };
+			return { title: "Calendrier", crumbs };
 		}
 
-		// /photographer/planning/stats
+		// /photographer/calendrier/stats
 		if (parts[2] === "stats") {
 			crumbs.push({ label: "Statistiques" });
-			return { title: "Statistiques planning", crumbs };
+			return { title: "Statistiques calendrier", crumbs };
 		}
 
-		// /photographer/planning/[id]
+		// /photographer/calendrier/[id]
 		crumbs.push({ label: `Course` });
 		return { title: "Détail de la course", crumbs };
 	}
@@ -193,9 +193,9 @@ function PhotographerUserMenu({ user }: { user: { email: string; nom: string; pr
 					<UserCircle className="size-4" />
 					Mon profil
 				</DropdownMenuItem>
-				<DropdownMenuItem onSelect={() => router.push("/photographer/planning")}>
+				<DropdownMenuItem onSelect={() => router.push("/photographer/calendrier")}>
 					<LayoutGrid className="size-4" />
-					Planning
+					Calendrier
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem
@@ -242,7 +242,7 @@ export function PhotographerShell({ children, user }: { children: React.ReactNod
 						collapsed ? "w-[56px]" : "w-full"
 					)}>
 						<div className={cn("flex items-center justify-between gap-2 px-3 py-4 border-b", collapsed && "justify-center px-2")}>
-							<Link href="/photographer/planning" className={cn("flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-green-100 dark:hover:bg-green-900/20", collapsed && "px-1")}>
+							<Link href="/photographer/calendrier" className={cn("flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-green-100 dark:hover:bg-green-900/20", collapsed && "px-1")}>
 								<div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-lg bg-green-600 flex items-center justify-center">
 									<span className="text-white font-bold text-sm">PR</span>
 								</div>

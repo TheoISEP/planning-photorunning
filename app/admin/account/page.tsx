@@ -153,8 +153,8 @@ export default function MonComptePage() {
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <p className="text-lg font-medium text-gray-900">Profil introuvable</p>
-          <Button className="mt-4" variant="outline" onClick={() => router.push('/admin/planning')}>
-            Retour au planning
+          <Button className="mt-4" variant="outline" onClick={() => router.push('/admin/calendrier')}>
+            Retour au calendrier
           </Button>
         </div>
       </div>
@@ -317,7 +317,7 @@ export default function MonComptePage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push('/admin/planning')}
+            onClick={() => router.push('/admin/calendrier')}
           >
             Annuler
           </Button>

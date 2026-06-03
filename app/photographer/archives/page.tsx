@@ -216,10 +216,10 @@ export default function PhotographerArchivesPage() {
       <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between flex-shrink-0">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/photographer/planning">
+            <Link href="/photographer/calendrier">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Retour au planning
+                Retour au calendrier
               </Button>
             </Link>
           </div>

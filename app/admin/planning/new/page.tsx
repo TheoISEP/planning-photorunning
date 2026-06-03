@@ -44,7 +44,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export default function NewPlanningEventPage() {
+export default function NewCalendrierEventPage() {
 	const router = useRouter();
 
 	const form = useForm<FormValues>({
@@ -109,8 +109,8 @@ export default function NewPlanningEventPage() {
 		// Afficher le toast immédiatement
 		toast.success('Course créée avec succès');
 
-		// Redirection immédiate vers le planning
-		window.location.href = '/admin/planning';
+		// Redirection immédiate vers le calendrier
+		window.location.href = '/admin/calendrier';
 
 		// Créer en arrière-plan (ne bloque pas la navigation)
 		Promise.all([
@@ -142,9 +142,9 @@ export default function NewPlanningEventPage() {
 			{/* En-tête */}
 			<div>
 				<Button variant="ghost" size="sm" asChild className="mb-4">
-					<Link href="/admin/planning">
+					<Link href="/admin/calendrier">
 						<ArrowLeft className="h-4 w-4 mr-2" />
-						Retour au planning
+						Retour au calendrier
 					</Link>
 				</Button>
 				<h1 className="text-2xl font-bold tracking-tight">Créer une nouvelle course</h1>

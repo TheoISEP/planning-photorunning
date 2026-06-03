@@ -173,9 +173,9 @@ export default function PhotographerStatsPage() {
       {/* En-tête */}
       <div>
         <Button variant="ghost" size="sm" asChild className="mb-4">
-          <Link href="/photographer/planning">
+          <Link href="/photographer/calendrier">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Retour au planning
+            Retour au calendrier
           </Link>
         </Button>
         <h1 className="text-2xl font-bold tracking-tight">Mes statistiques</h1>

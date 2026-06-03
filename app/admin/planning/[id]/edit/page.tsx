@@ -20,6 +20,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const courseSchema = z.object({
   nom: z.string().min(3, 'Le nom doit contenir au moins 3 caractères'),
@@ -33,6 +34,8 @@ const courseSchema = z.object({
   hotel: z.string().optional(),
   transport: z.string().optional(),
   supplementaire: z.string().optional(),
+  hotelValid: z.boolean().optional(),
+  transportValid: z.boolean().optional(),
 });
 
 type CourseFormValues = z.infer<typeof courseSchema>;
@@ -58,6 +61,8 @@ export default function EditCoursePage() {
       hotel: '',
       transport: '',
       supplementaire: '',
+      hotelValid: false,
+      transportValid: false,
     },
   });
 
@@ -110,11 +115,13 @@ export default function EditCoursePage() {
         hotel: course.hotel || '',
         transport: course.transport || '',
         supplementaire: course.supplementaire || '',
+        hotelValid: course.hotelValid === 'TRUE' || course.hotelValid === true,
+        transportValid: course.transportValid === 'TRUE' || course.transportValid === true,
       });
     } catch (error) {
       console.error('Erreur chargement course:', error);
       toast.error('Impossible de charger la course');
-      router.push('/admin/planning');
+      router.push('/admin/calendrier');
     } finally {
       setLoading(false);
     }
@@ -136,6 +143,8 @@ export default function EditCoursePage() {
         hotel: data.hotel || '',
         transport: data.transport || '',
         supplementaire: data.supplementaire || '',
+        hotelValid: data.hotelValid ? 'TRUE' : 'FALSE',
+        transportValid: data.transportValid ? 'TRUE' : 'FALSE',
       };
 
       const courseRes = await fetch(`/api/courses/${courseId}`, {
@@ -170,7 +179,7 @@ export default function EditCoursePage() {
       toast.success('Course et tarif modifiés avec succès');
 
       // Redirection
-      router.push(`/admin/planning/${courseId}`);
+      router.push(`/admin/calendrier/${courseId}`);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
       console.error('Erreur mise à jour course:', error);
@@ -196,7 +205,7 @@ export default function EditCoursePage() {
       {/* Header */}
       <div className="px-6 py-5 border-b border-gray-100">
         <div className="flex items-center gap-4">
-          <Link href={`/admin/planning/${courseId}`}>
+          <Link href={`/admin/calendrier/${courseId}`}>
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Retour
@@ -367,41 +376,81 @@ export default function EditCoursePage() {
                 <CardDescription>Informations sur l&apos;hébergement, transport et autres détails</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="hotel"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Hôtel</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Informations sur l'hôtel (nom, adresse, réservation...)"
-                          className="min-h-[80px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="hotel"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Hôtel</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Informations sur l'hôtel (nom, adresse, réservation...)"
+                            className="min-h-[80px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="transport"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Transport</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Informations sur le transport (covoiturage, train, lieu de RDV...)"
-                          className="min-h-[80px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="hotelValid"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Hôtel validé</FormLabel>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="transport"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Transport</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Informations sur le transport (covoiturage, train, lieu de RDV...)"
+                            className="min-h-[80px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="transportValid"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Transport validé</FormLabel>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <FormField
                   control={form.control}
@@ -425,7 +474,7 @@ export default function EditCoursePage() {
 
             {/* Actions */}
             <div className="flex justify-end gap-4">
-              <Link href={`/admin/planning/${courseId}`}>
+              <Link href={`/admin/calendrier/${courseId}`}>
                 <Button type="button" variant="outline">
                   Annuler
                 </Button>

@@ -28,7 +28,7 @@ export default function PhotographerLayout({ children }: { children: React.React
         }
         const data = await res.json();
         if (data.user.role !== 'photographer') {
-          router.push('/admin/planning');
+          router.push('/admin/calendrier');
           return;
         }
         setUser(data.user);

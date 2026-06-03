@@ -39,9 +39,9 @@ export default function LoginPage() {
 
       // Redirection selon le rôle
       if (data.user.role === 'admin') {
-        router.push('/admin/planning');
+        router.push('/admin/calendrier');
       } else {
-        router.push('/photographer/planning');
+        router.push('/photographer/calendrier');
       }
     } catch (err: any) {
       setError('Erreur de connexion au serveur');
@@ -57,7 +57,7 @@ export default function LoginPage() {
             <span className="text-white font-bold text-2xl">PR</span>
           </div>
         </div>
-        <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-50">PhotoRunning Planning</CardTitle>
+        <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-50">PhotoRunning Calendrier</CardTitle>
         <CardDescription className="text-gray-600 dark:text-gray-400">Connectez-vous à votre compte</CardDescription>
       </CardHeader>
       <CardContent className="px-6 pb-8">

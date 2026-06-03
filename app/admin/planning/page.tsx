@@ -1020,9 +1020,9 @@ export default function AdminPlanningPage() {
 
       {/* Tableau type Excel - NOUVELLE STRUCTURE */}
       <div className="flex-1 rounded-lg border shadow-lg bg-white dark:bg-gray-950 overflow-hidden">
-        <div className="overflow-x-auto overflow-y-auto h-full" style={{ position: 'relative', zoom: `${zoom}%` }}>
+        <div className="overflow-x-auto overflow-y-auto h-full relative" style={{ zoom: `${zoom}%` }}>
           {/* En-tête du tableau */}
-          <div className="sticky top-0 z-40" style={{ position: 'sticky' }}>
+          <div className="sticky top-0 z-40 bg-white dark:bg-gray-950">
             <div
               className="grid gap-0 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900 border-b-2 border-green-600/30"
               style={{

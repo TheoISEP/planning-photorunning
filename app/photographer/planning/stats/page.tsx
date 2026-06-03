@@ -169,7 +169,7 @@ export default function PhotographerStatsPage() {
     : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="h-full overflow-y-auto space-y-6 pb-6">
       {/* En-tête */}
       <div>
         <Button variant="ghost" size="sm" asChild className="mb-4">

@@ -766,17 +766,17 @@ export default function AdminPlanningPage() {
     }
   }>);
 
-  // Trier les courses de chaque mois par date
+  // Trier les courses de chaque mois par date (plus proche en premier)
   Object.values(coursesByMonth).forEach(monthData => {
     monthData.courses.sort((a, b) =>
       new Date(a.dateDebut).getTime() - new Date(b.dateDebut).getTime()
     );
   });
 
-  // Trier par année et mois (ordre chronologique inverse)
+  // Trier par année et mois (ordre chronologique : plus proche en premier)
   const sortedMonths = Object.values(coursesByMonth).sort((a, b) => {
-    if (a.year !== b.year) return b.year - a.year;
-    return b.month - a.month;
+    if (a.year !== b.year) return a.year - b.year;
+    return a.month - b.month;
   });
 
   // Fonction pour déterminer le week-end auquel appartient une date
@@ -1022,7 +1022,7 @@ export default function AdminPlanningPage() {
       <div className="flex-1 rounded-lg border shadow-lg bg-white dark:bg-gray-950 overflow-hidden">
         <div className="overflow-x-auto overflow-y-auto h-full" style={{ position: 'relative', zoom: `${zoom}%` }}>
           {/* En-tête du tableau */}
-          <div className="sticky top-0 z-20" style={{ position: 'sticky' }}>
+          <div className="sticky top-0 z-40" style={{ position: 'sticky' }}>
             <div
               className="grid gap-0 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900 border-b-2 border-green-600/30"
               style={{
@@ -1032,7 +1032,7 @@ export default function AdminPlanningPage() {
             >
               {/* Colonne Course - STICKY */}
               <div
-                className="sticky left-0 z-30 p-2 pr-1.5 border-r-2 border-green-600/40 font-semibold text-sm bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900"
+                className="sticky left-0 z-50 p-2 pr-1.5 border-r-2 border-green-600/40 font-semibold text-sm bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900"
                 style={{ position: 'sticky', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
               >
                 Course
@@ -1040,7 +1040,7 @@ export default function AdminPlanningPage() {
 
               {/* Colonne Date - STICKY */}
               <div
-                className="sticky z-30 p-2 pr-1.5 border-r-2 border-green-600/40 font-semibold text-sm bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900"
+                className="sticky z-50 p-2 pr-1.5 border-r-2 border-green-600/40 font-semibold text-sm bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900"
                 style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
               >
                 Date

@@ -134,6 +134,20 @@ export default function PhotographerPlanningPage() {
     fetchData();
   }, [fetchData]);
 
+  // Fonction pour recharger uniquement les disponibilités sans loader
+  const refreshDisponibilites = async () => {
+    if (!currentUser) return;
+    try {
+      const disponibilitesRes = await fetch('/api/disponibilites');
+      if (disponibilitesRes.ok) {
+        const disponibilitesData = await disponibilitesRes.json();
+        setDisponibilites(disponibilitesData.disponibilites || []);
+      }
+    } catch (error) {
+      console.error('Erreur refresh disponibilités:', error);
+    }
+  };
+
   const handleStatusChange = async (
     disponibiliteId: string,
     newStatus: string,
@@ -166,10 +180,10 @@ export default function PhotographerPlanningPage() {
 
       if (!res.ok) {
         // Rollback en cas d'erreur
-        fetchData();
+        refreshDisponibilites();
       }
     } catch (error) {
-      fetchData();
+      refreshDisponibilites();
     }
   };
 
@@ -246,8 +260,8 @@ export default function PhotographerPlanningPage() {
   }, {} as Record<string, { year: number; month: number; courses: Course[] }>);
 
   const sortedMonths = Object.values(coursesByMonth).sort((a, b) => {
-    if (a.year !== b.year) return b.year - a.year;
-    return b.month - a.month;
+    if (a.year !== b.year) return a.year - b.year;
+    return a.month - b.month;
   });
 
   if (loading) {
@@ -281,88 +295,88 @@ export default function PhotographerPlanningPage() {
 
       {/* Statistiques personnelles */}
       <TooltipProvider>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3 flex-shrink-0">
-          <Card className="shadow-sm">
-            <CardContent className="px-3 py-3 md:px-4 md:py-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="text-xs md:text-sm font-medium text-muted-foreground">
-                  Mes courses
+        <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3 flex-shrink-0">
+          <Card className="shadow-md border-green-100">
+            <CardContent className="p-3.5 md:p-4">
+              <div className="flex items-start justify-between mb-2">
+                <div className="text-[11px] md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Courses
                 </div>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground touch-manipulation">
-                      <Info className="h-4 w-4" />
+                    <button className="text-muted-foreground hover:text-foreground touch-manipulation -mt-0.5">
+                      <Info className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-[200px]">
+                  <TooltipContent side="bottom" align="end" className="max-w-[200px]">
                     <p className="text-xs">Nombre de courses validées ce mois</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="text-xl md:text-2xl font-bold">{myStats.nombreCourses}</div>
+              <div className="text-2xl md:text-3xl font-bold text-foreground">{myStats.nombreCourses}</div>
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm">
-            <CardContent className="px-3 py-3 md:px-4 md:py-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="text-xs md:text-sm font-medium text-muted-foreground">
+          <Card className="shadow-md border-blue-100">
+            <CardContent className="p-3.5 md:p-4">
+              <div className="flex items-start justify-between mb-2">
+                <div className="text-[11px] md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                   Prestations
                 </div>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground touch-manipulation">
-                      <Info className="h-4 w-4" />
+                    <button className="text-muted-foreground hover:text-foreground touch-manipulation -mt-0.5">
+                      <Info className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-[200px]">
+                  <TooltipContent side="bottom" align="end" className="max-w-[200px]">
                     <p className="text-xs">Total de vos prestations ce mois</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="text-xl md:text-2xl font-bold">{myStats.nombrePrestations}</div>
+              <div className="text-2xl md:text-3xl font-bold text-foreground">{myStats.nombrePrestations}</div>
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm">
-            <CardContent className="px-3 py-3 md:px-4 md:py-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="text-xs md:text-sm font-medium text-muted-foreground">
-                  CA du mois
+          <Card className="shadow-md border-green-200 bg-green-50/50">
+            <CardContent className="p-3.5 md:p-4">
+              <div className="flex items-start justify-between mb-2">
+                <div className="text-[11px] md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  CA Mois
                 </div>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground touch-manipulation">
-                      <Info className="h-4 w-4" />
+                    <button className="text-muted-foreground hover:text-foreground touch-manipulation -mt-0.5">
+                      <Info className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-[200px]">
+                  <TooltipContent side="bottom" align="end" className="max-w-[200px]">
                     <p className="text-xs">Total de vos rémunérations ce mois</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="text-xl md:text-2xl font-bold text-green-600">{formatCurrency(myStats.montantTotal)}</div>
+              <div className="text-xl md:text-2xl font-bold text-green-700 leading-tight">{formatCurrency(myStats.montantTotal)}</div>
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm">
-            <CardContent className="px-3 py-3 md:px-4 md:py-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="text-xs md:text-sm font-medium text-muted-foreground">
+          <Card className="shadow-md border-purple-100">
+            <CardContent className="p-3.5 md:p-4">
+              <div className="flex items-start justify-between mb-2">
+                <div className="text-[11px] md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                   Heures
                 </div>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground touch-manipulation">
-                      <Info className="h-4 w-4" />
+                    <button className="text-muted-foreground hover:text-foreground touch-manipulation -mt-0.5">
+                      <Info className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-[200px]">
+                  <TooltipContent side="bottom" align="end" className="max-w-[200px]">
                     <p className="text-xs">Heures de travail ce mois</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="text-xl md:text-2xl font-bold">{myStats.heuresTravail}h</div>
+              <div className="text-2xl md:text-3xl font-bold text-foreground">{myStats.heuresTravail}h</div>
             </CardContent>
           </Card>
         </div>
@@ -647,6 +661,20 @@ export default function PhotographerPlanningPage() {
                                 className="h-10 md:h-9 text-sm font-medium bg-blue-50 hover:bg-blue-100 border-blue-300 touch-manipulation active:scale-95 transition-transform"
                                 onClick={async () => {
                                   if (!currentUser) return;
+
+                                  const newDispoId = `dispo-${course.id}-${currentUser.id}`;
+
+                                  // Mise à jour optimiste
+                                  setDisponibilites((prev) => [
+                                    ...prev,
+                                    {
+                                      id: newDispoId,
+                                      photographeId: currentUser.id,
+                                      courseId: course.id,
+                                      statut: 'available' as const,
+                                    }
+                                  ]);
+
                                   try {
                                     const res = await fetch('/api/disponibilites', {
                                       method: 'POST',
@@ -658,11 +686,13 @@ export default function PhotographerPlanningPage() {
                                         dateDeclaration: new Date().toISOString(),
                                       }),
                                     });
-                                    if (res.ok) {
-                                      fetchData();
+                                    if (!res.ok) {
+                                      // Rollback en cas d'erreur
+                                      refreshDisponibilites();
                                     }
                                   } catch (error) {
                                     console.error('Erreur:', error);
+                                    refreshDisponibilites();
                                   }
                                 }}
                               >
@@ -674,6 +704,20 @@ export default function PhotographerPlanningPage() {
                                 className="h-10 md:h-9 text-sm font-medium bg-gray-50 hover:bg-gray-100 border-gray-300 touch-manipulation active:scale-95 transition-transform"
                                 onClick={async () => {
                                   if (!currentUser) return;
+
+                                  const newDispoId = `dispo-${course.id}-${currentUser.id}`;
+
+                                  // Mise à jour optimiste
+                                  setDisponibilites((prev) => [
+                                    ...prev,
+                                    {
+                                      id: newDispoId,
+                                      photographeId: currentUser.id,
+                                      courseId: course.id,
+                                      statut: 'unavailable' as const,
+                                    }
+                                  ]);
+
                                   try {
                                     const res = await fetch('/api/disponibilites', {
                                       method: 'POST',
@@ -685,11 +729,13 @@ export default function PhotographerPlanningPage() {
                                         dateDeclaration: new Date().toISOString(),
                                       }),
                                     });
-                                    if (res.ok) {
-                                      fetchData();
+                                    if (!res.ok) {
+                                      // Rollback en cas d'erreur
+                                      refreshDisponibilites();
                                     }
                                   } catch (error) {
                                     console.error('Erreur:', error);
+                                    refreshDisponibilites();
                                   }
                                 }}
                               >

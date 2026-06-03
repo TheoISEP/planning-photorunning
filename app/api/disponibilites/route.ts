@@ -82,6 +82,77 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// POST /api/disponibilites - Créer une nouvelle disponibilité
+export async function POST(request: NextRequest) {
+  try {
+    // Vérifier l'authentification
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth-token')?.value;
+    if (!token) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+
+    const authService = new AuthService();
+    const user = authService.verifyToken(token);
+    if (!user) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+
+    const { photographeId, courseId, statut, dateDeclaration, tarifId, noteAdmin } = await request.json();
+
+    if (!photographeId || !courseId || !statut) {
+      return NextResponse.json({ error: 'photographeId, courseId et statut requis' }, { status: 400 });
+    }
+
+    // Valider le statut
+    const validStatuses = ['pending', 'available', 'unavailable', 'validated', 'teamLeader', 'rejected'];
+    if (!validStatuses.includes(statut)) {
+      return NextResponse.json({ error: 'Statut invalide' }, { status: 400 });
+    }
+
+    // Vérifier que le photographe ne crée une disponibilité que pour lui-même
+    if (user.role === 'photographer' && user.id !== photographeId) {
+      return NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 });
+    }
+
+    const sheetsService = new GoogleSheetsService();
+
+    // Générer un ID unique
+    const id = `dispo-${courseId}-${photographeId}`;
+
+    // Vérifier si la disponibilité existe déjà
+    try {
+      const existing = await sheetsService.getDisponibiliteById(id);
+      if (existing) {
+        return NextResponse.json({ error: 'Disponibilité déjà existante' }, { status: 409 });
+      }
+    } catch (error) {
+      // Disponibilité n'existe pas, on peut continuer
+    }
+
+    // Créer la disponibilité
+    const newDisponibilite = {
+      id,
+      courseId,
+      photographeId,
+      statut,
+      dateDeclaration: dateDeclaration || new Date().toISOString(),
+      dateModification: new Date().toISOString(),
+      noteAdmin: noteAdmin || '',
+      tarifId: tarifId || '',
+    };
+
+    await sheetsService.createDisponibilite(newDisponibilite);
+
+    console.log(`✅ Disponibilité créée: ${id} (${statut})`);
+
+    return NextResponse.json({ disponibilite: newDisponibilite, success: true }, { status: 201 });
+  } catch (error: any) {
+    console.error('Create disponibilite error:', error);
+    return NextResponse.json({ error: 'Erreur lors de la création de la disponibilité' }, { status: 500 });
+  }
+}
+
 // PATCH /api/disponibilites - Modifier le statut d'une disponibilité (ou la créer si elle n'existe pas)
 export async function PATCH(request: NextRequest) {
   try {

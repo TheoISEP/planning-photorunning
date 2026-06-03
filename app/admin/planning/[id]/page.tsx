@@ -54,6 +54,7 @@ interface Admin {
 	id: string;
 	nom: string;
 	prenom: string;
+	nonRemunere?: boolean | string;
 }
 
 interface Tarif {
@@ -80,6 +81,7 @@ export default function AdminCalendrierEventDetailPage() {
 	const [tarif, setTarif] = React.useState<Tarif | null>(null);
 	const [disponibilites, setDisponibilites] = React.useState<Disponibilite[]>([]);
 	const [photographers, setPhotographers] = React.useState<Photographer[]>([]);
+	const [admins, setAdmins] = React.useState<Admin[]>([]);
 	const [showStatusDialog, setShowStatusDialog] = React.useState(false);
 	const [rejectOthers, setRejectOthers] = React.useState(true);
 	const [pendingStatusChange, setPendingStatusChange] = React.useState<string | null>(null);
@@ -116,6 +118,7 @@ export default function AdminCalendrierEventDetailPage() {
 
 			setCourse(foundCourse);
 			setPhotographers(photographersData.photographers || []);
+			setAdmins(adminsData.admins || []);
 
 			// Récupérer le premier tarif depuis l'API (ou créer un tarif par défaut)
 			const courseTarifs = tarifsData.tarifs || [];
@@ -310,7 +313,18 @@ export default function AdminCalendrierEventDetailPage() {
 	if (!course) return null;
 
 	const validatedCount = disponibilites.filter(d => d.statut === "validated").length;
-	const teamLeaderCount = disponibilites.filter(d => d.statut === "teamLeader").length;
+
+	// Filtrer les chefs d'équipe en excluant les admins non rémunérés
+	const teamLeaderCount = disponibilites.filter(d => {
+		if (d.statut !== "teamLeader") return false;
+
+		// Vérifier si c'est un admin non rémunéré
+		const user = admins.find((a) => a.id === d.photographeId);
+		const isNonRemunere = user && (user.nonRemunere === 'TRUE' || user.nonRemunere === true);
+
+		return !isNonRemunere;
+	}).length;
+
 	const totalCost = tarif
 		? (validatedCount * Number(tarif.tarifPhotographe)) + (teamLeaderCount * (Number(tarif.tarifPhotographe) + Number(tarif.bonusChefEquipe)))
 		: 0;

@@ -40,6 +40,10 @@ const formSchema = z.object({
 	hotelNotes: z.string().optional(),
 	transportNotes: z.string().optional(),
 	specialNotes: z.string().optional(),
+	hotelPrice: z.string().optional(),
+	transportPrice: z.string().optional(),
+	foodPrice: z.string().optional(),
+	comOrga: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -61,6 +65,10 @@ export default function NewCalendrierEventPage() {
 			hotelNotes: "",
 			transportNotes: "",
 			specialNotes: "",
+			hotelPrice: "",
+			transportPrice: "",
+			foodPrice: "",
+			comOrga: "",
 		},
 	});
 
@@ -94,6 +102,10 @@ export default function NewCalendrierEventPage() {
 			hotel: values.hotelNotes || '',
 			transport: values.transportNotes || '',
 			supplementaire: values.specialNotes || '',
+			hotelPrice: values.hotelPrice || '',
+			transportPrice: values.transportPrice || '',
+			foodPrice: values.foodPrice || '',
+			comOrga: values.comOrga || '',
 		};
 
 		// Créer le tarif
@@ -389,6 +401,89 @@ export default function NewCalendrierEventPage() {
 									</FormItem>
 								)}
 							/>
+						</CardContent>
+					</Card>
+
+					{/* Coûts de la course */}
+					<Card>
+						<CardHeader>
+							<CardTitle>Coûts de la course</CardTitle>
+							<CardDescription>Budget et dépenses liées à l&apos;événement</CardDescription>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<FormField
+									control={form.control}
+									name="hotelPrice"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Prix hôtel</FormLabel>
+											<FormControl>
+												<div className="relative">
+													<Input type="number" placeholder="0" {...field} className="pr-8" />
+													<span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+												</div>
+											</FormControl>
+											<FormDescription>Coût total de l&apos;hébergement</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="transportPrice"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Prix transport</FormLabel>
+											<FormControl>
+												<div className="relative">
+													<Input type="number" placeholder="0" {...field} className="pr-8" />
+													<span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+												</div>
+											</FormControl>
+											<FormDescription>Coût du transport</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="foodPrice"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Prix nourriture</FormLabel>
+											<FormControl>
+												<div className="relative">
+													<Input type="number" placeholder="0" {...field} className="pr-8" />
+													<span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+												</div>
+											</FormControl>
+											<FormDescription>Budget repas et alimentation</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="comOrga"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Commission organisateur</FormLabel>
+											<FormControl>
+												<div className="relative">
+													<Input type="number" placeholder="0" {...field} className="pr-8" />
+													<span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+												</div>
+											</FormControl>
+											<FormDescription>Commission versée à l&apos;organisateur</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
 						</CardContent>
 					</Card>
 

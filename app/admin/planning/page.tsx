@@ -836,9 +836,9 @@ export default function AdminPlanningPage() {
   }
 
   return (
-    <div className="h-full overflow-hidden flex flex-col space-y-1.5 -mx-3 -my-4 md:-mx-6 md:-my-8 px-3 py-4 md:px-6 md:py-6">
+    <div className="h-full overflow-y-auto overflow-x-hidden flex flex-col space-y-1.5 -mx-3 -my-4 md:-mx-6 md:-my-8 px-3 py-4 md:px-6 md:py-6">
       {/* En-tête */}
-      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between flex-shrink-0">
+      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-base sm:text-lg font-bold tracking-tight">Planning des courses</h1>
           <p className="text-xs text-muted-foreground">
@@ -865,7 +865,7 @@ export default function AdminPlanningPage() {
 
       {/* Cartes récapitulatives compactes */}
       <TooltipProvider>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-2 flex-shrink-0">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-2">
           <Card>
             <CardContent className="px-2 py-2 md:px-3 md:py-3">
               <div className="flex items-center justify-between mb-1">
@@ -992,7 +992,7 @@ export default function AdminPlanningPage() {
       </TooltipProvider>
 
       {/* Barre d'outils */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-shrink-0">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
         <div className="flex items-center gap-2 flex-1">
           <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
           <Select value={statutFilter} onValueChange={setStatutFilter}>
@@ -1019,10 +1019,10 @@ export default function AdminPlanningPage() {
       </div>
 
       {/* Tableau type Excel - NOUVELLE STRUCTURE */}
-      <div className="flex-1 rounded-lg border shadow-lg bg-white dark:bg-gray-950 overflow-hidden">
-        <div className="overflow-x-auto overflow-y-auto h-full relative" style={{ zoom: `${zoom}%` }}>
-          {/* En-tête du tableau */}
-          <div className="sticky top-0 z-40 bg-white dark:bg-gray-950">
+      <div className="sticky top-[100px] rounded-lg border shadow-lg bg-white dark:bg-gray-950 overflow-hidden" style={{ height: 'calc(100vh - 140px)' }}>
+        <div className="h-full overflow-x-auto overflow-y-auto" style={{ zoom: `${zoom}%` }}>
+          {/* En-tête du tableau - STICKY TOP */}
+          <div className="sticky top-0 z-40 bg-white dark:bg-gray-950 shadow-sm">
             <div
               className="grid gap-0 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900 border-b-2 border-green-600/30"
               style={{
@@ -1407,7 +1407,6 @@ export default function AdminPlanningPage() {
           </div>
         </div>
       </div>
-
 
       {/* Dialog de confirmation d'archivage */}
       <Dialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>

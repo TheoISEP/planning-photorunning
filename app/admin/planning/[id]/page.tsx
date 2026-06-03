@@ -39,6 +39,9 @@ interface Course {
 	dateFin: string;
 	statutTraitement: 'inProgress' | 'done';
 	coureursAttendus?: number;
+	hotel?: string;
+	transport?: string;
+	supplementaire?: string;
 }
 
 interface Photographer {
@@ -396,6 +399,45 @@ export default function AdminPlanningEventDetailPage() {
 							)}
 						</CardContent>
 					</Card>
+
+					{(course.hotel || course.transport || course.supplementaire) && (
+						<Card>
+							<CardHeader>
+								<CardTitle>Logistique</CardTitle>
+							</CardHeader>
+							<CardContent className="space-y-4">
+								{course.hotel && (
+									<div className="flex items-start gap-3">
+										<div className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5">🏨</div>
+										<div>
+											<div className="font-medium">Hôtel</div>
+											<div className="text-sm text-muted-foreground whitespace-pre-wrap">{course.hotel}</div>
+										</div>
+									</div>
+								)}
+
+								{course.transport && (
+									<div className="flex items-start gap-3">
+										<div className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5">🚗</div>
+										<div>
+											<div className="font-medium">Transport</div>
+											<div className="text-sm text-muted-foreground whitespace-pre-wrap">{course.transport}</div>
+										</div>
+									</div>
+								)}
+
+								{course.supplementaire && (
+									<div className="flex items-start gap-3">
+										<div className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5">ℹ️</div>
+										<div>
+											<div className="font-medium">Informations supplémentaires</div>
+											<div className="text-sm text-muted-foreground whitespace-pre-wrap">{course.supplementaire}</div>
+										</div>
+									</div>
+								)}
+							</CardContent>
+						</Card>
+					)}
 
 					<Card>
 						<CardHeader>

@@ -842,7 +842,7 @@ export default function AdminCalendrierPage() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-green-600 mx-auto"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-600 mx-auto"></div>
           <p className="mt-4 text-sm text-muted-foreground">Chargement du calendrier...</p>
         </div>
       </div>
@@ -1038,7 +1038,7 @@ export default function AdminCalendrierPage() {
           {/* En-tête du tableau - STICKY TOP */}
           <div className="sticky top-0 z-40 bg-white dark:bg-gray-950 shadow-sm">
             <div
-              className="grid gap-0 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900 border-b-2 border-green-600/30"
+              className="grid gap-0 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 border-b-2 border-gray-400/30"
               style={{
                 gridTemplateColumns: `200px 120px repeat(${[...admins, ...photographers].filter((u) => u.actif).length}, 70px)`,
                 minWidth: 'max-content'
@@ -1046,7 +1046,7 @@ export default function AdminCalendrierPage() {
             >
               {/* Colonne Course - STICKY */}
               <div
-                className="sticky left-0 z-50 p-2 pr-1.5 border-r-2 border-green-600/40 font-semibold text-sm bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900"
+                className="sticky left-0 z-50 p-2 pr-1.5 border-r-2 border-gray-400/40 font-semibold text-sm bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900"
                 style={{ position: 'sticky', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
               >
                 Course
@@ -1054,7 +1054,7 @@ export default function AdminCalendrierPage() {
 
               {/* Colonne Date - STICKY */}
               <div
-                className="sticky z-50 p-2 pr-1.5 border-r-2 border-green-600/40 font-semibold text-sm bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900"
+                className="sticky z-50 p-2 pr-1.5 border-r-2 border-gray-400/40 font-semibold text-sm bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900"
                 style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
               >
                 Date
@@ -1064,7 +1064,7 @@ export default function AdminCalendrierPage() {
                 <div key={admin.id} className="p-2 text-center">
                   <Link
                     href={`/admin/admins/${admin.id}/profile`}
-                    className="hover:text-green-700 hover:underline transition-colors font-bold text-xs flex flex-col items-center"
+                    className="hover:text-gray-700 hover:underline transition-colors font-bold text-xs flex flex-col items-center"
                     title={`${admin.prenom} ${admin.nom}`}
                   >
                     <div className="truncate w-full">{admin.prenom}</div>
@@ -1078,7 +1078,7 @@ export default function AdminCalendrierPage() {
                 <div key={photographer.id} className="p-2 text-center">
                   <Link
                     href={`/admin/photographers/${photographer.id}/profile`}
-                    className="hover:text-green-700 hover:underline transition-colors text-xs flex flex-col items-center"
+                    className="hover:text-gray-700 hover:underline transition-colors text-xs flex flex-col items-center"
                     title={`${photographer.prenom} ${photographer.nom}`}
                   >
                     <div className="truncate w-full">{photographer.prenom}</div>
@@ -1134,8 +1134,8 @@ export default function AdminCalendrierPage() {
                     const validatedCount = course.photographesValides;
                     const availableCount = course.photographesDisponibles;
                     const bgColor = courseIdx % 2 === 0
-                      ? "bg-green-50 dark:bg-green-950"
-                      : "bg-emerald-50 dark:bg-emerald-950";
+                      ? "bg-gray-50 dark:bg-gray-950"
+                      : "bg-gray-100 dark:bg-gray-900";
 
                     // Vérifier si c'est le début d'un nouveau week-end
                     const currentWeekend = getWeekendKey(course.dateDebut);
@@ -1148,7 +1148,7 @@ export default function AdminCalendrierPage() {
                       <div
                         key={course.id}
                         className={cn(
-                          "grid gap-0 border-b border-green-200/50 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors",
+                          "grid gap-0 border-b border-gray-200/50 hover:bg-gray-200 dark:hover:bg-gray-800/30 transition-colors",
                           bgColor,
                           isNewWeekend && "border-t-2 border-t-blue-300/60 dark:border-t-blue-600/60"
                         )}
@@ -1160,7 +1160,7 @@ export default function AdminCalendrierPage() {
                         {/* Colonne infos course - STICKY */}
                         <div
                           className={cn(
-                            "sticky left-0 z-10 p-2 pr-1.5 border-r-2 border-green-600/40",
+                            "sticky left-0 z-10 p-2 pr-1.5 border-r-2 border-gray-400/40",
                             bgColor
                           )}
                           style={{ position: 'sticky', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
@@ -1257,7 +1257,7 @@ export default function AdminCalendrierPage() {
                                   value={dispo.statut}
                                   onValueChange={(value) => handleStatusChange(dispo.id, value, course.id)}
                                 >
-                                  <SelectTrigger className={`h-7 text-[9px] w-full border transition-all focus:border-green-600 px-0.5 font-medium ${getStatusColorClass(dispo.statut)}`}>
+                                  <SelectTrigger className={`h-7 text-[9px] w-full border transition-all focus:border-gray-600 px-0.5 font-medium ${getStatusColorClass(dispo.statut)}`}>
                                     <SelectValue>
                                       {getStatusLabel(dispo.statut)}
                                     </SelectValue>
@@ -1346,7 +1346,7 @@ export default function AdminCalendrierPage() {
                                   value={dispo.statut}
                                   onValueChange={(value) => handleStatusChange(dispo.id, value, course.id)}
                                 >
-                                  <SelectTrigger className={`h-7 text-[9px] w-full border transition-all focus:border-green-600 px-0.5 font-medium ${getStatusColorClass(dispo.statut)}`}>
+                                  <SelectTrigger className={`h-7 text-[9px] w-full border transition-all focus:border-gray-600 px-0.5 font-medium ${getStatusColorClass(dispo.statut)}`}>
                                     <SelectValue>
                                       {getStatusLabel(dispo.statut)}
                                     </SelectValue>

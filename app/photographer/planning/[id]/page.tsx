@@ -298,40 +298,51 @@ export default function PhotographerCourseDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Équipe (seulement si je suis validé ET qu'il y a des membres) */}
-            {isValidated && team.length > 0 && (
+            {/* Équipe (afficher s'il y a au moins un membre validé/chef d'équipe) */}
+            {team.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Équipe assignée</CardTitle>
+                  <CardTitle>Équipe assignée ({team.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {team.map((member) => (
-                      <div key={member.id} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarFallback className={member.statut === 'teamLeader' ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700"}>
-                              {getInitials(member.prenom, member.nom)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">
-                              {member.prenom} {member.nom}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {member.statut === 'teamLeader' ? (
-                                <span className="flex items-center gap-1">
-                                  <Star className="h-3 w-3 text-purple-500" />
-                                  Chef d'équipe
-                                </span>
-                              ) : (
-                                'Photographe'
-                              )}
-                            </p>
+                    {team.map((member) => {
+                      const isCurrentUser = member.photographeId === currentUserId;
+                      return (
+                        <div
+                          key={member.id}
+                          className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                            isCurrentUser
+                              ? 'bg-green-50 border-green-300 dark:bg-green-900/20'
+                              : 'bg-card hover:bg-accent/50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarFallback className={member.statut === 'teamLeader' ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700"}>
+                                {getInitials(member.prenom, member.nom)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">
+                                {member.prenom} {member.nom}
+                                {isCurrentUser && <span className="text-xs text-green-600 ml-2">(Vous)</span>}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {member.statut === 'teamLeader' ? (
+                                  <span className="flex items-center gap-1">
+                                    <Star className="h-3 w-3 text-purple-500" />
+                                    Chef d'équipe
+                                  </span>
+                                ) : (
+                                  'Photographe'
+                                )}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>

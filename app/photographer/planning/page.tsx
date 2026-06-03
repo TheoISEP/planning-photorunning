@@ -262,15 +262,15 @@ export default function PhotographerPlanningPage() {
   }
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col space-y-1.5">
+    <div className="h-full flex flex-col space-y-2 md:space-y-1.5">
       {/* En-tête */}
-      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between flex-shrink-0">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between flex-shrink-0">
         <div>
-          <h1 className="text-base sm:text-lg font-bold tracking-tight">Mon Planning</h1>
-          <p className="text-xs text-muted-foreground">Gérez vos disponibilités et consultez vos prestations</p>
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight">Mon Planning</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Gérez vos disponibilités</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
+          <Button variant="outline" size="sm" asChild className="w-full sm:w-auto h-10 sm:h-9">
             <Link href="/photographer/planning/stats">
               <ArrowUpDown className="h-4 w-4 mr-2" />
               Mes statistiques
@@ -281,127 +281,127 @@ export default function PhotographerPlanningPage() {
 
       {/* Statistiques personnelles */}
       <TooltipProvider>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-2 flex-shrink-0">
-          <Card>
-            <CardContent className="px-2 py-2 md:px-3 md:py-3">
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3 flex-shrink-0">
+          <Card className="shadow-sm">
+            <CardContent className="px-3 py-3 md:px-4 md:py-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-xs md:text-sm font-medium text-muted-foreground">
                   Mes courses
                 </div>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground">
-                      <Info className="h-3 w-3 md:h-4 md:w-4" />
+                    <button className="text-muted-foreground hover:text-foreground touch-manipulation">
+                      <Info className="h-4 w-4" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">Nombre de courses où vous êtes validé ce mois</p>
+                  <TooltipContent side="bottom" className="max-w-[200px]">
+                    <p className="text-xs">Nombre de courses validées ce mois</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="text-base sm:text-lg md:text-xl font-bold">{myStats.nombreCourses}</div>
+              <div className="text-xl md:text-2xl font-bold">{myStats.nombreCourses}</div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="px-2 py-2 md:px-3 md:py-3">
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground">
+          <Card className="shadow-sm">
+            <CardContent className="px-3 py-3 md:px-4 md:py-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-xs md:text-sm font-medium text-muted-foreground">
                   Prestations
                 </div>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground">
-                      <Info className="h-3 w-3 md:h-4 md:w-4" />
+                    <button className="text-muted-foreground hover:text-foreground touch-manipulation">
+                      <Info className="h-4 w-4" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent>
+                  <TooltipContent side="bottom" className="max-w-[200px]">
                     <p className="text-xs">Total de vos prestations ce mois</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="text-base sm:text-lg md:text-xl font-bold">{myStats.nombrePrestations}</div>
+              <div className="text-xl md:text-2xl font-bold">{myStats.nombrePrestations}</div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="px-2 py-2 md:px-3 md:py-3">
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground">
-                  Montant gagné
+          <Card className="shadow-sm">
+            <CardContent className="px-3 py-3 md:px-4 md:py-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-xs md:text-sm font-medium text-muted-foreground">
+                  CA du mois
                 </div>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground">
-                      <Info className="h-3 w-3 md:h-4 md:w-4" />
+                    <button className="text-muted-foreground hover:text-foreground touch-manipulation">
+                      <Info className="h-4 w-4" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent>
+                  <TooltipContent side="bottom" className="max-w-[200px]">
                     <p className="text-xs">Total de vos rémunérations ce mois</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="text-base sm:text-lg md:text-xl font-bold">{formatCurrency(myStats.montantTotal)}</div>
+              <div className="text-xl md:text-2xl font-bold text-green-600">{formatCurrency(myStats.montantTotal)}</div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="px-2 py-2 md:px-3 md:py-3">
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground">
+          <Card className="shadow-sm">
+            <CardContent className="px-3 py-3 md:px-4 md:py-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-xs md:text-sm font-medium text-muted-foreground">
                   Heures
                 </div>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground">
-                      <Info className="h-3 w-3 md:h-4 md:w-4" />
+                    <button className="text-muted-foreground hover:text-foreground touch-manipulation">
+                      <Info className="h-4 w-4" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent>
+                  <TooltipContent side="bottom" className="max-w-[200px]">
                     <p className="text-xs">Heures de travail ce mois</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="text-base sm:text-lg md:text-xl font-bold">{myStats.heuresTravail}h</div>
+              <div className="text-xl md:text-2xl font-bold">{myStats.heuresTravail}h</div>
             </CardContent>
           </Card>
         </div>
       </TooltipProvider>
 
-      {/* Barre zoom */}
-      <div className="flex items-center justify-end gap-2 flex-shrink-0">
+      {/* Barre zoom - cachée sur mobile */}
+      <div className="hidden md:flex items-center justify-end gap-2 flex-shrink-0">
         <span className="text-xs text-muted-foreground">Zoom:</span>
-        <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={zoom <= 50}>
+        <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={zoom <= 50} className="h-9">
           <ZoomOut className="h-4 w-4" />
         </Button>
         <span className="text-sm font-medium min-w-[3rem] text-center">{zoom}%</span>
-        <Button variant="outline" size="sm" onClick={handleZoomIn} disabled={zoom >= 150}>
+        <Button variant="outline" size="sm" onClick={handleZoomIn} disabled={zoom >= 150} className="h-9">
           <ZoomIn className="h-4 w-4" />
         </Button>
       </div>
 
       {/* Tableau */}
-      <div className="flex-1 rounded-lg border shadow-lg bg-white dark:bg-gray-950 overflow-hidden">
-        <div className="overflow-x-auto overflow-y-auto h-full" style={{ zoom: `${zoom}%` }}>
+      <div className="flex-1 min-h-0 rounded-lg border shadow-lg bg-white dark:bg-gray-950 overflow-hidden">
+        <div className="overflow-x-auto overflow-y-auto h-full" style={{ zoom: zoom > 90 ? `${zoom}%` : '100%' }}>
           {/* En-tête */}
           <div className="sticky top-0 z-20">
             <div
               className="grid gap-0 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900 border-b-2 border-green-600/30"
-              style={{ gridTemplateColumns: '200px 120px 1fr', minWidth: '100%' }}
+              style={{ gridTemplateColumns: 'minmax(180px, 1fr) 100px minmax(120px, 150px)', minWidth: '100%' }}
             >
               <div
-                className="sticky left-0 z-30 p-2 pr-1.5 border-r-2 border-green-600/40 font-semibold text-sm bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900"
+                className="sticky left-0 z-30 p-3 pr-2 border-r-2 border-green-600/40 font-semibold text-sm bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900"
                 style={{ position: 'sticky', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
               >
                 Course
               </div>
               <div
-                className="sticky z-30 p-2 pr-1.5 border-r-2 border-green-600/40 font-semibold text-sm bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900"
-                style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
+                className="sticky z-30 p-3 pr-2 border-r-2 border-green-600/40 font-semibold text-sm bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900"
+                style={{ position: 'sticky', left: 'minmax(180px, 1fr)', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
               >
                 Date
               </div>
-              <div className="p-2 text-center font-semibold text-sm">Mon statut</div>
+              <div className="p-3 text-center font-semibold text-sm">Mon statut</div>
             </div>
           </div>
 
@@ -449,16 +449,16 @@ export default function PhotographerPlanningPage() {
                   {/* Ligne mois */}
                   <div
                     className="grid gap-0 bg-orange-100 dark:bg-orange-900 border-b-2 border-orange-300 font-semibold"
-                    style={{ gridTemplateColumns: '200px 120px 1fr', minWidth: '100%' }}
+                    style={{ gridTemplateColumns: 'minmax(180px, 1fr) 100px minmax(120px, 150px)', minWidth: '100%' }}
                   >
-                    <div className="sticky left-0 z-10 p-3 border-r-2 border-orange-300 bg-orange-100 dark:bg-orange-900">
-                      <div className="text-sm font-bold">
+                    <div className="sticky left-0 z-10 p-3 pr-2 border-r-2 border-orange-300 bg-orange-100 dark:bg-orange-900">
+                      <div className="text-sm md:text-base font-bold">
                         {format(new Date(monthData.year, monthData.month), 'MMMM yyyy', { locale: fr })}
                       </div>
                     </div>
                     <div
-                      className="sticky z-10 p-3 border-r-2 border-orange-300 bg-orange-100 dark:bg-orange-900"
-                      style={{ left: '200px' }}
+                      className="sticky z-10 p-3 pr-2 border-r-2 border-orange-300 bg-orange-100 dark:bg-orange-900"
+                      style={{ left: 'minmax(180px, 1fr)' }}
                     >
                       <div className="text-xs">
                         {monthData.courses.length} course{monthData.courses.length > 1 ? 's' : ''}
@@ -469,7 +469,7 @@ export default function PhotographerPlanningPage() {
                         {myValidatedCount > 0 ? `${myValidatedCount} validée${myValidatedCount > 1 ? 's' : ''}` : '-'}
                       </div>
                       {myMonthlyAmount > 0 && (
-                        <div className="text-green-700 dark:text-green-400 mt-0.5">
+                        <div className="text-green-700 dark:text-green-400 mt-0.5 font-bold">
                           {formatCurrency(myMonthlyAmount)}
                         </div>
                       )}
@@ -523,36 +523,36 @@ export default function PhotographerPlanningPage() {
                             isRejected && 'opacity-40 hover:opacity-60 border-green-200/50',
                             !isValidated && !isRejected && 'border-green-200/50 hover:bg-green-100'
                           )}
-                          style={{ gridTemplateColumns: '200px 120px 1fr', minWidth: '100%' }}
+                          style={{ gridTemplateColumns: 'minmax(180px, 1fr) 100px minmax(120px, 150px)', minWidth: '100%' }}
                         >
                         {/* Colonne Course */}
                         <div
-                          className={cn('sticky left-0 z-10 p-2 pr-1.5 border-r-2 border-green-600/40', rowBgColor)}
+                          className={cn('sticky left-0 z-10 p-3 pr-2 border-r-2 border-green-600/40', rowBgColor)}
                           style={{ position: 'sticky', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
                         >
-                          <div className="flex items-center gap-1.5 mb-0.5">
+                          <div className="flex items-center gap-1.5 mb-1">
                             {isValidated && (
-                              <span className="text-sm">{myDispo?.statut === 'teamLeader' ? '👑' : '✓'}</span>
+                              <span className="text-base">{myDispo?.statut === 'teamLeader' ? '👑' : '✓'}</span>
                             )}
                             <Link
                               href={`/photographer/planning/${course.id}`}
                               className={cn(
-                                'font-semibold hover:underline text-xs',
+                                'font-semibold hover:underline text-sm touch-manipulation',
                                 isValidated && 'text-green-800',
                                 myDispo?.statut === 'teamLeader' && 'text-purple-800'
                               )}
                             >
                               {course.nom}
                             </Link>
-                            {course.statutTraitement === 'done' ? <span className="text-[10px]">🟢</span> : <span className="text-[10px]">🟠</span>}
+                            {course.statutTraitement === 'done' ? <span className="text-xs">🟢</span> : <span className="text-xs">🟠</span>}
                           </div>
-                          <div className="text-[10px] text-muted-foreground">📍 {course.localisation}</div>
+                          <div className="text-xs text-muted-foreground">📍 {course.ville || course.localisation}</div>
                           {courseTarif && (
-                            <div className="flex items-center gap-1.5 mt-1">
+                            <div className="flex items-center gap-1.5 mt-1.5">
                               {isValidated && courseTarif ? (
                                 <span
                                   className={cn(
-                                    'text-xs font-bold',
+                                    'text-sm font-bold',
                                     myDispo?.statut === 'teamLeader' ? 'text-purple-700' : 'text-green-700'
                                   )}
                                 >
@@ -563,7 +563,7 @@ export default function PhotographerPlanningPage() {
                                   €
                                 </span>
                               ) : (
-                                <span className="text-[10px] font-medium text-muted-foreground">
+                                <span className="text-xs font-medium text-muted-foreground">
                                   💰 {courseTarif.tarifPhotographe}€
                                 </span>
                               )}
@@ -573,19 +573,19 @@ export default function PhotographerPlanningPage() {
 
                         {/* Colonne Date */}
                         <div
-                          className={cn('sticky z-10 p-2 pr-1.5 flex flex-col border-r-2 border-green-600/40', rowBgColor)}
-                          style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
+                          className={cn('sticky z-10 p-3 pr-2 flex flex-col justify-center border-r-2 border-green-600/40', rowBgColor)}
+                          style={{ position: 'sticky', left: 'minmax(180px, 1fr)', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
                         >
-                          <div className="text-xs font-semibold">{format(new Date(course.dateDebut), 'dd/MM/yy', { locale: fr })}</div>
+                          <div className="text-sm font-semibold">{format(new Date(course.dateDebut), 'dd/MM', { locale: fr })}</div>
                           {course.dateFin && course.dateFin !== course.dateDebut && (
-                            <div className="text-[10px] text-muted-foreground">
-                              au {format(new Date(course.dateFin), 'dd/MM/yy', { locale: fr })}
+                            <div className="text-xs text-muted-foreground">
+                              → {format(new Date(course.dateFin), 'dd/MM', { locale: fr })}
                             </div>
                           )}
                         </div>
 
                         {/* Colonne Mon Statut */}
-                        <div className="p-2 flex flex-col items-center justify-center gap-0.5">
+                        <div className="p-2 flex flex-col items-center justify-center gap-1">
                           {myDispo ? (
                             <>
                               {/* Si la course est "inProgress" ET que le photographe est en pending/available/unavailable, il peut modifier */}
@@ -596,36 +596,36 @@ export default function PhotographerPlanningPage() {
                                   onValueChange={(value) => currentUser && handleStatusChange(myDispo.id, value, course.id, currentUser.id)}
                                 >
                                   <SelectTrigger
-                                    className={`h-8 text-xs w-full min-w-[100px] border transition-all focus:border-green-600 px-2 font-medium ${getStatusColorClass(
+                                    className={`h-10 md:h-9 text-sm w-full min-w-[110px] border transition-all focus:border-green-600 px-3 font-medium touch-manipulation ${getStatusColorClass(
                                       myDispo.statut
                                     )}`}
                                   >
                                     <SelectValue>{getStatusLabel(myDispo.statut)}</SelectValue>
                                   </SelectTrigger>
                                   <SelectContent className="z-[9999]">
-                                    <SelectItem value="pending">
+                                    <SelectItem value="pending" className="h-10 md:h-9">
                                       <div className="flex items-center gap-2">
-                                        <div className="h-2 w-2 rounded-full bg-yellow-500" />
-                                        <span className="text-xs">Attente</span>
+                                        <div className="h-2.5 w-2.5 rounded-full bg-yellow-500" />
+                                        <span className="text-sm">Attente</span>
                                       </div>
                                     </SelectItem>
-                                    <SelectItem value="available">
+                                    <SelectItem value="available" className="h-10 md:h-9">
                                       <div className="flex items-center gap-2">
-                                        <div className="h-2 w-2 rounded-full bg-blue-500" />
-                                        <span className="text-xs">Dispo</span>
+                                        <div className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+                                        <span className="text-sm">Dispo</span>
                                       </div>
                                     </SelectItem>
-                                    <SelectItem value="unavailable">
+                                    <SelectItem value="unavailable" className="h-10 md:h-9">
                                       <div className="flex items-center gap-2">
-                                        <div className="h-2 w-2 rounded-full bg-gray-400" />
-                                        <span className="text-xs">Pas dispo</span>
+                                        <div className="h-2.5 w-2.5 rounded-full bg-gray-400" />
+                                        <span className="text-sm">Pas dispo</span>
                                       </div>
                                     </SelectItem>
                                   </SelectContent>
                                 </Select>
                               ) : (
                                 <div
-                                  className={`h-8 text-xs w-full min-w-[100px] border px-2 font-medium flex items-center justify-center ${getStatusColorClass(
+                                  className={`h-10 md:h-9 text-sm w-full min-w-[110px] border px-3 font-medium flex items-center justify-center rounded-md ${getStatusColorClass(
                                     myDispo.statut
                                   )}`}
                                 >
@@ -640,7 +640,62 @@ export default function PhotographerPlanningPage() {
                               )}
                             </>
                           ) : (
-                            <div className="text-xs text-muted-foreground">-</div>
+                            <div className="flex flex-col gap-1.5 w-full px-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-10 md:h-9 text-sm font-medium bg-blue-50 hover:bg-blue-100 border-blue-300 touch-manipulation active:scale-95 transition-transform"
+                                onClick={async () => {
+                                  if (!currentUser) return;
+                                  try {
+                                    const res = await fetch('/api/disponibilites', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        photographeId: currentUser.id,
+                                        courseId: course.id,
+                                        statut: 'available',
+                                        dateDeclaration: new Date().toISOString(),
+                                      }),
+                                    });
+                                    if (res.ok) {
+                                      fetchData();
+                                    }
+                                  } catch (error) {
+                                    console.error('Erreur:', error);
+                                  }
+                                }}
+                              >
+                                ✓ Dispo
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-10 md:h-9 text-sm font-medium bg-gray-50 hover:bg-gray-100 border-gray-300 touch-manipulation active:scale-95 transition-transform"
+                                onClick={async () => {
+                                  if (!currentUser) return;
+                                  try {
+                                    const res = await fetch('/api/disponibilites', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        photographeId: currentUser.id,
+                                        courseId: course.id,
+                                        statut: 'unavailable',
+                                        dateDeclaration: new Date().toISOString(),
+                                      }),
+                                    });
+                                    if (res.ok) {
+                                      fetchData();
+                                    }
+                                  } catch (error) {
+                                    console.error('Erreur:', error);
+                                  }
+                                }}
+                              >
+                                ✗ Pas dispo
+                              </Button>
+                            </div>
                           )}
                         </div>
                         </div>

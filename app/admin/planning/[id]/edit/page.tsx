@@ -30,6 +30,9 @@ const courseSchema = z.object({
   tarifPhotographe: z.string().min(1, 'Le tarif est requis'),
   bonusChefEquipe: z.string().min(1, 'Le bonus est requis'),
   coureursAttendus: z.string().optional(),
+  hotel: z.string().optional(),
+  transport: z.string().optional(),
+  supplementaire: z.string().optional(),
 });
 
 type CourseFormValues = z.infer<typeof courseSchema>;
@@ -52,6 +55,9 @@ export default function EditCoursePage() {
       tarifPhotographe: '450',
       bonusChefEquipe: '100',
       coureursAttendus: '',
+      hotel: '',
+      transport: '',
+      supplementaire: '',
     },
   });
 
@@ -101,6 +107,9 @@ export default function EditCoursePage() {
         tarifPhotographe: String(tarif.tarifPhotographe),
         bonusChefEquipe: String(tarif.bonusChefEquipe),
         coureursAttendus: course.coureursAttendus ? String(course.coureursAttendus) : '',
+        hotel: course.hotel || '',
+        transport: course.transport || '',
+        supplementaire: course.supplementaire || '',
       });
     } catch (error) {
       console.error('Erreur chargement course:', error);
@@ -124,6 +133,9 @@ export default function EditCoursePage() {
         dateDebut: new Date(data.dateDebut).toISOString(),
         dateFin: new Date(data.dateFin).toISOString(),
         coureursAttendus: data.coureursAttendus ? parseInt(data.coureursAttendus) : 0,
+        hotel: data.hotel || '',
+        transport: data.transport || '',
+        supplementaire: data.supplementaire || '',
       };
 
       const courseRes = await fetch(`/api/courses/${courseId}`, {
@@ -345,6 +357,69 @@ export default function EditCoursePage() {
                     )}
                   />
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Section 4: Logistique */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Logistique</CardTitle>
+                <CardDescription>Informations sur l&apos;hébergement, transport et autres détails</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="hotel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Hôtel</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Informations sur l'hôtel (nom, adresse, réservation...)"
+                          className="min-h-[80px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="transport"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Transport</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Informations sur le transport (covoiturage, train, lieu de RDV...)"
+                          className="min-h-[80px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="supplementaire"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Informations supplémentaires</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Autres informations importantes pour l'équipe..."
+                          className="min-h-[80px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
 

@@ -76,7 +76,9 @@ export default function PhotographerPlanningPage() {
       if (userRes.ok) {
         const userData = await userRes.json();
         userId = userData.user.id;
-        setCurrentUser({ id: userId });
+        if (userId) {
+          setCurrentUser({ id: userId });
+        }
       }
 
       // Charger les données en parallèle pour optimiser la vitesse
@@ -433,8 +435,8 @@ export default function PhotographerPlanningPage() {
 
                       if (courseTarif) {
                         const montant = dispo.statut === 'teamLeader'
-                          ? courseTarif.tarifPhotographe + courseTarif.bonusChefEquipe
-                          : courseTarif.tarifPhotographe;
+                          ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
+                          : Number(courseTarif.tarifPhotographe);
                         return total + montant;
                       }
                     }
@@ -590,6 +592,7 @@ export default function PhotographerPlanningPage() {
                                 value={myDispo.statut}
                                 onValueChange={(value) => currentUser && handleStatusChange(myDispo.id, value, course.id, currentUser.id)}
                                 disabled={
+                                  // Désactiver seulement si le statut est validé, teamLeader ou rejected
                                   myDispo.statut === 'validated' || myDispo.statut === 'teamLeader' || myDispo.statut === 'rejected'
                                 }
                               >

@@ -9,9 +9,15 @@ export async function GET(request: NextRequest) {
     const sheetsService = new GoogleSheetsService();
     const admins = await sheetsService.getAllAdmins();
 
-    // Ne pas renvoyer les mots de passe
+    // Ne pas renvoyer les mots de passe et mapper 'rem' vers 'nonRemunere'
     const adminsWithoutPasswords = admins.map((a: any) => {
       const { password, ...rest } = a;
+
+      // Mapper 'rem' vers 'nonRemunere' pour le frontend
+      if (rest.rem !== undefined) {
+        rest.nonRemunere = rest.rem;
+      }
+
       return rest;
     });
 
@@ -75,6 +81,7 @@ export async function POST(request: NextRequest) {
       dateCreation: new Date().toISOString(),
       dateInscription: new Date().toISOString(),
       actif: 'TRUE',
+      rem: data.nonRemunere || 'FALSE',
       cameras: data.cameras ? JSON.stringify(data.cameras) : '[]',
       objectifs: data.objectifs ? JSON.stringify(data.objectifs) : '[]',
       cartesMemoire: data.cartesMemoire ? JSON.stringify(data.cartesMemoire) : '[]',

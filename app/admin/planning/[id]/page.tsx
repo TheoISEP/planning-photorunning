@@ -478,6 +478,80 @@ export default function AdminPlanningEventDetailPage() {
 				</div>
 			</div>
 
+			{/* Liste des photographes validés - visible uniquement si course validée */}
+			{course.statutTraitement === 'done' && (
+				<Card>
+					<CardHeader>
+						<CardTitle>Équipe assignée</CardTitle>
+						<CardDescription>
+							Liste des photographes validés pour cette course
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<div className="space-y-3">
+							{disponibilites
+								.filter(d => d.statut === 'validated' || d.statut === 'teamLeader')
+								.map(dispo => {
+									const photographer = photographers.find(p => p.id === dispo.photographeId);
+									if (!photographer) return null;
+
+									const isTeamLeader = dispo.statut === 'teamLeader';
+									const salary = isTeamLeader
+										? (tarif ? Number(tarif.tarifPhotographe) + Number(tarif.bonusChefEquipe) : 0)
+										: (tarif ? Number(tarif.tarifPhotographe) : 0);
+
+									return (
+										<div
+											key={dispo.id}
+											className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+										>
+											<div className="flex items-center gap-3">
+												<Avatar>
+													<AvatarFallback className={isTeamLeader ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700"}>
+														{photographer.prenom[0]}{photographer.nom[0]}
+													</AvatarFallback>
+												</Avatar>
+												<div>
+													<div className="font-medium">
+														{photographer.prenom} {photographer.nom}
+													</div>
+													<div className="text-sm text-muted-foreground">
+														{isTeamLeader ? (
+															<span className="flex items-center gap-1">
+																<Star className="h-3 w-3 text-purple-500" />
+																Chef d'équipe
+															</span>
+														) : (
+															'Photographe'
+														)}
+													</div>
+												</div>
+											</div>
+											<div className="text-right">
+												<div className="font-semibold text-green-600">
+													{salary.toLocaleString("fr-FR")} €
+												</div>
+												{isTeamLeader && tarif && (
+													<div className="text-xs text-muted-foreground">
+													  {Number(tarif.tarifPhotographe)}€ + {Number(tarif.bonusChefEquipe)}€ bonus
+													</div>
+												)}
+											</div>
+										</div>
+									);
+								})}
+
+							{disponibilites.filter(d => d.statut === 'validated' || d.statut === 'teamLeader').length === 0 && (
+								<div className="text-center py-8 text-muted-foreground">
+									<Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+									<p>Aucun photographe validé pour cette course</p>
+								</div>
+							)}
+						</div>
+					</CardContent>
+				</Card>
+			)}
+
 			{/* Dialog de confirmation pour passer en "Fait" */}
 			<Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
 				<DialogContent className="sm:max-w-[500px]">

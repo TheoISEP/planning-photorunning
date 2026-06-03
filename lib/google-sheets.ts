@@ -142,7 +142,7 @@ export class GoogleSheetsService {
 
     // 4. Mettre à jour
     const headers = await this.getSheetHeaders(SHEET_NAMES.PHOTOGRAPHES);
-    const values = headers.map(header => updatedData[header] ?? '');
+    const values = headers.map(header => (updatedData as any)[header] ?? '');
 
     await this.sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
@@ -248,7 +248,7 @@ export class GoogleSheetsService {
 
     // 4. Mettre à jour la ligne
     const headers = await this.getSheetHeaders(SHEET_NAMES.ADMIN);
-    const values = headers.map(header => updatedData[header] ?? '');
+    const values = headers.map(header => (updatedData as any)[header] ?? '');
 
     await this.sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
@@ -331,7 +331,7 @@ export class GoogleSheetsService {
     const updatedData = { ...currentData, ...data, id };
 
     const headers = await this.getSheetHeaders(SHEET_NAMES.COURSES);
-    const values = headers.map(header => updatedData[header] ?? '');
+    const values = headers.map(header => (updatedData as any)[header] ?? '');
 
     await this.sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
@@ -464,7 +464,7 @@ export class GoogleSheetsService {
     // Fusionner les données
     const updatedData = { ...currentData, ...data, id };
 
-    const values = headers.map(header => updatedData[header] ?? '');
+    const values = headers.map(header => (updatedData as any)[header] ?? '');
 
     await this.sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
@@ -550,7 +550,7 @@ export class GoogleSheetsService {
     // Fusionner les données
     const updatedData = { ...currentData, ...data, id };
 
-    const values = headers.map(header => updatedData[header] ?? '');
+    const values = headers.map(header => (updatedData as any)[header] ?? '');
 
     await this.sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,

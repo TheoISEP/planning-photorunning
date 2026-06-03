@@ -22,6 +22,7 @@ interface Course {
   dateFin: string;
   coureursAttendus?: number;
   briefPdfUrl?: string;
+  statutTraitement?: 'inProgress' | 'done';
 }
 
 interface Tarif {
@@ -75,11 +76,20 @@ export default function PhotographerCourseDetailPage() {
         setCurrentUserId(userId);
       }
 
-      // Récupérer tous les photographes pour les noms
-      const photographersRes = await fetch('/api/photographers');
+      // Récupérer tous les photographes et admins pour les noms
+      const [photographersRes, adminsRes] = await Promise.all([
+        fetch('/api/photographers'),
+        fetch('/api/admins'),
+      ]);
+
       const photographersData = await photographersRes.json();
+      const adminsData = await adminsRes.json();
+
       const allPhotographers = photographersData.photographers || [];
-      setPhotographers(allPhotographers);
+      const allAdmins = adminsData.admins || [];
+      const allPeople = [...allPhotographers, ...allAdmins];
+
+      setPhotographers(allPeople);
 
       // Récupérer la course
       const courseRes = await fetch(`/api/courses/${courseId}`);
@@ -122,15 +132,15 @@ export default function PhotographerCourseDetailPage() {
           const teamWithNames: TeamMember[] = [];
 
           validatedMembers.forEach((d: any) => {
-            const photographer = allPhotographers.find((p: any) => p.id === d.photographeId);
+            const person = allPeople.find((p: any) => p.id === d.photographeId);
 
-            // Si le photographe est trouvé, l'ajouter à l'équipe
-            if (photographer) {
+            // Si la personne est trouvée, l'ajouter à l'équipe
+            if (person) {
               teamWithNames.push({
                 id: d.id,
                 photographeId: d.photographeId,
-                prenom: photographer.prenom,
-                nom: photographer.nom,
+                prenom: person.prenom,
+                nom: person.nom,
                 statut: d.statut,
               });
             }
@@ -210,11 +220,7 @@ export default function PhotographerCourseDetailPage() {
     );
   }
 
-  const isTeamLeader = disponibilite.statut === 'teamLeader';
-  const isValidated = disponibilite.statut === 'validated' || isTeamLeader;
-  const montant = isTeamLeader
-    ? tarif.tarifPhotographe + tarif.bonusChefEquipe
-    : tarif.tarifPhotographe;
+  const isValidated = disponibilite.statut === 'validated' || disponibilite.statut === 'teamLeader';
 
   return (
     <div className="h-full overflow-auto">
@@ -292,96 +298,38 @@ export default function PhotographerCourseDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Rémunération */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Rémunération</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isValidated ? (
-                  <div className="space-y-4">
-                    {isTeamLeader ? (
-                      <>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Star className="h-5 w-5 text-purple-600" />
-                          <span className="text-sm font-medium text-purple-600">
-                            Chef d'équipe
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Tarif de base</span>
-                            <span>{formatCurrency(tarif.tarifPhotographe)}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Bonus chef d'équipe</span>
-                            <span className="text-purple-600">
-                              +{formatCurrency(tarif.bonusChefEquipe)}
-                            </span>
-                          </div>
-                          <Separator />
-                          <div className="flex justify-between">
-                            <span className="text-sm font-medium">Total</span>
-                            <span className="text-2xl font-bold text-purple-600">
-                              {formatCurrency(montant)}
-                            </span>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Euro className="h-5 w-5 text-muted-foreground" />
-                          <span className="text-sm font-medium">
-                            Rémunération
-                          </span>
-                        </div>
-                        <span className="text-2xl font-bold text-green-600">
-                          {formatCurrency(montant)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">Tarif photographe indicatif</span>
-                      <span className="text-lg font-bold">
-                        {formatCurrency(tarif.tarifPhotographe)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Sous réserve de validation</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Équipe (seulement si validé ET qu'il y a des membres) */}
+            {/* Équipe (seulement si je suis validé ET qu'il y a des membres) */}
             {isValidated && team.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Photographes affectés</CardTitle>
+                  <CardTitle>Équipe assignée</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {team.map((member) => (
-                      <div key={member.id} className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarFallback>
-                            {getInitials(member.prenom, member.nom)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">
-                            {member.prenom} {member.nom}
-                          </p>
-                        </div>
-                        {member.statut === 'teamLeader' && (
-                          <div className="flex items-center gap-1 text-purple-600">
-                            <Star className="h-4 w-4" />
-                            <span className="text-xs font-medium">Chef d'équipe</span>
+                      <div key={member.id} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarFallback className={member.statut === 'teamLeader' ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700"}>
+                              {getInitials(member.prenom, member.nom)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">
+                              {member.prenom} {member.nom}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {member.statut === 'teamLeader' ? (
+                                <span className="flex items-center gap-1">
+                                  <Star className="h-3 w-3 text-purple-500" />
+                                  Chef d'équipe
+                                </span>
+                              ) : (
+                                'Photographe'
+                              )}
+                            </p>
                           </div>
-                        )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -401,10 +349,6 @@ export default function PhotographerCourseDetailPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Statut actuel</span>
                   <StatusBadge variant={disponibilite.statut} showIcon={false} />
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Rémunération prévue</span>
-                  <span className="font-medium">{formatCurrency(montant)}</span>
                 </div>
                 {disponibilite.dateDeclaration && (
                   <div className="flex justify-between text-sm">

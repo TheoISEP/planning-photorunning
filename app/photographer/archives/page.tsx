@@ -67,7 +67,9 @@ export default function PhotographerArchivesPage() {
       if (userRes.ok) {
         const userData = await userRes.json();
         userId = userData.user.id;
-        setCurrentUser({ id: userId });
+        if (userId) {
+          setCurrentUser({ id: userId });
+        }
       }
 
       // Charger les données en parallèle
@@ -78,17 +80,19 @@ export default function PhotographerArchivesPage() {
       ]);
 
       // Traiter les courses
+      let archivedCourses: Course[] = [];
       if (coursesRes.ok) {
         const coursesData = await coursesRes.json();
         const allCourses = coursesData.courses || [];
         // Filtrer SEULEMENT les courses archivées
-        const archivedCourses = allCourses.filter((c: Course) => c.archived === 'oui');
+        archivedCourses = allCourses.filter((c: Course) => c.archived === 'oui');
         setCourses(archivedCourses);
       }
 
       // Traiter les tarifs
+      let tarifsData: any = null;
       if (tarifsRes.ok) {
-        const tarifsData = await tarifsRes.json();
+        tarifsData = await tarifsRes.json();
         setTarifs(tarifsData.tarifs || []);
       }
 
@@ -99,7 +103,7 @@ export default function PhotographerArchivesPage() {
         setDisponibilites(allDisponibilites);
 
         // Calculer les stats des archives pour ce photographe
-        if (userId) {
+        if (userId && tarifsData) {
           const myArchivedDispos = allDisponibilites.filter(
             (d: Disponibilite) =>
               d.photographeId === userId &&
@@ -108,9 +112,10 @@ export default function PhotographerArchivesPage() {
 
           let totalAmount = 0;
           myArchivedDispos.forEach((dispo: Disponibilite) => {
-            const tarifDispo = allDisponibilites.find((t: Tarif) => t.id === dispo.tarifId);
             const courseTarifs = tarifsData.tarifs.filter((t: Tarif) => t.courseId === dispo.courseId);
-            const tarif = tarifDispo || courseTarifs[0];
+            const tarif = dispo.tarifId
+              ? tarifsData.tarifs.find((t: Tarif) => t.id === dispo.tarifId)
+              : courseTarifs[0];
 
             if (tarif) {
               const tarifPhoto = Number(tarif.tarifPhotographe) || 0;

@@ -124,7 +124,7 @@ export async function PATCH(
     const updatedPhotographer = await sheetsService.updatePhotographer(id, data);
 
     // Ne pas renvoyer le mot de passe
-    const { password, ...photographerWithoutPassword } = updatedPhotographer;
+    const { password, ...photographerWithoutPassword } = updatedPhotographer as any;
 
     return NextResponse.json({ photographer: photographerWithoutPassword, success: true });
   } catch (error: any) {

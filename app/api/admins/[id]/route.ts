@@ -33,6 +33,11 @@ export async function GET(
     // Ne pas renvoyer le mot de passe
     const { password, ...adminWithoutPassword } = admin;
 
+    // Mapper 'rem' vers 'nonRemunere' pour le frontend
+    if (adminWithoutPassword.rem !== undefined) {
+      adminWithoutPassword.nonRemunere = adminWithoutPassword.rem;
+    }
+
     // Parser les JSON arrays
     if (adminWithoutPassword.cameras) {
       try {
@@ -84,6 +89,12 @@ export async function PATCH(
     const { id } = await params;
     const data = await request.json();
 
+    // Mapper 'nonRemunere' vers 'rem' pour Google Sheets
+    if (data.nonRemunere !== undefined) {
+      data.rem = data.nonRemunere;
+      delete data.nonRemunere;
+    }
+
     // Si un mot de passe est fourni, le hasher
     if (data.password) {
       data.password = await authService.hashPassword(data.password);
@@ -107,7 +118,7 @@ export async function PATCH(
     const updatedAdmin = await sheetsService.updateAdmin(id, data);
 
     // Ne pas renvoyer le mot de passe
-    const { password, ...adminWithoutPassword } = updatedAdmin;
+    const { password, ...adminWithoutPassword } = updatedAdmin as any;
 
     return NextResponse.json({ admin: adminWithoutPassword, success: true });
   } catch (error: any) {

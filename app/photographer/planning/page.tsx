@@ -588,60 +588,50 @@ export default function PhotographerPlanningPage() {
                         <div className="p-2 flex flex-col items-center justify-center gap-0.5">
                           {myDispo ? (
                             <>
-                              <Select
-                                value={myDispo.statut}
-                                onValueChange={(value) => currentUser && handleStatusChange(myDispo.id, value, course.id, currentUser.id)}
-                                disabled={
-                                  // Désactiver seulement si le statut est validé, teamLeader ou rejected
-                                  myDispo.statut === 'validated' || myDispo.statut === 'teamLeader' || myDispo.statut === 'rejected'
-                                }
-                              >
-                                <SelectTrigger
-                                  className={`h-8 text-xs w-full border transition-all focus:border-green-600 px-2 font-medium ${getStatusColorClass(
+                              {/* Si la course est "inProgress" ET que le photographe est en pending/available/unavailable, il peut modifier */}
+                              {course.statutTraitement === 'inProgress' &&
+                               (myDispo.statut === 'pending' || myDispo.statut === 'available' || myDispo.statut === 'unavailable') ? (
+                                <Select
+                                  value={myDispo.statut}
+                                  onValueChange={(value) => currentUser && handleStatusChange(myDispo.id, value, course.id, currentUser.id)}
+                                >
+                                  <SelectTrigger
+                                    className={`h-8 text-xs w-full min-w-[100px] border transition-all focus:border-green-600 px-2 font-medium ${getStatusColorClass(
+                                      myDispo.statut
+                                    )}`}
+                                  >
+                                    <SelectValue>{getStatusLabel(myDispo.statut)}</SelectValue>
+                                  </SelectTrigger>
+                                  <SelectContent className="z-[9999]">
+                                    <SelectItem value="pending">
+                                      <div className="flex items-center gap-2">
+                                        <div className="h-2 w-2 rounded-full bg-yellow-500" />
+                                        <span className="text-xs">Attente</span>
+                                      </div>
+                                    </SelectItem>
+                                    <SelectItem value="available">
+                                      <div className="flex items-center gap-2">
+                                        <div className="h-2 w-2 rounded-full bg-blue-500" />
+                                        <span className="text-xs">Dispo</span>
+                                      </div>
+                                    </SelectItem>
+                                    <SelectItem value="unavailable">
+                                      <div className="flex items-center gap-2">
+                                        <div className="h-2 w-2 rounded-full bg-gray-400" />
+                                        <span className="text-xs">Pas dispo</span>
+                                      </div>
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <div
+                                  className={`h-8 text-xs w-full min-w-[100px] border px-2 font-medium flex items-center justify-center ${getStatusColorClass(
                                     myDispo.statut
                                   )}`}
                                 >
-                                  <SelectValue>{getStatusLabel(myDispo.statut)}</SelectValue>
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="pending">
-                                    <div className="flex items-center gap-2">
-                                      <div className="h-2 w-2 rounded-full bg-yellow-500" />
-                                      <span className="text-xs">Attente</span>
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="available">
-                                    <div className="flex items-center gap-2">
-                                      <div className="h-2 w-2 rounded-full bg-blue-500" />
-                                      <span className="text-xs">Dispo</span>
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="unavailable">
-                                    <div className="flex items-center gap-2">
-                                      <div className="h-2 w-2 rounded-full bg-gray-400" />
-                                      <span className="text-xs">Pas dispo</span>
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="validated" disabled>
-                                    <div className="flex items-center gap-2">
-                                      <div className="h-2 w-2 rounded-full bg-green-500" />
-                                      <span className="text-xs">Validé</span>
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="teamLeader" disabled>
-                                    <div className="flex items-center gap-2">
-                                      <div className="h-2 w-2 rounded-full bg-purple-500" />
-                                      <span className="text-xs">Chef</span>
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="rejected" disabled>
-                                    <div className="flex items-center gap-2">
-                                      <div className="h-2 w-2 rounded-full bg-red-500" />
-                                      <span className="text-xs">Refusé</span>
-                                    </div>
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
+                                  {getStatusLabel(myDispo.statut)}
+                                </div>
+                              )}
 
                               {hasMultipleTarifs && myDispo.tarifId && (
                                 <div className="text-[9px] w-full text-center text-gray-600 mt-1">

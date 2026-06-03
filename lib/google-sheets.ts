@@ -518,6 +518,23 @@ export class GoogleSheetsService {
       .map(row => this.rowToObject(headers, row));
   }
 
+  async getDisponibiliteById(id: string) {
+    const response = await this.sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_NAMES.DISPONIBILITES}!A:Z`,
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) return null;
+
+    const headers = rows[0];
+    const idIndex = headers.indexOf('id');
+    const dataRows = rows.slice(1);
+
+    const row = dataRows.find(row => row[idIndex] === id);
+    return row ? this.rowToObject(headers, row) : null;
+  }
+
   async getAllDisponibilites() {
     const response = await this.sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,

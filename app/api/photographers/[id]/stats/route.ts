@@ -38,11 +38,12 @@ export async function GET(
     targetUser = admins.find((a: any) => a.id === id);
     if (targetUser) {
       isAdmin = true;
-      // Vérifier toutes les formes possibles de nonRemunere
-      isNonPaidAdmin = targetUser.nonRemunere === true ||
-                      targetUser.nonRemunere === 'TRUE' ||
-                      targetUser.nonRemunere === 'true' ||
-                      String(targetUser.nonRemunere).toLowerCase() === 'true';
+      // Vérifier toutes les formes possibles de rem (colonne "rem" dans Google Sheets)
+      // rem = "non" signifie admin non rémunéré
+      isNonPaidAdmin = targetUser.rem === 'non' ||
+                      targetUser.rem === 'Non' ||
+                      targetUser.rem === 'NON' ||
+                      String(targetUser.rem).toLowerCase() === 'non';
     } else {
       // Si pas trouvé dans les admins, chercher dans les photographes
       targetUser = photographers.find((p: any) => p.id === id);
@@ -57,8 +58,8 @@ export async function GET(
     console.log(`User: ${targetUser.prenom} ${targetUser.nom}`);
     console.log(`isAdmin: ${isAdmin}`);
     console.log(`isNonPaidAdmin: ${isNonPaidAdmin}`);
-    console.log(`nonRemunere raw value: ${JSON.stringify(targetUser.nonRemunere)}`);
-    console.log(`nonRemunere type: ${typeof targetUser.nonRemunere}`);
+    console.log(`rem raw value: ${JSON.stringify(targetUser.rem)}`);
+    console.log(`rem type: ${typeof targetUser.rem}`);
     console.log('All user fields:', JSON.stringify(targetUser, null, 2));
     console.log('==============================');
 

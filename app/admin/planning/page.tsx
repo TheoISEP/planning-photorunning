@@ -51,7 +51,7 @@ interface Admin {
   nom: string;
   prenom: string;
   actif: boolean;
-  nonRemunere?: boolean | string;
+  rem?: boolean | string;
 }
 
 interface Tarif {
@@ -331,7 +331,7 @@ export default function AdminCalendrierPage() {
 
           // Exclure les admins non rémunérés
           const user = allAdmins.find((a: Admin) => a.id === d.photographeId);
-          const isNonRemunere = user && (user.nonRemunere === 'TRUE' || user.nonRemunere === true);
+          const isNonRemunere = user && (user.rem === 'non' || user.rem === 'non');
 
           return !isNonRemunere;
         }).length;
@@ -346,7 +346,7 @@ export default function AdminCalendrierPage() {
           if (d.statut === 'validated' || d.statut === 'teamLeader') {
             // Vérifier si c'est un admin non rémunéré
             const user = allAdmins.find((a: Admin) => a.id === d.photographeId);
-            const isNonRemunere = user && (user.nonRemunere === 'TRUE' || user.nonRemunere === true);
+            const isNonRemunere = user && (user.rem === 'non' || user.rem === 'non');
 
             // Ne pas compter les admins non rémunérés
             if (isNonRemunere) return;
@@ -439,7 +439,7 @@ export default function AdminCalendrierPage() {
           if (d.statut === 'validated' || d.statut === 'teamLeader') {
             // Vérifier si c'est un admin non rémunéré
             const user = allAdmins.find((a: Admin) => a.id === d.photographeId);
-            const isNonRemunere = user && (user.nonRemunere === 'TRUE' || user.nonRemunere === true);
+            const isNonRemunere = user && (user.rem === 'non' || user.rem === 'non');
 
             // Ne pas compter les admins non rémunérés
             if (isNonRemunere) return;
@@ -521,7 +521,7 @@ export default function AdminCalendrierPage() {
 
           // Exclure les admins non rémunérés
           const user = admins.find((a) => a.id === d.photographeId);
-          const isNonRemunere = user && (user.nonRemunere === 'TRUE' || user.nonRemunere === true);
+          const isNonRemunere = user && (user.rem === 'non' || user.rem === 'non');
 
           return !isNonRemunere;
         }).length;
@@ -536,7 +536,7 @@ export default function AdminCalendrierPage() {
           if (d.statut === 'validated' || d.statut === 'teamLeader') {
             // Vérifier si c'est un admin non rémunéré
             const user = admins.find((a) => a.id === d.photographeId);
-            const isNonRemunere = user && (user.nonRemunere === 'TRUE' || user.nonRemunere === true);
+            const isNonRemunere = user && (user.rem === 'non' || user.rem === 'non');
 
             // Ne pas compter les admins non rémunérés
             if (isNonRemunere) return;
@@ -621,7 +621,7 @@ export default function AdminCalendrierPage() {
           if (d.statut === 'validated' || d.statut === 'teamLeader') {
             // Vérifier si c'est un admin non rémunéré
             const user = admins.find((a) => a.id === d.photographeId);
-            const isNonRemunere = user && (user.nonRemunere === 'TRUE' || user.nonRemunere === true);
+            const isNonRemunere = user && (user.rem === 'non' || user.rem === 'non');
 
             // Ne pas compter les admins non rémunérés
             if (isNonRemunere) return;
@@ -706,7 +706,7 @@ export default function AdminCalendrierPage() {
           if (d.statut === 'validated' || d.statut === 'teamLeader') {
             // Vérifier si c'est un admin non rémunéré
             const user = admins.find((a) => a.id === d.photographeId);
-            const isNonRemunere = user && (user.nonRemunere === 'TRUE' || user.nonRemunere === true);
+            const isNonRemunere = user && (user.rem === 'non' || user.rem === 'non');
 
             // Ne pas compter les admins non rémunérés
             if (isNonRemunere) return;
@@ -1283,7 +1283,7 @@ export default function AdminCalendrierPage() {
                               if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
                                 // Vérifier si c'est un admin non rémunéré
                                 const admin = admins.find((a) => a.id === dispo.photographeId);
-                                const isNonPaidAdmin = admin && (admin.nonRemunere === true || admin.nonRemunere === 'TRUE');
+                                const isNonPaidAdmin = admin && (admin.rem === 'non' || admin.rem === 'non');
 
                                 // Ne compter que si ce n'est pas un admin non rémunéré
                                 if (!isNonPaidAdmin) {
@@ -1313,7 +1313,7 @@ export default function AdminCalendrierPage() {
                       // Calculer le nombre de fois où cet admin est validé ou chef dans ce mois + montant total
                       let userCount = 0;
                       let userTotal = 0;
-                      const isNonPaidAdmin = admin.nonRemunere === true || admin.nonRemunere === 'TRUE';
+                      const isNonPaidAdmin = admin.rem === 'non' || admin.rem === 'non';
 
                       monthData.courses.forEach((course) => {
                         const dispo = course.disponibilites.find(d => d.photographeId === admin.id);

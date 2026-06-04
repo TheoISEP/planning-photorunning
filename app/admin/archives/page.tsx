@@ -1340,6 +1340,26 @@ export default function AdminCalendrierPage() {
                             </SelectContent>
                           </Select>
                         )}
+
+                        {/* Affichage du montant si validé ou chef */}
+                        {(dispo.statut === 'validated' || dispo.statut === 'teamLeader') && (() => {
+                          const tarifDispo = dispo.tarifId
+                            ? course.tarifs?.find(t => t.id === dispo.tarifId)
+                            : course.tarif;
+
+                          if (tarifDispo) {
+                            const tarifPhoto = Number(tarifDispo.tarifPhotographe) || 0;
+                            const bonusChef = Number(tarifDispo.bonusChefEquipe) || 0;
+                            const montant = dispo.statut === 'teamLeader' ? tarifPhoto + bonusChef : tarifPhoto;
+
+                            return (
+                              <div className="text-[9px] font-bold text-green-700 mt-0.5">
+                                {montant}€
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     );
                   })}
@@ -1429,6 +1449,26 @@ export default function AdminCalendrierPage() {
                             </SelectContent>
                           </Select>
                         )}
+
+                        {/* Affichage du montant si validé ou chef */}
+                        {(dispo.statut === 'validated' || dispo.statut === 'teamLeader') && (() => {
+                          const tarifDispo = dispo.tarifId
+                            ? course.tarifs?.find(t => t.id === dispo.tarifId)
+                            : course.tarif;
+
+                          if (tarifDispo) {
+                            const tarifPhoto = Number(tarifDispo.tarifPhotographe) || 0;
+                            const bonusChef = Number(tarifDispo.bonusChefEquipe) || 0;
+                            const montant = dispo.statut === 'teamLeader' ? tarifPhoto + bonusChef : tarifPhoto;
+
+                            return (
+                              <div className="text-[9px] font-bold text-green-700 mt-0.5">
+                                {montant}€
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     );
                   })}

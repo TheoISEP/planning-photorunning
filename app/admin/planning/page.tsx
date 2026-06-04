@@ -1273,39 +1273,86 @@ export default function AdminCalendrierPage() {
                       <div className="text-sm font-bold">
                         {format(new Date(monthData.year, monthData.month), 'MMMM yyyy', { locale: fr })}
                       </div>
+                      <div className="text-xs mt-1 text-gray-700 dark:text-gray-300">
+                        {(() => {
+                          // Calculer le coût total du mois
+                          const monthTotal = monthData.courses.reduce((total, course) => {
+                            return total + (course.coutTotal || 0);
+                          }, 0);
+                          return `${monthTotal.toLocaleString('fr-FR')} €`;
+                        })()}
+                      </div>
                     </div>
                     <div className="sticky z-10 p-3 border-r-2 border-orange-300 dark:border-orange-700 bg-orange-100 dark:bg-orange-900" style={{ left: '200px' }}>
                       <div className="text-xs">{monthData.courses.length} course{monthData.courses.length > 1 ? 's' : ''}</div>
                     </div>
                     {admins.filter((a) => a.actif).map(admin => {
-                      // Calculer le nombre de fois où cet admin est validé ou chef dans ce mois
-                      const userCount = monthData.courses.reduce((count, course) => {
+                      // Calculer le nombre de fois où cet admin est validé ou chef dans ce mois + montant total
+                      let userCount = 0;
+                      let userTotal = 0;
+
+                      monthData.courses.forEach((course) => {
                         const dispo = course.disponibilites.find(d => d.photographeId === admin.id);
                         if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
-                          return count + 1;
+                          userCount += 1;
+
+                          // Trouver le tarif correspondant
+                          const courseTarif = dispo.tarifId
+                            ? tarifs.find((t) => t.id === dispo.tarifId)
+                            : tarifs.find((t) => t.courseId === course.id);
+
+                          if (courseTarif) {
+                            const amount = dispo.statut === 'teamLeader'
+                              ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
+                              : Number(courseTarif.tarifPhotographe);
+                            userTotal += amount;
+                          }
                         }
-                        return count;
-                      }, 0);
+                      });
 
                       return (
-                        <div key={admin.id} className="p-3 flex items-center justify-center text-xs font-semibold">
-                          {userCount > 0 ? userCount : '-'}
+                        <div key={admin.id} className="p-3 flex flex-col items-center justify-center text-xs font-semibold">
+                          <div>{userCount > 0 ? userCount : '-'}</div>
+                          {userCount > 0 && (
+                            <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">
+                              {userTotal.toLocaleString('fr-FR')} €
+                            </div>
+                          )}
                         </div>
                       );
                     })}
                     {photographers.filter((p) => p.actif).map(photographer => {
-                      // Calculer le nombre de fois où ce photographe est validé ou chef dans ce mois
-                      const userCount = monthData.courses.reduce((count, course) => {
+                      // Calculer le nombre de fois où ce photographe est validé ou chef dans ce mois + montant total
+                      let userCount = 0;
+                      let userTotal = 0;
+
+                      monthData.courses.forEach((course) => {
                         const dispo = course.disponibilites.find(d => d.photographeId === photographer.id);
                         if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
-                          return count + 1;
+                          userCount += 1;
+
+                          // Trouver le tarif correspondant
+                          const courseTarif = dispo.tarifId
+                            ? tarifs.find((t) => t.id === dispo.tarifId)
+                            : tarifs.find((t) => t.courseId === course.id);
+
+                          if (courseTarif) {
+                            const amount = dispo.statut === 'teamLeader'
+                              ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
+                              : Number(courseTarif.tarifPhotographe);
+                            userTotal += amount;
+                          }
                         }
-                        return count;
-                      }, 0);
+                      });
 
                       return (
-                        <div key={photographer.id} className="p-3 flex items-center justify-center text-xs font-semibold">
-                          {userCount > 0 ? userCount : '-'}
+                        <div key={photographer.id} className="p-3 flex flex-col items-center justify-center text-xs font-semibold">
+                          <div>{userCount > 0 ? userCount : '-'}</div>
+                          {userCount > 0 && (
+                            <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">
+                              {userTotal.toLocaleString('fr-FR')} €
+                            </div>
+                          )}
                         </div>
                       );
                     })}

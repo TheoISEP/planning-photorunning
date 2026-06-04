@@ -752,7 +752,7 @@ export default function AdminCalendrierPage() {
     try {
       // Envoyer la mise à jour au serveur
       const res = await fetch(`/api/courses/${courseId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: newValue }),
       });

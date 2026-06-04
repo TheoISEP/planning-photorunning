@@ -297,6 +297,8 @@ export default function CostsRecapPage() {
               {MONTH_NAMES.map((monthName, monthIndex) => {
                 const monthCourses = coursesByMonth[monthIndex] || [];
                 const totals = calculateMonthTotals(monthCourses);
+                const archivedCount = monthCourses.filter(c => c.archived === 'oui').length;
+                const activeCount = monthCourses.length - archivedCount;
 
                 return (
                   <tr
@@ -305,7 +307,18 @@ export default function CostsRecapPage() {
                   >
                     <td className="p-3 font-medium">{monthName}</td>
                     <td className="p-3 text-center">
-                      {monthCourses.length > 0 ? monthCourses.length : '-'}
+                      {monthCourses.length > 0 ? (
+                        <div>
+                          <div className="font-semibold">{monthCourses.length}</div>
+                          {archivedCount > 0 && (
+                            <div className="text-[10px] text-muted-foreground">
+                              ({activeCount} actives + {archivedCount} archivées)
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        '-'
+                      )}
                     </td>
                     <td className="p-3 text-right">
                       {totals.hotel > 0 ? formatCurrency(totals.hotel) : '-'}
@@ -331,7 +344,23 @@ export default function CostsRecapPage() {
               {/* Ligne de total annuel */}
               <tr className="bg-gray-100 font-bold border-t-2">
                 <td className="p-3">TOTAL {selectedYear}</td>
-                <td className="p-3 text-center">{yearCourses.length}</td>
+                <td className="p-3 text-center">
+                  <div>
+                    <div>{yearCourses.length}</div>
+                    {(() => {
+                      const archivedTotal = yearCourses.filter(c => c.archived === 'oui').length;
+                      const activeTotal = yearCourses.length - archivedTotal;
+                      if (archivedTotal > 0) {
+                        return (
+                          <div className="text-[10px] text-muted-foreground font-normal">
+                            ({activeTotal} actives + {archivedTotal} archivées)
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                </td>
                 <td className="p-3 text-right">{formatCurrency(yearTotals.hotelTotal)}</td>
                 <td className="p-3 text-right">{formatCurrency(yearTotals.transportTotal)}</td>
                 <td className="p-3 text-right">{formatCurrency(yearTotals.foodTotal)}</td>

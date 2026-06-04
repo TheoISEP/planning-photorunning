@@ -96,9 +96,8 @@ export default function CostsRecapPage() {
     }).format(amount);
   };
 
-  // Filtrer les courses pour l'année sélectionnée (non archivées)
+  // Filtrer les courses pour l'année sélectionnée (y compris archivées)
   const yearCourses = courses.filter(c => {
-    if (c.archived === 'oui') return false;
     const courseYear = new Date(c.dateDebut).getFullYear();
     return courseYear === selectedYear;
   });

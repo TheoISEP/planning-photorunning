@@ -50,6 +50,7 @@ interface Admin {
   nom: string;
   prenom: string;
   actif: boolean;
+  nonRemunere?: boolean | string;
 }
 
 interface Tarif {

@@ -59,6 +59,7 @@ export async function GET(
     console.log(`isNonPaidAdmin: ${isNonPaidAdmin}`);
     console.log(`nonRemunere raw value: ${JSON.stringify(targetUser.nonRemunere)}`);
     console.log(`nonRemunere type: ${typeof targetUser.nonRemunere}`);
+    console.log('All user fields:', JSON.stringify(targetUser, null, 2));
     console.log('==============================');
 
     // Récupérer toutes les disponibilités de cet utilisateur

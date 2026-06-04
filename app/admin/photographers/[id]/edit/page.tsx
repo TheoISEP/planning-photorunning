@@ -24,6 +24,8 @@ interface Photographer {
   dateNaissance?: string;
   actif: boolean;
   region?: string;
+  personUrgency?: string;
+  numberUrgency?: string;
   cameras?: string | string[];
   objectifs?: string | string[];
   cartesMemoire?: string | string[];
@@ -54,6 +56,8 @@ export default function EditPhotographerPage() {
     dateNaissance: '',
     actif: true,
     region: '',
+    personUrgency: '',
+    numberUrgency: '',
     cameras: [] as string[],
     objectifs: [] as string[],
     cartesMemoire: [] as string[],
@@ -125,6 +129,8 @@ export default function EditPhotographerPage() {
           dateNaissance: data.photographer.dateNaissance || '',
           actif: data.photographer.actif === 'TRUE' || data.photographer.actif === true,
           region: data.photographer.region || '',
+          personUrgency: data.photographer.personUrgency || '',
+          numberUrgency: data.photographer.numberUrgency || '',
           cameras: parseCameras(),
           objectifs: parseObjectifs(),
           cartesMemoire: parseCartesMemoire(),
@@ -159,6 +165,8 @@ export default function EditPhotographerPage() {
         dateNaissance: formData.dateNaissance,
         actif: formData.actif ? 'TRUE' : 'FALSE',
         region: formData.region,
+        personUrgency: formData.personUrgency,
+        numberUrgency: formData.numberUrgency,
         cameras: formData.cameras,
         objectifs: formData.objectifs,
         cartesMemoire: formData.cartesMemoire,
@@ -349,6 +357,34 @@ export default function EditPhotographerPage() {
                   onChange={(e) => setFormData({ ...formData, codePostal: e.target.value })}
                 />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Contact d'urgence */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Contact d'urgence</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="personUrgency">Personne à contacter</Label>
+              <Input
+                id="personUrgency"
+                value={formData.personUrgency}
+                onChange={(e) => setFormData({ ...formData, personUrgency: e.target.value })}
+                placeholder="Nom du contact d'urgence"
+              />
+            </div>
+            <div>
+              <Label htmlFor="numberUrgency">Numéro d'urgence</Label>
+              <Input
+                id="numberUrgency"
+                type="tel"
+                value={formData.numberUrgency}
+                onChange={(e) => setFormData({ ...formData, numberUrgency: e.target.value })}
+                placeholder="+33612345678"
+              />
             </div>
           </CardContent>
         </Card>

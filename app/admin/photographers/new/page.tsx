@@ -33,6 +33,8 @@ const photographerSchema = z.object({
   codePostal: z.string().optional(),
   dateNaissance: z.string().optional(),
   region: z.string().optional(),
+  personUrgency: z.string().optional(),
+  numberUrgency: z.string().optional(),
 });
 
 type PhotographerFormValues = z.infer<typeof photographerSchema>;
@@ -56,6 +58,8 @@ export default function NewPhotographerPage() {
       codePostal: '',
       dateNaissance: '',
       region: '',
+      personUrgency: '',
+      numberUrgency: '',
     },
   });
 
@@ -89,6 +93,8 @@ export default function NewPhotographerPage() {
         codePostal: data.codePostal || '',
         dateNaissance: data.dateNaissance || '',
         region: data.region || '',
+        personUrgency: data.personUrgency || '',
+        numberUrgency: data.numberUrgency || '',
         dateInscription: new Date().toISOString(),
         actif: true,
         cameras: JSON.stringify([]),
@@ -382,6 +388,43 @@ export default function NewPhotographerPage() {
                           <SelectItem value="Zone Lyon">Zone Lyon</SelectItem>
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Section 3: Contact d'urgence */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Contact d'urgence</CardTitle>
+                <CardDescription>Personne à contacter en cas d'urgence</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="personUrgency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Personne à contacter</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nom du contact d'urgence" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="numberUrgency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Numéro d'urgence</FormLabel>
+                      <FormControl>
+                        <Input type="tel" placeholder="+33612345678" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

@@ -71,6 +71,8 @@ export async function POST(request: NextRequest) {
       codePostal: data.codePostal || '',
       dateNaissance: data.dateNaissance || '',
       region: data.region || '',
+      personUrgency: data.personUrgency || '',
+      numberUrgency: data.numberUrgency || '',
       dateInscription: new Date().toISOString(),
       actif: 'TRUE',
       cameras: data.cameras ? JSON.stringify(data.cameras) : '[]',

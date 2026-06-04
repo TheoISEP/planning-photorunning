@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Euro } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Euro, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Course {
   id: string;
@@ -40,12 +41,18 @@ interface Admin {
   nonRemunere?: boolean | string;
 }
 
+const MONTH_NAMES = [
+  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+];
+
 export default function CostsRecapPage() {
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<Course[]>([]);
   const [tarifs, setTarifs] = useState<Tarif[]>([]);
   const [disponibilites, setDisponibilites] = useState<Disponibilite[]>([]);
   const [admins, setAdmins] = useState<Admin[]>([]);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
     fetchData();
@@ -89,20 +96,24 @@ export default function CostsRecapPage() {
     }).format(amount);
   };
 
-  // Filtrer les courses non archivées
-  const activeCourses = courses.filter(c => c.archived !== 'oui');
+  // Filtrer les courses pour l'année sélectionnée (non archivées)
+  const yearCourses = courses.filter(c => {
+    if (c.archived === 'oui') return false;
+    const courseYear = new Date(c.dateDebut).getFullYear();
+    return courseYear === selectedYear;
+  });
 
-  // Regrouper par mois
-  const coursesByMonth = activeCourses.reduce((acc, course) => {
+  // Regrouper par mois (0-11)
+  const coursesByMonth = yearCourses.reduce((acc, course) => {
     const date = new Date(course.dateDebut);
-    const monthKey = format(date, 'MMMM yyyy', { locale: fr });
+    const month = date.getMonth(); // 0-11
 
-    if (!acc[monthKey]) {
-      acc[monthKey] = [];
+    if (!acc[month]) {
+      acc[month] = [];
     }
-    acc[monthKey].push(course);
+    acc[month].push(course);
     return acc;
-  }, {} as Record<string, Course[]>);
+  }, {} as Record<number, Course[]>);
 
   // Calculer le coût photographes pour une course
   const calculatePhotoCost = (courseId: string) => {
@@ -131,15 +142,27 @@ export default function CostsRecapPage() {
     return total;
   };
 
-  // Calculer le total général
-  const calculateGrandTotal = () => {
+  // Calculer les totaux pour un mois
+  const calculateMonthTotals = (monthCourses: Course[]) => {
+    const hotel = monthCourses.reduce((sum, c) => sum + (Number(c.hotelPrice) || 0), 0);
+    const transport = monthCourses.reduce((sum, c) => sum + (Number(c.transportPrice) || 0), 0);
+    const food = monthCourses.reduce((sum, c) => sum + (Number(c.foodPrice) || 0), 0);
+    const comOrga = monthCourses.reduce((sum, c) => sum + (Number(c.comOrga) || 0), 0);
+    const photos = monthCourses.reduce((sum, c) => sum + calculatePhotoCost(c.id), 0);
+    const total = hotel + transport + food + comOrga + photos;
+
+    return { hotel, transport, food, comOrga, photos, total };
+  };
+
+  // Calculer le total annuel
+  const calculateYearTotal = () => {
     let hotelTotal = 0;
     let transportTotal = 0;
     let foodTotal = 0;
     let comOrgaTotal = 0;
     let photosTotal = 0;
 
-    activeCourses.forEach(course => {
+    yearCourses.forEach(course => {
       hotelTotal += Number(course.hotelPrice) || 0;
       transportTotal += Number(course.transportPrice) || 0;
       foodTotal += Number(course.foodPrice) || 0;
@@ -157,7 +180,7 @@ export default function CostsRecapPage() {
     };
   };
 
-  const totals = calculateGrandTotal();
+  const yearTotals = calculateYearTotal();
 
   if (loading) {
     return (
@@ -172,22 +195,41 @@ export default function CostsRecapPage() {
 
   return (
     <div className="h-full overflow-auto p-6 space-y-6">
-      {/* En-tête */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Récapitulatif des coûts</h1>
-        <p className="text-sm text-muted-foreground">
-          Vue d&apos;ensemble des coûts par course
-        </p>
+      {/* En-tête avec navigation années */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Récapitulatif des coûts</h1>
+          <p className="text-sm text-muted-foreground">
+            Vue d&apos;ensemble des coûts par mois pour l&apos;année {selectedYear}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setSelectedYear(selectedYear - 1)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="text-xl font-bold px-4">{selectedYear}</div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setSelectedYear(selectedYear + 1)}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* Totaux généraux */}
+      {/* Totaux annuels */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Hôtels</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totals.hotelTotal)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(yearTotals.hotelTotal)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -195,7 +237,7 @@ export default function CostsRecapPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Transports</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totals.transportTotal)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(yearTotals.transportTotal)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -203,7 +245,7 @@ export default function CostsRecapPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Nourriture</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totals.foodTotal)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(yearTotals.foodTotal)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -211,7 +253,7 @@ export default function CostsRecapPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Com. Orga</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totals.comOrgaTotal)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(yearTotals.comOrgaTotal)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -219,104 +261,163 @@ export default function CostsRecapPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Photographes</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totals.photosTotal)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(yearTotals.photosTotal)}</div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-300">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <Euro className="h-4 w-4" />
-              TOTAL
+              TOTAL {selectedYear}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{formatCurrency(totals.grandTotal)}</div>
+            <div className="text-2xl font-bold text-gray-900">{formatCurrency(yearTotals.grandTotal)}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tableau par mois */}
-      <div className="space-y-6">
-        {Object.entries(coursesByMonth)
-          .sort((a, b) => {
-            const dateA = new Date(a[1][0].dateDebut);
-            const dateB = new Date(b[1][0].dateDebut);
-            return dateA.getTime() - dateB.getTime();
-          })
-          .map(([monthKey, monthCourses]) => {
-            // Calculer les totaux du mois
-            const hotel = monthCourses.reduce((sum, c) => sum + (Number(c.hotelPrice) || 0), 0);
-            const transport = monthCourses.reduce((sum, c) => sum + (Number(c.transportPrice) || 0), 0);
-            const food = monthCourses.reduce((sum, c) => sum + (Number(c.foodPrice) || 0), 0);
-            const comOrga = monthCourses.reduce((sum, c) => sum + (Number(c.comOrga) || 0), 0);
-            const photos = monthCourses.reduce((sum, c) => sum + calculatePhotoCost(c.id), 0);
-            const total = hotel + transport + food + comOrga + photos;
+      {/* Tableau mensuel */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold">Détail mensuel</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border rounded-lg">
+            <thead>
+              <tr className="border-b bg-gray-50">
+                <th className="text-left p-3 font-semibold">Mois</th>
+                <th className="text-center p-3 font-semibold">Nb Courses</th>
+                <th className="text-right p-3 font-semibold">Hôtel</th>
+                <th className="text-right p-3 font-semibold">Transport</th>
+                <th className="text-right p-3 font-semibold">Nourriture</th>
+                <th className="text-right p-3 font-semibold">Com. Orga</th>
+                <th className="text-right p-3 font-semibold">Photographes</th>
+                <th className="text-right p-3 font-semibold bg-gray-100">TOTAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {MONTH_NAMES.map((monthName, monthIndex) => {
+                const monthCourses = coursesByMonth[monthIndex] || [];
+                const totals = calculateMonthTotals(monthCourses);
 
-            const monthTotals = { hotel, transport, food, comOrga, photos, total };
+                return (
+                  <tr
+                    key={monthIndex}
+                    className={`border-b hover:bg-gray-50 ${monthCourses.length === 0 ? 'text-gray-400' : ''}`}
+                  >
+                    <td className="p-3 font-medium">{monthName}</td>
+                    <td className="p-3 text-center">
+                      {monthCourses.length > 0 ? monthCourses.length : '-'}
+                    </td>
+                    <td className="p-3 text-right">
+                      {totals.hotel > 0 ? formatCurrency(totals.hotel) : '-'}
+                    </td>
+                    <td className="p-3 text-right">
+                      {totals.transport > 0 ? formatCurrency(totals.transport) : '-'}
+                    </td>
+                    <td className="p-3 text-right">
+                      {totals.food > 0 ? formatCurrency(totals.food) : '-'}
+                    </td>
+                    <td className="p-3 text-right">
+                      {totals.comOrga > 0 ? formatCurrency(totals.comOrga) : '-'}
+                    </td>
+                    <td className="p-3 text-right">
+                      {totals.photos > 0 ? formatCurrency(totals.photos) : '-'}
+                    </td>
+                    <td className="p-3 text-right font-bold bg-gray-50">
+                      {totals.total > 0 ? formatCurrency(totals.total) : '-'}
+                    </td>
+                  </tr>
+                );
+              })}
+              {/* Ligne de total annuel */}
+              <tr className="bg-gray-100 font-bold border-t-2">
+                <td className="p-3">TOTAL {selectedYear}</td>
+                <td className="p-3 text-center">{yearCourses.length}</td>
+                <td className="p-3 text-right">{formatCurrency(yearTotals.hotelTotal)}</td>
+                <td className="p-3 text-right">{formatCurrency(yearTotals.transportTotal)}</td>
+                <td className="p-3 text-right">{formatCurrency(yearTotals.foodTotal)}</td>
+                <td className="p-3 text-right">{formatCurrency(yearTotals.comOrgaTotal)}</td>
+                <td className="p-3 text-right">{formatCurrency(yearTotals.photosTotal)}</td>
+                <td className="p-3 text-right bg-gray-200">{formatCurrency(yearTotals.grandTotal)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-            return (
-              <Card key={monthKey}>
-                <CardHeader>
-                  <CardTitle className="text-lg capitalize">{monthKey}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left p-2 font-semibold">Course</th>
-                          <th className="text-left p-2 font-semibold">Ville</th>
-                          <th className="text-left p-2 font-semibold">Date</th>
-                          <th className="text-right p-2 font-semibold">Hôtel</th>
-                          <th className="text-right p-2 font-semibold">Transport</th>
-                          <th className="text-right p-2 font-semibold">Nourriture</th>
-                          <th className="text-right p-2 font-semibold">Com. Orga</th>
-                          <th className="text-right p-2 font-semibold">Photographes</th>
-                          <th className="text-right p-2 font-semibold bg-gray-50">TOTAL</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {monthCourses.map(course => {
-                          const photoCost = calculatePhotoCost(course.id);
-                          const hotelPrice = Number(course.hotelPrice) || 0;
-                          const transportPrice = Number(course.transportPrice) || 0;
-                          const foodPrice = Number(course.foodPrice) || 0;
-                          const comOrga = Number(course.comOrga) || 0;
-                          const totalCost = hotelPrice + transportPrice + foodPrice + comOrga + photoCost;
+      {/* Détail par mois (expandable) */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold">Détail des courses par mois</h2>
+        {MONTH_NAMES.map((monthName, monthIndex) => {
+          const monthCourses = coursesByMonth[monthIndex] || [];
 
-                          return (
-                            <tr key={course.id} className="border-b hover:bg-gray-50">
-                              <td className="p-2 font-medium">{course.nom}</td>
-                              <td className="p-2 text-muted-foreground">{course.ville}</td>
-                              <td className="p-2 text-muted-foreground">
-                                {format(new Date(course.dateDebut), 'dd/MM/yyyy')}
-                              </td>
-                              <td className="p-2 text-right">{formatCurrency(hotelPrice)}</td>
-                              <td className="p-2 text-right">{formatCurrency(transportPrice)}</td>
-                              <td className="p-2 text-right">{formatCurrency(foodPrice)}</td>
-                              <td className="p-2 text-right">{formatCurrency(comOrga)}</td>
-                              <td className="p-2 text-right">{formatCurrency(photoCost)}</td>
-                              <td className="p-2 text-right font-bold bg-gray-50">{formatCurrency(totalCost)}</td>
-                            </tr>
-                          );
-                        })}
-                        {/* Ligne de total du mois */}
-                        <tr className="bg-gray-100 font-bold">
-                          <td colSpan={3} className="p-2">Total {monthKey}</td>
-                          <td className="p-2 text-right">{formatCurrency(monthTotals.hotel)}</td>
-                          <td className="p-2 text-right">{formatCurrency(monthTotals.transport)}</td>
-                          <td className="p-2 text-right">{formatCurrency(monthTotals.food)}</td>
-                          <td className="p-2 text-right">{formatCurrency(monthTotals.comOrga)}</td>
-                          <td className="p-2 text-right">{formatCurrency(monthTotals.photos)}</td>
-                          <td className="p-2 text-right bg-gray-200">{formatCurrency(monthTotals.total)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+          if (monthCourses.length === 0) return null;
+
+          const totals = calculateMonthTotals(monthCourses);
+
+          return (
+            <Card key={monthIndex}>
+              <CardHeader>
+                <CardTitle className="text-lg">{monthName} {selectedYear}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2 font-semibold">Course</th>
+                        <th className="text-left p-2 font-semibold">Ville</th>
+                        <th className="text-left p-2 font-semibold">Date</th>
+                        <th className="text-right p-2 font-semibold">Hôtel</th>
+                        <th className="text-right p-2 font-semibold">Transport</th>
+                        <th className="text-right p-2 font-semibold">Nourriture</th>
+                        <th className="text-right p-2 font-semibold">Com. Orga</th>
+                        <th className="text-right p-2 font-semibold">Photographes</th>
+                        <th className="text-right p-2 font-semibold bg-gray-50">TOTAL</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {monthCourses.map(course => {
+                        const photoCost = calculatePhotoCost(course.id);
+                        const hotelPrice = Number(course.hotelPrice) || 0;
+                        const transportPrice = Number(course.transportPrice) || 0;
+                        const foodPrice = Number(course.foodPrice) || 0;
+                        const comOrga = Number(course.comOrga) || 0;
+                        const totalCost = hotelPrice + transportPrice + foodPrice + comOrga + photoCost;
+
+                        return (
+                          <tr key={course.id} className="border-b hover:bg-gray-50">
+                            <td className="p-2 font-medium">{course.nom}</td>
+                            <td className="p-2 text-muted-foreground">{course.ville}</td>
+                            <td className="p-2 text-muted-foreground">
+                              {format(new Date(course.dateDebut), 'dd/MM/yyyy')}
+                            </td>
+                            <td className="p-2 text-right">{formatCurrency(hotelPrice)}</td>
+                            <td className="p-2 text-right">{formatCurrency(transportPrice)}</td>
+                            <td className="p-2 text-right">{formatCurrency(foodPrice)}</td>
+                            <td className="p-2 text-right">{formatCurrency(comOrga)}</td>
+                            <td className="p-2 text-right">{formatCurrency(photoCost)}</td>
+                            <td className="p-2 text-right font-bold bg-gray-50">{formatCurrency(totalCost)}</td>
+                          </tr>
+                        );
+                      })}
+                      {/* Ligne de total du mois */}
+                      <tr className="bg-gray-100 font-bold">
+                        <td colSpan={3} className="p-2">Total {monthName}</td>
+                        <td className="p-2 text-right">{formatCurrency(totals.hotel)}</td>
+                        <td className="p-2 text-right">{formatCurrency(totals.transport)}</td>
+                        <td className="p-2 text-right">{formatCurrency(totals.food)}</td>
+                        <td className="p-2 text-right">{formatCurrency(totals.comOrga)}</td>
+                        <td className="p-2 text-right">{formatCurrency(totals.photos)}</td>
+                        <td className="p-2 text-right bg-gray-200">{formatCurrency(totals.total)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

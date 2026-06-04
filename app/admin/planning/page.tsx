@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface Course {
   id: string;
@@ -733,6 +734,41 @@ export default function AdminCalendrierPage() {
     }
   };
 
+  const toggleValidation = async (courseId: string, field: 'hotelValid' | 'transportValid') => {
+    const course = courses.find((c) => c.id === courseId);
+    if (!course) return;
+
+    // Déterminer la nouvelle valeur (toggle)
+    const currentValue = course[field];
+    const isCurrentlyValid = currentValue === 'TRUE' || currentValue === true;
+    const newValue = isCurrentlyValid ? 'FALSE' : 'TRUE';
+
+    // Mise à jour optimiste
+    const updatedCourses = courses.map((c) =>
+      c.id === courseId ? { ...c, [field]: newValue } : c
+    );
+    setCourses(updatedCourses);
+
+    try {
+      // Envoyer la mise à jour au serveur
+      const res = await fetch(`/api/courses/${courseId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: newValue }),
+      });
+
+      if (!res.ok) {
+        // En cas d'erreur, restaurer l'état précédent
+        setCourses(courses);
+        toast.error('Erreur lors de la mise à jour');
+      }
+    } catch (error) {
+      // En cas d'erreur, restaurer l'état précédent
+      setCourses(courses);
+      toast.error('Erreur lors de la mise à jour');
+    }
+  };
+
   // Filtrage par statut uniquement
   const filteredCourses = courses.filter((course) => {
     // Exclure les courses archivées
@@ -1182,10 +1218,30 @@ export default function AdminCalendrierPage() {
                                 {/* Badges Hotel et Transport */}
                                 <div className="flex items-center gap-0.5">
                                   {course.hotelValid && (
-                                    <span className={`text-[9px] font-bold px-1 py-0.5 rounded border ${course.hotelValid === 'TRUE' || course.hotelValid === true ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300'}`}>H</span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        toggleValidation(course.id, 'hotelValid');
+                                      }}
+                                      className={`text-[9px] font-bold px-1 py-0.5 rounded border cursor-pointer transition-colors ${course.hotelValid === 'TRUE' || course.hotelValid === true ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'}`}
+                                      title={course.hotelValid === 'TRUE' || course.hotelValid === true ? 'Hôtel validé - Cliquer pour invalider' : 'Hôtel non validé - Cliquer pour valider'}
+                                    >
+                                      H
+                                    </button>
                                   )}
                                   {course.transportValid && (
-                                    <span className={`text-[9px] font-bold px-1 py-0.5 rounded border ${course.transportValid === 'TRUE' || course.transportValid === true ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300'}`}>T</span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        toggleValidation(course.id, 'transportValid');
+                                      }}
+                                      className={`text-[9px] font-bold px-1 py-0.5 rounded border cursor-pointer transition-colors ${course.transportValid === 'TRUE' || course.transportValid === true ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'}`}
+                                      title={course.transportValid === 'TRUE' || course.transportValid === true ? 'Transport validé - Cliquer pour invalider' : 'Transport non validé - Cliquer pour valider'}
+                                    >
+                                      T
+                                    </button>
                                   )}
                                 </div>
                               </div>

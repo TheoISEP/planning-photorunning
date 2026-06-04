@@ -40,13 +40,19 @@ export async function GET(
       targetUser = admins.find((a: any) => a.id === id);
       if (targetUser) {
         isAdmin = true;
-        isNonPaidAdmin = targetUser.nonRemunere === true || targetUser.nonRemunere === 'TRUE';
+        // Vérifier toutes les formes possibles de nonRemunere
+        isNonPaidAdmin = targetUser.nonRemunere === true ||
+                        targetUser.nonRemunere === 'TRUE' ||
+                        targetUser.nonRemunere === 'true' ||
+                        String(targetUser.nonRemunere).toLowerCase() === 'true';
       }
     }
 
     if (!targetUser) {
       return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 });
     }
+
+    console.log(`User: ${targetUser.prenom} ${targetUser.nom}, isAdmin: ${isAdmin}, isNonPaidAdmin: ${isNonPaidAdmin}, nonRemunere value: ${targetUser.nonRemunere}`);
 
     // Récupérer toutes les disponibilités de cet utilisateur
     const disponibilites = await sheetsService.getDisponibilitesByPhotographerId(id);
@@ -109,11 +115,13 @@ export async function GET(
         // Pour les admins non rémunérés : uniquement le tarif de base (pas de bonus chef)
         if (isNonPaidAdmin) {
           amount = Number(tarif.tarifPhotographe) || 0;
+          console.log(`Admin non rémunéré - Course: ${course.nom}, Tarif base: ${amount}, Statut: ${dispo.statut}`);
         } else {
           // Pour les photographes et admins rémunérés : tarif + bonus chef si applicable
           const tarifBase = Number(tarif.tarifPhotographe) || 0;
           const bonus = dispo.statut === 'teamLeader' ? (Number(tarif.bonusChefEquipe) || 0) : 0;
           amount = tarifBase + bonus;
+          console.log(`Utilisateur rémunéré - Course: ${course.nom}, Tarif base: ${tarifBase}, Bonus: ${bonus}, Total: ${amount}, Statut: ${dispo.statut}`);
         }
 
         monthlyStats[monthKey].montantTotal += amount;

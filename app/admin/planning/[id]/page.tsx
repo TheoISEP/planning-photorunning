@@ -548,13 +548,19 @@ export default function AdminCalendrierEventDetailPage() {
 							{disponibilites
 								.filter(d => d.statut === 'validated' || d.statut === 'teamLeader')
 								.map(dispo => {
-									const photographer = photographers.find(p => p.id === dispo.photographeId);
-									if (!photographer) return null;
+									// Chercher dans photographes ET admins
+									const person = photographers.find(p => p.id === dispo.photographeId) || admins.find(a => a.id === dispo.photographeId);
+									if (!person) return null;
 
 									const isTeamLeader = dispo.statut === 'teamLeader';
-									const salary = isTeamLeader
+
+									// Vérifier si c'est un admin non rémunéré
+									const isAdmin = admins.find(a => a.id === dispo.photographeId);
+									const isNonRemunere = isAdmin && (isAdmin.nonRemunere === 'TRUE' || isAdmin.nonRemunere === true);
+
+									const salary = isNonRemunere ? 0 : (isTeamLeader
 										? (tarif ? Number(tarif.tarifPhotographe) + Number(tarif.bonusChefEquipe) : 0)
-										: (tarif ? Number(tarif.tarifPhotographe) : 0);
+										: (tarif ? Number(tarif.tarifPhotographe) : 0));
 
 									return (
 										<div
@@ -564,12 +570,12 @@ export default function AdminCalendrierEventDetailPage() {
 											<div className="flex items-center gap-3">
 												<Avatar>
 													<AvatarFallback className={isTeamLeader ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-700"}>
-														{photographer.prenom[0]}{photographer.nom[0]}
+														{person.prenom[0]}{person.nom[0]}
 													</AvatarFallback>
 												</Avatar>
 												<div>
 													<div className="font-medium">
-														{photographer.prenom} {photographer.nom}
+														{person.prenom} {person.nom}
 													</div>
 													<div className="text-sm text-muted-foreground">
 														{isTeamLeader ? (
@@ -587,9 +593,14 @@ export default function AdminCalendrierEventDetailPage() {
 												<div className="font-semibold text-gray-600">
 													{salary.toLocaleString("fr-FR")} €
 												</div>
-												{isTeamLeader && tarif && (
+												{isTeamLeader && tarif && !isNonRemunere && (
 													<div className="text-xs text-muted-foreground">
 													  {Number(tarif.tarifPhotographe)}€ + {Number(tarif.bonusChefEquipe)}€ bonus
+													</div>
+												)}
+												{isNonRemunere && (
+													<div className="text-xs text-muted-foreground">
+													  Non rémunéré
 													</div>
 												)}
 											</div>

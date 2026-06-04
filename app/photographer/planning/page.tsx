@@ -102,6 +102,7 @@ export default function PhotographerCalendrierPage() {
   const [disponibilites, setDisponibilites] = useState<Disponibilite[]>([]);
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
   const [zoom, setZoom] = useState(90);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Stats personnelles du photographe depuis Google Sheets
   const [myStats, setMyStats] = useState<PhotographerStats>({
@@ -223,32 +224,34 @@ export default function PhotographerCalendrierPage() {
     }
   }, []);
 
-  // Charger les données au montage initial
+  // Charger les données au montage initial et quand refreshKey change
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, refreshKey]);
 
-  // Rafraîchir les données quand on revient en arrière (bouton retour du navigateur)
+  // Rafraîchir les données quand on revient sur la page
   useEffect(() => {
-    const handlePopState = () => {
-      // Se déclenche lors de la navigation arrière/avant
-      fetchData();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Forcer un refresh en changeant la clé
+        setRefreshKey(prev => prev + 1);
+      }
     };
 
-    // Écouter l'événement popstate (navigation arrière/avant)
-    window.addEventListener('popstate', handlePopState);
-
-    // Écouter aussi l'événement de focus (quand on revient sur l'onglet)
     const handleFocus = () => {
-      fetchData();
+      // Forcer un refresh en changeant la clé
+      setRefreshKey(prev => prev + 1);
     };
+
+    // Écouter les événements de visibilité
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
 
     return () => {
-      window.removeEventListener('popstate', handlePopState);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [fetchData]);
+  }, []);
 
   // Fonction pour recharger uniquement les disponibilités sans loader
   const refreshDisponibilites = async () => {

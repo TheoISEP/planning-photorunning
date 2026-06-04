@@ -1,7 +1,7 @@
 'use client';
 
 // Archives page with region-based color coding
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -42,6 +42,7 @@ interface Photographer {
   nom: string;
   prenom: string;
   actif: boolean;
+  region?: string;
 }
 
 interface Admin {
@@ -112,6 +113,44 @@ const getRegionBackgroundColor = (region?: string): string => {
     'Nord': 'bg-rose-50',
   };
   return regionColors[region || ''] || 'bg-white';
+};
+
+// Ordre des régions
+const REGION_ORDER = [
+  'Ile-de-France',
+  'Sud-Est',
+  'Sud-Ouest',
+  'Nord',
+  'Zone Lyon',
+  'Zone Centre',
+];
+
+// Fonction pour regrouper les photographes par région
+const groupPhotographersByRegion = (photographers: Photographer[]) => {
+  const groups: Array<{ region: string; photographers: Photographer[] }> = [];
+
+  photographers.forEach(photographer => {
+    const region = photographer.region || 'Sans région';
+    let group = groups.find(g => g.region === region);
+
+    if (!group) {
+      group = { region, photographers: [] };
+      groups.push(group);
+    }
+
+    group.photographers.push(photographer);
+  });
+
+  // Trier les groupes selon l'ordre des régions
+  return groups.sort((a, b) => {
+    const indexA = REGION_ORDER.indexOf(a.region);
+    const indexB = REGION_ORDER.indexOf(b.region);
+
+    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+    if (indexA !== -1) return -1;
+    if (indexB !== -1) return 1;
+    return 0;
+  });
 };
 
 export default function AdminCalendrierPage() {
@@ -1022,6 +1061,41 @@ export default function AdminCalendrierPage() {
                   </Link>
                 </div>
               ))}
+            </div>
+
+            {/* Ligne des régions */}
+            <div
+              className="grid gap-0 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 border-b border-gray-300/50"
+              style={{
+                gridTemplateColumns: `200px 120px repeat(${[...admins, ...photographers].filter((u) => u.actif).length}, 70px)`,
+                minWidth: 'max-content'
+              }}
+            >
+              {/* Colonne Course vide - STICKY */}
+              <div className="sticky left-0 z-50 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800" style={{ position: 'sticky', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}></div>
+
+              {/* Colonne Date vide - STICKY */}
+              <div className="sticky z-50 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800" style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}></div>
+
+              {/* Admins - pas de région */}
+              {admins.filter((a) => a.actif).map(admin => (
+                <div key={admin.id}></div>
+              ))}
+
+              {/* Photographes - regroupés par région */}
+              {(() => {
+                const regionGroups = groupPhotographersByRegion(photographers.filter((p) => p.actif));
+                return regionGroups.map(group => (
+                  <React.Fragment key={group.region}>
+                    <div
+                      className={`p-1 text-center font-bold text-[10px] uppercase tracking-wider ${getRegionBackgroundColor(group.photographers[0]?.region)} border-l border-gray-400/40`}
+                      style={{ gridColumn: `span ${group.photographers.length}` }}
+                    >
+                      {group.region}
+                    </div>
+                  </React.Fragment>
+                ));
+              })()}
             </div>
           </div>
 

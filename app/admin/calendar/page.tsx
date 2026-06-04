@@ -406,7 +406,7 @@ export default function AdminCalendarPage() {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Button variant="outline" size="sm" asChild className="w-full sm:w-auto h-10 sm:h-9">
-            <Link href="/admin/planning/stats">
+            <Link href="/admin/calendar/stats">
               <ArrowUpDown className="h-4 w-4 mr-2" />
               Mes statistiques
             </Link>

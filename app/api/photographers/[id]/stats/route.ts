@@ -39,11 +39,11 @@ export async function GET(
     if (targetUser) {
       isAdmin = true;
       // Vérifier toutes les formes possibles de rem (colonne "rem" dans Google Sheets)
-      // rem = "non" signifie admin non rémunéré
-      isNonPaidAdmin = targetUser.rem === 'non' ||
-                      targetUser.rem === 'Non' ||
-                      targetUser.rem === 'NON' ||
-                      String(targetUser.rem).toLowerCase() === 'non';
+      // rem = TRUE signifie admin non rémunéré, rem = FALSE signifie admin rémunéré
+      isNonPaidAdmin = targetUser.rem === true ||
+                      targetUser.rem === 'TRUE' ||
+                      targetUser.rem === 'true' ||
+                      String(targetUser.rem).toLowerCase() === 'true';
     } else {
       // Si pas trouvé dans les admins, chercher dans les photographes
       targetUser = photographers.find((p: any) => p.id === id);

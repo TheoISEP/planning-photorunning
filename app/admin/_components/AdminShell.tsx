@@ -118,7 +118,14 @@ function getAdminMeta(pathname: string): { title: string; crumbs: Crumb[]; prima
 	}
 
 	if (section === "calendar") {
-		crumbs.push({ label: "Mon calendrier" });
+		crumbs.push({ label: "Mon calendrier", href: "/admin/calendar" });
+
+		// /admin/calendar/stats
+		if (parts.length > 2 && parts[2] === "stats") {
+			crumbs.push({ label: "Statistiques" });
+			return { title: "Mes statistiques", crumbs };
+		}
+
 		return { title: "Mon calendrier", crumbs };
 	}
 

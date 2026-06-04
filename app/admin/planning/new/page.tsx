@@ -38,6 +38,7 @@ const formSchema = z.object({
 	photographerPrice: z.string().min(1, "Le tarif photographe est requis"),
 	teamLeaderBonus: z.string().min(1, "Le bonus chef d'équipe est requis"),
 	expectedRunners: z.string().optional(),
+	expectedPhotographers: z.string().optional(),
 	hotelNotes: z.string().optional(),
 	transportNotes: z.string().optional(),
 	specialNotes: z.string().optional(),
@@ -65,6 +66,7 @@ export default function NewCalendrierEventPage() {
 			photographerPrice: "350",
 			teamLeaderBonus: "100",
 			expectedRunners: "",
+			expectedPhotographers: "",
 			hotelNotes: "",
 			transportNotes: "",
 			specialNotes: "",
@@ -100,7 +102,8 @@ export default function NewCalendrierEventPage() {
 			dateDebut: startDateTime.toISOString(),
 			dateFin: endDateTime.toISOString(),
 			statutTraitement: 'inProgress' as const,
-			numberAttended: values.expectedRunners ? parseInt(values.expectedRunners) : undefined,
+			coureursAttendus: values.expectedRunners ? parseInt(values.expectedRunners) : undefined,
+			numberAttended: values.expectedPhotographers ? parseInt(values.expectedPhotographers) : undefined,
 			dateCreation: new Date().toISOString(),
 			creePar: 'admin-001',
 			visible: true,
@@ -230,6 +233,23 @@ export default function NewCalendrierEventPage() {
 							<FormField
 								control={form.control}
 								name="expectedRunners"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Nombre de coureurs attendus</FormLabel>
+										<FormControl>
+											<Input type="number" placeholder="5000" {...field} />
+										</FormControl>
+										<FormDescription>
+											Optionnel, affiché dans la ligne "👥" de l'événement
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<FormField
+								control={form.control}
+								name="expectedPhotographers"
 								render={({ field }) => (
 									<FormItem>
 										<FormLabel>Nombre de photographes attendus</FormLabel>

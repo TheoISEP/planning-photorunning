@@ -32,6 +32,7 @@ const courseSchema = z.object({
   tarifPhotographe: z.string().min(1, 'Le tarif est requis'),
   bonusChefEquipe: z.string().min(1, 'Le bonus est requis'),
   coureursAttendus: z.string().optional(),
+  numberAttended: z.string().optional(),
   hotel: z.string().optional(),
   transport: z.string().optional(),
   supplementaire: z.string().optional(),
@@ -63,6 +64,7 @@ export default function EditCoursePage() {
       tarifPhotographe: '450',
       bonusChefEquipe: '100',
       coureursAttendus: '',
+      numberAttended: '',
       hotel: '',
       transport: '',
       supplementaire: '',
@@ -121,6 +123,7 @@ export default function EditCoursePage() {
         tarifPhotographe: String(tarif.tarifPhotographe),
         bonusChefEquipe: String(tarif.bonusChefEquipe),
         coureursAttendus: course.coureursAttendus ? String(course.coureursAttendus) : '',
+        numberAttended: course.numberAttended ? String(course.numberAttended) : '',
         hotel: course.hotel || '',
         transport: course.transport || '',
         supplementaire: course.supplementaire || '',
@@ -152,7 +155,8 @@ export default function EditCoursePage() {
         description: data.description || '',
         dateDebut: new Date(data.dateDebut).toISOString(),
         dateFin: new Date(data.dateFin).toISOString(),
-        numberAttended: data.coureursAttendus ? parseInt(data.coureursAttendus) : 0,
+        coureursAttendus: data.coureursAttendus ? parseInt(data.coureursAttendus) : 0,
+        numberAttended: data.numberAttended ? parseInt(data.numberAttended) : 0,
         hotel: data.hotel || '',
         transport: data.transport || '',
         supplementaire: data.supplementaire || '',
@@ -295,6 +299,23 @@ export default function EditCoursePage() {
                 <FormField
                   control={form.control}
                   name="coureursAttendus"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre de coureurs attendus</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="Ex: 5000" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Optionnel, affiché dans la ligne "👥" de l'événement
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="numberAttended"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Nombre de photographes attendus</FormLabel>

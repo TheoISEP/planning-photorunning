@@ -278,14 +278,7 @@ export class GoogleSheetsService {
     const headers = rows[0];
     const dataRows = rows.slice(1);
 
-    return dataRows.map(row => {
-      const obj = this.rowToObject(headers, row);
-      // Alias: numberAttended (Google Sheets) -> coureursAttendus (app)
-      if (obj.numberAttended !== undefined && obj.coureursAttendus === undefined) {
-        obj.coureursAttendus = obj.numberAttended;
-      }
-      return obj;
-    });
+    return dataRows.map(row => this.rowToObject(headers, row));
   }
 
   async getCourseById(id: string) {

@@ -192,6 +192,20 @@ export async function PATCH(request: NextRequest) {
 
     const sheetsService = new GoogleSheetsService();
 
+    // Si c'est un photographe, vérifier que la course n'est pas archivée
+    if (user.role === 'photographer') {
+      // Extraire le courseId de l'ID de disponibilité (format: dispo-{courseId}-{photographeId})
+      const courseIdFromDispoId = id.split('-')[1];
+      if (courseIdFromDispoId) {
+        const course = await sheetsService.getCourseById(courseIdFromDispoId);
+        if (course && course.archived === 'oui') {
+          return NextResponse.json({
+            error: 'Vous ne pouvez pas modifier une disponibilité pour une course archivée'
+          }, { status: 403 });
+        }
+      }
+    }
+
     // Mettre à jour la disponibilité
     const updateData: any = {
       statut,

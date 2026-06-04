@@ -181,7 +181,7 @@ function SidebarContent({
 	);
 }
 
-function AdminUserMenu({ user }: { user: { email: string; nom: string } | null }) {
+function AdminUserMenu({ user }: { user: { email: string; prenom: string; nom?: string } | null }) {
 	const router = useRouter();
 	const [mounted, setMounted] = React.useState(false);
 
@@ -196,7 +196,7 @@ function AdminUserMenu({ user }: { user: { email: string; nom: string } | null }
 	};
 
 	const email = user?.email ?? "Compte";
-	const name = user?.nom ?? "";
+	const name = user?.prenom ?? "";
 
 	// Prevent hydration mismatch by not rendering DropdownMenu until mounted
 	if (!mounted) {
@@ -243,7 +243,7 @@ function AdminUserMenu({ user }: { user: { email: string; nom: string } | null }
 	);
 }
 
-export function AdminShell({ children, user }: { children: React.ReactNode; user: { email: string; nom: string } | null }) {
+export function AdminShell({ children, user }: { children: React.ReactNode; user: { email: string; prenom: string; nom?: string } | null }) {
 	const pathname = usePathname();
 	const [collapsed, setCollapsed] = React.useState(false);
 	const [mounted, setMounted] = React.useState(false);

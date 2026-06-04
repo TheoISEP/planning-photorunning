@@ -46,9 +46,9 @@ export async function POST(request: NextRequest) {
 
     const data = await request.json();
 
-    // Validation des champs requis
-    if (!data.email || !data.password || !data.nom || !data.prenom) {
-      return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 });
+    // Validation des champs requis (nom est optionnel pour les admins)
+    if (!data.email || !data.password || !data.prenom) {
+      return NextResponse.json({ error: 'Champs requis manquants (email, password, prenom)' }, { status: 400 });
     }
 
     const sheetsService = new GoogleSheetsService();
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       id: adminId,
       email: data.email,
       password: hashedPassword,
-      nom: data.nom,
+      nom: data.nom || '',
       prenom: data.prenom,
       telephone: data.telephone || '',
       adresse: data.adresse || '',

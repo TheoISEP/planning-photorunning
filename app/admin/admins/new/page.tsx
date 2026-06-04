@@ -23,8 +23,8 @@ export default function NewAdminPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.email || !formData.password || !formData.nom || !formData.prenom) {
-      toast.error('Veuillez remplir tous les champs obligatoires');
+    if (!formData.email || !formData.password || !formData.prenom) {
+      toast.error('Veuillez remplir tous les champs obligatoires (email, mot de passe, prénom)');
       return;
     }
 
@@ -70,22 +70,21 @@ export default function NewAdminPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="nom">Nom *</Label>
-              <Input
-                id="nom"
-                value={formData.nom}
-                onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                required
-              />
-            </div>
-
-            <div>
               <Label htmlFor="prenom">Prénom *</Label>
               <Input
                 id="prenom"
                 value={formData.prenom}
                 onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
                 required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="nom">Nom</Label>
+              <Input
+                id="nom"
+                value={formData.nom}
+                onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
               />
             </div>
           </div>

@@ -9,7 +9,8 @@ interface User {
   id: string;
   email: string;
   role: string;
-  nom: string;
+  prenom: string;
+  nom?: string;
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

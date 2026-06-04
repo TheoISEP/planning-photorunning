@@ -1092,28 +1092,24 @@ export default function AdminCalendrierPage() {
                             <span className="text-[10px]">🟠</span>
                           )}
                           <div className="flex items-center gap-0.5">
-                            {course.hotelValid && (
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  toggleValidation(course.id, 'hotelValid');
-                                }}
-                                className={`text-[9px] font-bold px-1 py-0.5 rounded border cursor-pointer transition-colors ${course.hotelValid === 'TRUE' || course.hotelValid === true ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'}`}
-                              >
-                                H
-                              </button>
-                            )}
-                            {course.transportValid && (
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  toggleValidation(course.id, 'transportValid');
-                                }}
-                                className={`text-[9px] font-bold px-1 py-0.5 rounded border cursor-pointer transition-colors ${course.transportValid === 'TRUE' || course.transportValid === true ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'}`}
-                              >
-                                T
-                              </button>
-                            )}
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                toggleValidation(course.id, 'hotelValid');
+                              }}
+                              className={`text-[9px] font-bold px-1 py-0.5 rounded border cursor-pointer transition-colors ${course.hotelValid === 'TRUE' || course.hotelValid === true ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'}`}
+                            >
+                              H
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                toggleValidation(course.id, 'transportValid');
+                              }}
+                              className={`text-[9px] font-bold px-1 py-0.5 rounded border cursor-pointer transition-colors ${course.transportValid === 'TRUE' || course.transportValid === true ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'}`}
+                            >
+                              T
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1447,32 +1443,28 @@ export default function AdminCalendrierPage() {
                                 )}
                                 {/* Badges Hotel et Transport */}
                                 <div className="flex items-center gap-0.5">
-                                  {course.hotelValid && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        toggleValidation(course.id, 'hotelValid');
-                                      }}
-                                      className={`text-[9px] font-bold px-1 py-0.5 rounded border cursor-pointer transition-colors ${course.hotelValid === 'TRUE' || course.hotelValid === true ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'}`}
-                                      title={course.hotelValid === 'TRUE' || course.hotelValid === true ? 'Hôtel validé - Cliquer pour invalider' : 'Hôtel non validé - Cliquer pour valider'}
-                                    >
-                                      H
-                                    </button>
-                                  )}
-                                  {course.transportValid && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        toggleValidation(course.id, 'transportValid');
-                                      }}
-                                      className={`text-[9px] font-bold px-1 py-0.5 rounded border cursor-pointer transition-colors ${course.transportValid === 'TRUE' || course.transportValid === true ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'}`}
-                                      title={course.transportValid === 'TRUE' || course.transportValid === true ? 'Transport validé - Cliquer pour invalider' : 'Transport non validé - Cliquer pour valider'}
-                                    >
-                                      T
-                                    </button>
-                                  )}
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      toggleValidation(course.id, 'hotelValid');
+                                    }}
+                                    className={`text-[9px] font-bold px-1 py-0.5 rounded border cursor-pointer transition-colors ${course.hotelValid === 'TRUE' || course.hotelValid === true ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'}`}
+                                    title={course.hotelValid === 'TRUE' || course.hotelValid === true ? 'Hôtel validé - Cliquer pour invalider' : 'Hôtel non validé - Cliquer pour valider'}
+                                  >
+                                    H
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      toggleValidation(course.id, 'transportValid');
+                                    }}
+                                    className={`text-[9px] font-bold px-1 py-0.5 rounded border cursor-pointer transition-colors ${course.transportValid === 'TRUE' || course.transportValid === true ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'}`}
+                                    title={course.transportValid === 'TRUE' || course.transportValid === true ? 'Transport validé - Cliquer pour invalider' : 'Transport non validé - Cliquer pour valider'}
+                                  >
+                                    T
+                                  </button>
                                 </div>
                               </div>
                               <Button
@@ -1523,7 +1515,12 @@ export default function AdminCalendrierPage() {
                             {(() => {
                               const dateDebut = new Date(course.dateDebut);
                               const dateFin = new Date(course.dateFin);
-                              const nbJours = Math.ceil((dateFin.getTime() - dateDebut.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+                              // Normaliser les dates à minuit pour comparer seulement les jours
+                              const dateDebutNormalized = new Date(dateDebut.getFullYear(), dateDebut.getMonth(), dateDebut.getDate());
+                              const dateFinNormalized = new Date(dateFin.getFullYear(), dateFin.getMonth(), dateFin.getDate());
+
+                              const nbJours = Math.round((dateFinNormalized.getTime() - dateDebutNormalized.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
                               return (
                                 <>
@@ -1535,7 +1532,7 @@ export default function AdminCalendrierPage() {
                                       </span>
                                     )}
                                   </div>
-                                  {course.dateFin && course.dateFin !== course.dateDebut && (
+                                  {nbJours > 1 && (
                                     <div className="text-xs text-gray-700">
                                       au {format(dateFin, "dd/MM/yy", { locale: fr })}
                                     </div>

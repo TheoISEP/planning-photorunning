@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ZoomIn, ZoomOut, ArrowUpDown, Info } from 'lucide-react';
+import { ZoomIn, ZoomOut, ArrowUpDown, Info, CalendarPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -47,6 +47,53 @@ interface PhotographerStats {
   heuresTravail: number;
   tauxReussite?: number;
 }
+
+// Fonction pour générer un fichier .ics compatible avec tous les calendriers
+const generateICS = (course: Course) => {
+  const formatICSDate = (date: string) => {
+    const d = new Date(date);
+    return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  };
+
+  const icsContent = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//PhotoRunning//Planning//FR',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${course.id}@photorunning.com`,
+    `DTSTAMP:${formatICSDate(new Date().toISOString())}`,
+    `DTSTART:${formatICSDate(course.dateDebut)}`,
+    `DTEND:${formatICSDate(course.dateFin)}`,
+    `SUMMARY:${course.nom}`,
+    `LOCATION:${course.localisation}, ${course.ville}`,
+    `DESCRIPTION:Course PhotoRunning - ${course.nom}`,
+    'STATUS:CONFIRMED',
+    'SEQUENCE:0',
+    'BEGIN:VALARM',
+    'TRIGGER:-PT24H',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Rappel: ${course.nom} demain',
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+
+  return icsContent;
+};
+
+// Fonction pour télécharger le fichier .ics
+const downloadICS = (course: Course) => {
+  const icsContent = generateICS(course);
+  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = window.URL.createObjectURL(blob);
+  link.download = `${course.nom.replace(/[^a-z0-9]/gi, '_')}.ics`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
 export default function PhotographerCalendrierPage() {
   const router = useRouter();
@@ -437,6 +484,7 @@ export default function PhotographerCalendrierPage() {
 
                 const config = dispo ? statusConfig[dispo.statut] : statusConfig.pending;
                 // Afficher le sélecteur pour pending, available, unavailable (pas pour validated, teamLeader, rejected)
+                const isValidatedOrLeader = dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader');
                 const canChangeStatus = dispo && ['pending', 'available', 'unavailable'].includes(dispo.statut);
 
                 return (
@@ -453,7 +501,7 @@ export default function PhotographerCalendrierPage() {
                         <Link href={`/photographer/planning/${course.id}`} className="font-semibold text-sm flex-1 hover:underline">
                           {course.nom}
                         </Link>
-                        {!canChangeStatus && (
+                        {!canChangeStatus && dispo && (
                           <span className={cn('text-xs px-2 py-0.5 rounded font-medium', config.text)}>
                             {config.label}
                           </span>
@@ -485,21 +533,47 @@ export default function PhotographerCalendrierPage() {
                         )}
                       </div>
 
-                      {/* Sélecteur de disponibilité pour pending, available, unavailable */}
-                      {canChangeStatus && currentUser && (
-                        <Select
-                          value={dispo.statut}
-                          onValueChange={(value) => handleStatusChange(dispo.id, value, course.id, currentUser.id)}
+                      {/* Bouton d'ajout au calendrier pour les courses validées */}
+                      {isValidatedOrLeader && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            downloadICS(course);
+                          }}
                         >
-                          <SelectTrigger className="w-full h-9 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">⏳ En attente</SelectItem>
-                            <SelectItem value="available">✓ Disponible</SelectItem>
-                            <SelectItem value="unavailable">✗ Indisponible</SelectItem>
-                          </SelectContent>
-                        </Select>
+                          <CalendarPlus className="h-4 w-4 mr-2" />
+                          Ajouter au calendrier
+                        </Button>
+                      )}
+
+                      {/* Sélecteur de disponibilité pour pending, available, unavailable */}
+                      {canChangeStatus && currentUser && dispo && (
+                        <div className="w-full">
+                          <Select
+                            value={dispo.statut}
+                            onValueChange={(value) => {
+                              console.log('Changing status from', dispo.statut, 'to', value);
+                              handleStatusChange(dispo.id, value, course.id, currentUser.id);
+                            }}
+                          >
+                            <SelectTrigger className="w-full h-9 text-xs">
+                              <SelectValue>
+                                {dispo.statut === 'pending' && '⏳ En attente'}
+                                {dispo.statut === 'available' && '✓ Disponible'}
+                                {dispo.statut === 'unavailable' && '✗ Indisponible'}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">⏳ En attente</SelectItem>
+                              <SelectItem value="available">✓ Disponible</SelectItem>
+                              <SelectItem value="unavailable">✗ Indisponible</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       )}
                     </div>
                   </div>

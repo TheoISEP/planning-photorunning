@@ -269,8 +269,14 @@ export default function PhotographerCourseDetailPage() {
                   <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-sm font-medium">Localisation</p>
-                    <p className="text-sm text-muted-foreground">{course.localisation}</p>
-                    <p className="text-sm text-muted-foreground">{course.ville}</p>
+                    {course.localisation && course.ville && course.localisation !== course.ville ? (
+                      <>
+                        <p className="text-sm text-muted-foreground">{course.localisation}</p>
+                        <p className="text-sm text-muted-foreground">{course.ville}</p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{course.localisation || course.ville}</p>
+                    )}
                   </div>
                 </div>
 

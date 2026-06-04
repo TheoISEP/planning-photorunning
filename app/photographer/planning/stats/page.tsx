@@ -173,7 +173,7 @@ export default function PhotographerStatsPage() {
       {/* En-tête */}
       <div>
         <Button variant="ghost" size="sm" asChild className="mb-4">
-          <Link href="/photographer/calendrier">
+          <Link href="/photographer/planning">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Retour au calendrier
           </Link>
@@ -226,19 +226,6 @@ export default function PhotographerStatsPage() {
               </div>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardDescription>Heures</CardDescription>
-              <CardTitle className="text-2xl">{currentMonthStats?.heuresTravail || 0}h</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xs text-muted-foreground">
-                {previousMonthStats?.heuresTravail || 0}h le mois dernier
-                <PercentBadge value={monthHoursChange} />
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
 
@@ -268,7 +255,7 @@ export default function PhotographerStatsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-xs text-muted-foreground">
-                {yearlyStats.heuresTravail}h de travail • {yearlyStats.nombreCourses} courses
+                {yearlyStats.nombreCourses} courses
               </div>
             </CardContent>
           </Card>
@@ -295,10 +282,6 @@ export default function PhotographerStatsPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Prestations</span>
                   <span className="font-medium">{month.nombrePrestations}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Heures</span>
-                  <span className="font-medium">{month.heuresTravail}h</span>
                 </div>
                 <div className="flex justify-between text-sm border-t pt-2 mt-2">
                   <span className="text-muted-foreground">Revenus</span>

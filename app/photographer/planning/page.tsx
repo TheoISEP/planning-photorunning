@@ -94,6 +94,19 @@ const downloadICS = (course: Course) => {
   document.body.removeChild(link);
 };
 
+interface Photographer {
+  id: string;
+  nom: string;
+  prenom: string;
+  email: string;
+  inCharge?: boolean | string;
+  chargeOne?: string;
+  chargeTwo?: string;
+  chargeThree?: string;
+  chargeFour?: string;
+  chargeFive?: string;
+}
+
 export default function PhotographerCalendrierPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -102,6 +115,15 @@ export default function PhotographerCalendrierPage() {
   const [disponibilites, setDisponibilites] = useState<Disponibilite[]>([]);
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Photographe connecté avec ses données complètes
+  const [currentPhotographer, setCurrentPhotographer] = useState<Photographer | null>(null);
+
+  // Photographes à charge
+  const [managedPhotographers, setManagedPhotographers] = useState<Photographer[]>([]);
+
+  // Photographe sélectionné pour la vue mobile (peut être le principal ou un à charge)
+  const [selectedPhotographerId, setSelectedPhotographerId] = useState<string>('');
 
   // Stats personnelles du photographe depuis Google Sheets
   const [myStats, setMyStats] = useState<PhotographerStats>({
@@ -126,6 +148,47 @@ export default function PhotographerCalendrierPage() {
         }
       }
 
+      // Charger les données du photographe connecté
+      let photographerData: Photographer | null = null;
+      let managedPhotographerIds: string[] = [];
+      let allManagedPhotographers: Photographer[] = [];
+
+      if (userId) {
+        const photographerRes = await fetch(`/api/photographers/${userId}`);
+        if (photographerRes.ok) {
+          const photoData = await photographerRes.json();
+          photographerData = photoData.photographer;
+          setCurrentPhotographer(photographerData);
+
+          // Vérifier si ce photographe a des photographes à charge
+          if (photographerData && (photographerData.inCharge === 'TRUE' || photographerData.inCharge === true)) {
+            // Collecter les IDs des photographes à charge
+            if (photographerData.chargeOne) managedPhotographerIds.push(photographerData.chargeOne);
+            if (photographerData.chargeTwo) managedPhotographerIds.push(photographerData.chargeTwo);
+            if (photographerData.chargeThree) managedPhotographerIds.push(photographerData.chargeThree);
+            if (photographerData.chargeFour) managedPhotographerIds.push(photographerData.chargeFour);
+            if (photographerData.chargeFive) managedPhotographerIds.push(photographerData.chargeFive);
+
+            // Charger les données de chaque photographe à charge
+            if (managedPhotographerIds.length > 0) {
+              const managedPhotosPromises = managedPhotographerIds.map(id =>
+                fetch(`/api/photographers/${id}`).then(res => res.ok ? res.json() : null)
+              );
+              const managedPhotosResults = await Promise.all(managedPhotosPromises);
+              allManagedPhotographers = managedPhotosResults
+                .filter(result => result !== null)
+                .map(result => result.photographer);
+              setManagedPhotographers(allManagedPhotographers);
+            }
+          }
+
+          // Initialiser le photographe sélectionné (pour mobile) au photographe principal
+          if (!selectedPhotographerId) {
+            setSelectedPhotographerId(userId);
+          }
+        }
+      }
+
       // Charger seulement les données nécessaires pour le photographe
       const [coursesRes, statsRes] = await Promise.all([
         fetch('/api/courses'),
@@ -142,11 +205,15 @@ export default function PhotographerCalendrierPage() {
         setCourses(activeCourses);
       }
 
-      // Charger tarifs et disponibilités seulement pour l'utilisateur connecté
+      // Charger tarifs et disponibilités pour l'utilisateur connecté ET tous les photographes à charge
       if (userId && activeCourses.length > 0) {
-        const [tarifsRes, disponibilitesRes] = await Promise.all([
+        // Créer la liste de tous les IDs de photographes (principal + à charge)
+        const allPhotographerIds = [userId, ...managedPhotographerIds];
+
+        const [tarifsRes, ...disponibilitesRess] = await Promise.all([
           fetch('/api/tarifs'),
-          fetch(`/api/disponibilites?photographerId=${userId}`), // Filtrer côté serveur
+          // Charger les disponibilités pour chaque photographe
+          ...allPhotographerIds.map(id => fetch(`/api/disponibilites?photographerId=${id}`))
         ]);
 
         // Traiter les tarifs
@@ -161,30 +228,35 @@ export default function PhotographerCalendrierPage() {
           setTarifs(tarifsWithNumbers);
         }
 
-        // Traiter les disponibilités (déjà filtrées par userId)
+        // Traiter toutes les disponibilités (photographe principal + à charge)
         let allDispos: any[] = [];
-        if (disponibilitesRes.ok) {
-          const disponibilitesData = await disponibilitesRes.json();
-          allDispos = disponibilitesData.disponibilites || [];
-          setDisponibilites(allDispos);
+        for (const dispoRes of disponibilitesRess) {
+          if (dispoRes.ok) {
+            const disponibilitesData = await dispoRes.json();
+            allDispos = [...allDispos, ...(disponibilitesData.disponibilites || [])];
+          }
         }
+        setDisponibilites(allDispos);
 
-        // Créer automatiquement les disponibilités manquantes
+        // Créer automatiquement les disponibilités manquantes pour TOUS les photographes
         const missingDispos: any[] = [];
 
         activeCourses.forEach((course: Course) => {
-          const hasDisponibilite = allDispos.some(
-            (d: any) => d.courseId === course.id && d.photographeId === userId
-          );
+          // Pour chaque photographe (principal + à charge)
+          allPhotographerIds.forEach(photographerId => {
+            const hasDisponibilite = allDispos.some(
+              (d: any) => d.courseId === course.id && d.photographeId === photographerId
+            );
 
-          if (!hasDisponibilite) {
-            missingDispos.push({
-              courseId: course.id,
-              photographeId: userId,
-              statut: 'pending',
-              dateDeclaration: new Date().toISOString(),
-            });
-          }
+            if (!hasDisponibilite) {
+              missingDispos.push({
+                courseId: course.id,
+                photographeId: photographerId,
+                statut: 'pending',
+                dateDeclaration: new Date().toISOString(),
+              });
+            }
+          });
         });
 
         // Créer les disponibilités manquantes une par une
@@ -216,16 +288,45 @@ export default function PhotographerCalendrierPage() {
       }
 
       // Traiter les statistiques personnelles depuis Google Sheets
-      if (statsRes.ok) {
+      // Agréger les stats du photographe principal + photographes à charge
+      if (statsRes.ok && userId) {
         const statsData = await statsRes.json();
-        if (statsData.photographerStats) {
-          setMyStats({
-            nombreCourses: Number(statsData.photographerStats.nombreCourses) || 0,
-            nombrePrestations: Number(statsData.photographerStats.nombrePrestations) || 0,
-            montantTotal: Number(statsData.photographerStats.montantTotal) || 0,
-            tauxReussite: Number(statsData.photographerStats.tauxReussite) || 0,
-          });
+
+        // Initialiser avec les stats du photographe principal
+        let aggregatedStats = {
+          nombreCourses: Number(statsData.photographerStats?.nombreCourses) || 0,
+          nombrePrestations: Number(statsData.photographerStats?.nombrePrestations) || 0,
+          montantTotal: Number(statsData.photographerStats?.montantTotal) || 0,
+          tauxReussite: Number(statsData.photographerStats?.tauxReussite) || 0,
+        };
+
+        // Si on a des photographes à charge, charger et agréger leurs stats
+        if (managedPhotographerIds.length > 0) {
+          for (const managedId of managedPhotographerIds) {
+            try {
+              const managedStatsRes = await fetch(`/api/photographers/${managedId}/stats`);
+              if (managedStatsRes.ok) {
+                const managedStatsData = await managedStatsRes.json();
+                if (managedStatsData.photographerStats) {
+                  aggregatedStats.nombreCourses += Number(managedStatsData.photographerStats.nombreCourses) || 0;
+                  aggregatedStats.nombrePrestations += Number(managedStatsData.photographerStats.nombrePrestations) || 0;
+                  aggregatedStats.montantTotal += Number(managedStatsData.photographerStats.montantTotal) || 0;
+                  // Le taux de réussite sera recalculé comme moyenne pondérée si nécessaire
+                }
+              }
+            } catch (error) {
+              // Erreur silencieuse pour un photographe à charge
+              console.error(`Erreur stats pour photographe ${managedId}:`, error);
+            }
+          }
+
+          // Recalculer le taux de réussite comme moyenne (si on a des prestations)
+          if (aggregatedStats.nombrePrestations > 0) {
+            aggregatedStats.tauxReussite = (aggregatedStats.nombreCourses / aggregatedStats.nombrePrestations) * 100;
+          }
         }
+
+        setMyStats(aggregatedStats);
       }
     } catch (error) {
       // Erreur silencieuse
@@ -283,8 +384,15 @@ export default function PhotographerCalendrierPage() {
     courseId: string,
     photographerId: string
   ) => {
-    // Vérifier que c'est bien le photographe connecté
-    if (!currentUser || currentUser.id !== photographerId) {
+    // Vérifier que c'est le photographe connecté OU un photographe à charge
+    if (!currentUser) {
+      return;
+    }
+
+    const isSelf = currentUser.id === photographerId;
+    const isManaged = managedPhotographers.some(p => p.id === photographerId);
+
+    if (!isSelf && !isManaged) {
       return;
     }
 
@@ -410,6 +518,29 @@ export default function PhotographerCalendrierPage() {
           <p className="text-xs sm:text-sm text-muted-foreground">Gérez vos disponibilités</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          {/* Sélecteur de photographe (mobile uniquement, si photographes à charge) */}
+          {managedPhotographers.length > 0 && currentUser && currentPhotographer && (
+            <div className="md:hidden w-full">
+              <Select
+                value={selectedPhotographerId}
+                onValueChange={(value) => setSelectedPhotographerId(value)}
+              >
+                <SelectTrigger className="w-full h-10">
+                  <SelectValue placeholder="Sélectionner un photographe" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={currentUser.id}>
+                    {currentPhotographer.prenom} {currentPhotographer.nom} (Moi)
+                  </SelectItem>
+                  {managedPhotographers.map(photographer => (
+                    <SelectItem key={photographer.id} value={photographer.id}>
+                      {photographer.prenom} {photographer.nom}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <Button variant="outline" size="sm" asChild className="w-full sm:w-auto h-10 sm:h-9">
             <Link href="/photographer/planning/stats">
               <ArrowUpDown className="h-4 w-4 mr-2" />
@@ -424,10 +555,13 @@ export default function PhotographerCalendrierPage() {
         {sortedMonths.map((monthData) => {
           const monthKey = `${monthData.year}-${monthData.month}`;
 
+          // Utiliser le photographe sélectionné pour la vue mobile
+          const activePhotographerId = selectedPhotographerId || currentUser?.id;
+
           // Calculer le montant total du mois pour les courses validées
           const monthTotal = monthData.courses.reduce((total, course) => {
-            if (!currentUser) return total;
-            const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id);
+            if (!activePhotographerId) return total;
+            const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === activePhotographerId);
             if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
               const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
               const courseTarif = dispo.tarifId
@@ -463,14 +597,14 @@ export default function PhotographerCalendrierPage() {
               {/* Cartes des courses */}
               {monthData.courses
                 .filter((course) => {
-                  // Filtrer les courses rejected
-                  if (!currentUser) return true;
-                  const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id);
+                  // Filtrer les courses rejected pour le photographe sélectionné
+                  if (!activePhotographerId) return true;
+                  const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === activePhotographerId);
                   return !dispo || dispo.statut !== 'rejected';
                 })
                 .map((course) => {
-                const dispo = currentUser
-                  ? disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id)
+                const dispo = activePhotographerId
+                  ? disponibilites.find((d) => d.courseId === course.id && d.photographeId === activePhotographerId)
                   : null;
 
                 const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
@@ -556,11 +690,11 @@ export default function PhotographerCalendrierPage() {
                       )}
 
                       {/* Sélecteur de disponibilité pour pending, available, unavailable */}
-                      {canChangeStatus && currentUser && dispo && (
+                      {canChangeStatus && activePhotographerId && dispo && (
                         <div className="w-full">
                           <Select
                             value={dispo.statut}
-                            onValueChange={(value) => handleStatusChange(dispo.id, value, course.id, currentUser.id)}
+                            onValueChange={(value) => handleStatusChange(dispo.id, value, course.id, activePhotographerId)}
                           >
                             <SelectTrigger className="w-full h-9 text-xs">
                               <SelectValue>
@@ -593,7 +727,7 @@ export default function PhotographerCalendrierPage() {
           <div className="sticky top-0 z-20 w-full">
             <div
               className="grid gap-0 bg-gradient-to-r from-gray-100 to-gray-100 dark:from-gray-900 dark:to-gray-900 border-b-2 border-gray-600/30 w-full"
-              style={{ gridTemplateColumns: '2fr 1fr 2fr' }}
+              style={{ gridTemplateColumns: `2fr 1fr ${Array(1 + managedPhotographers.length).fill('2fr').join(' ')}` }}
             >
               <div
                 className="sticky left-0 z-30 p-3 pr-2 border-r-2 border-gray-600/40 font-semibold text-sm bg-gradient-to-r from-gray-100 to-gray-100 dark:from-gray-900 dark:to-gray-900"
@@ -607,7 +741,14 @@ export default function PhotographerCalendrierPage() {
               >
                 Date
               </div>
-              <div className="p-3 text-center font-semibold text-sm">Mon statut</div>
+              <div className="p-3 text-center font-semibold text-sm border-r border-gray-600/40">
+                {currentPhotographer ? `${currentPhotographer.prenom} ${currentPhotographer.nom}` : 'Mon statut'}
+              </div>
+              {managedPhotographers.map(photographer => (
+                <div key={photographer.id} className="p-3 text-center font-semibold text-sm border-r border-gray-600/40">
+                  {photographer.prenom} {photographer.nom}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -615,47 +756,51 @@ export default function PhotographerCalendrierPage() {
           <div>
             {sortedMonths.map((monthData) => {
               const monthKey = `${monthData.year}-${monthData.month}`;
-              const myValidatedCount = currentUser
-                ? monthData.courses.reduce((count, course) => {
-                    const dispo = disponibilites.find(
-                      (d) => d.courseId === course.id && d.photographeId === currentUser.id
-                    );
-                    if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
-                      return count + 1;
-                    }
-                    return count;
-                  }, 0)
-                : 0;
 
-              // Calculer le montant total gagné ce mois
-              const myMonthlyAmount = currentUser
-                ? monthData.courses.reduce((total, course) => {
-                    const dispo = disponibilites.find(
-                      (d) => d.courseId === course.id && d.photographeId === currentUser.id
-                    );
-                    if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
-                      const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
-                      const courseTarif = dispo.tarifId
-                        ? tarifs.find((t) => t.id === dispo.tarifId)
-                        : courseTarifs[0];
+              // Fonction pour calculer les stats d'un photographe pour un mois
+              const calculatePhotographerMonthStats = (photographerId: string) => {
+                const validatedCount = monthData.courses.reduce((count, course) => {
+                  const dispo = disponibilites.find(
+                    (d) => d.courseId === course.id && d.photographeId === photographerId
+                  );
+                  if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
+                    return count + 1;
+                  }
+                  return count;
+                }, 0);
 
-                      if (courseTarif) {
-                        const montant = dispo.statut === 'teamLeader'
-                          ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
-                          : Number(courseTarif.tarifPhotographe);
-                        return total + montant;
-                      }
+                const monthlyAmount = monthData.courses.reduce((total, course) => {
+                  const dispo = disponibilites.find(
+                    (d) => d.courseId === course.id && d.photographeId === photographerId
+                  );
+                  if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
+                    const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+                    const courseTarif = dispo.tarifId
+                      ? tarifs.find((t) => t.id === dispo.tarifId)
+                      : courseTarifs[0];
+
+                    if (courseTarif) {
+                      const montant = dispo.statut === 'teamLeader'
+                        ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
+                        : Number(courseTarif.tarifPhotographe);
+                      return total + montant;
                     }
-                    return total;
-                  }, 0)
-                : 0;
+                  }
+                  return total;
+                }, 0);
+
+                return { validatedCount, monthlyAmount };
+              };
+
+              const myValidatedCount = currentUser ? calculatePhotographerMonthStats(currentUser.id).validatedCount : 0;
+              const myMonthlyAmount = currentUser ? calculatePhotographerMonthStats(currentUser.id).monthlyAmount : 0;
 
               return (
                 <div key={monthKey}>
                   {/* Ligne mois */}
                   <div
                     className="grid gap-0 bg-orange-100 dark:bg-orange-900 border-b-2 border-orange-300 font-semibold w-full"
-                    style={{ gridTemplateColumns: '2fr 1fr 2fr' }}
+                    style={{ gridTemplateColumns: `2fr 1fr ${Array(1 + managedPhotographers.length).fill('2fr').join(' ')}` }}
                   >
                     <div className="sticky left-0 z-10 p-3 pr-2 border-r-2 border-orange-300 bg-orange-100 dark:bg-orange-900">
                       <div className="text-sm md:text-base font-bold">
@@ -670,7 +815,8 @@ export default function PhotographerCalendrierPage() {
                         {monthData.courses.length} course{monthData.courses.length > 1 ? 's' : ''}
                       </div>
                     </div>
-                    <div className="p-3 flex flex-col items-center justify-center text-xs font-semibold">
+                    {/* Colonne pour le photographe principal */}
+                    <div className="p-3 flex flex-col items-center justify-center text-xs font-semibold border-r border-orange-300">
                       <div>
                         {myValidatedCount > 0 ? `${myValidatedCount} validée${myValidatedCount > 1 ? 's' : ''}` : '-'}
                       </div>
@@ -680,6 +826,22 @@ export default function PhotographerCalendrierPage() {
                         </div>
                       )}
                     </div>
+                    {/* Colonnes pour les photographes à charge */}
+                    {managedPhotographers.map(photographer => {
+                      const stats = calculatePhotographerMonthStats(photographer.id);
+                      return (
+                        <div key={photographer.id} className="p-3 flex flex-col items-center justify-center text-xs font-semibold border-r border-orange-300">
+                          <div>
+                            {stats.validatedCount > 0 ? `${stats.validatedCount} validée${stats.validatedCount > 1 ? 's' : ''}` : '-'}
+                          </div>
+                          {stats.monthlyAmount > 0 && (
+                            <div className="text-gray-700 dark:text-gray-400 mt-0.5 font-bold">
+                              {formatCurrency(stats.monthlyAmount)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* Courses */}
@@ -736,7 +898,7 @@ export default function PhotographerCalendrierPage() {
                             isRejected && 'opacity-40 hover:opacity-60 border-gray-200/50',
                             !isValidated && !isRejected && 'border-gray-200/50 hover:bg-gray-100'
                           )}
-                          style={{ gridTemplateColumns: '2fr 1fr 2fr' }}
+                          style={{ gridTemplateColumns: `2fr 1fr ${Array(1 + managedPhotographers.length).fill('2fr').join(' ')}` }}
                         >
                         {/* Colonne Course */}
                         <div
@@ -943,6 +1105,68 @@ export default function PhotographerCalendrierPage() {
                             </div>
                           )}
                         </div>
+
+                        {/* Colonnes pour les photographes à charge */}
+                        {managedPhotographers.map(photographer => {
+                          const photoDispo = disponibilites.find(
+                            (d) => d.courseId === course.id && d.photographeId === photographer.id
+                          );
+
+                          return (
+                            <div key={photographer.id} className="p-2 flex flex-col items-center justify-center gap-1 border-l border-gray-200">
+                              {photoDispo ? (
+                                <>
+                                  {/* Si la course est "inProgress" ET que le photographe est en pending/available/unavailable, le référent peut modifier */}
+                                  {course.statutTraitement === 'inProgress' &&
+                                   (photoDispo.statut === 'pending' || photoDispo.statut === 'available' || photoDispo.statut === 'unavailable') ? (
+                                    <Select
+                                      value={photoDispo.statut}
+                                      onValueChange={(value) => handleStatusChange(photoDispo.id, value, course.id, photographer.id)}
+                                    >
+                                      <SelectTrigger
+                                        className={`h-10 md:h-9 text-sm w-full min-w-[110px] border transition-all focus:border-gray-600 px-3 font-medium touch-manipulation ${getStatusColorClass(
+                                          photoDispo.statut
+                                        )}`}
+                                      >
+                                        <SelectValue>{getStatusLabel(photoDispo.statut)}</SelectValue>
+                                      </SelectTrigger>
+                                      <SelectContent className="z-[9999]">
+                                        <SelectItem value="pending" className="h-10 md:h-9">
+                                          <div className="flex items-center gap-2">
+                                            <div className="h-2.5 w-2.5 rounded-full bg-yellow-500" />
+                                            <span className="text-sm">Attente</span>
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="available" className="h-10 md:h-9">
+                                          <div className="flex items-center gap-2">
+                                            <div className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+                                            <span className="text-sm">Dispo</span>
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="unavailable" className="h-10 md:h-9">
+                                          <div className="flex items-center gap-2">
+                                            <div className="h-2.5 w-2.5 rounded-full bg-gray-400" />
+                                            <span className="text-sm">Pas dispo</span>
+                                          </div>
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <div
+                                      className={`h-10 md:h-9 text-sm w-full min-w-[110px] border px-3 font-medium flex items-center justify-center rounded-md ${getStatusColorClass(
+                                        photoDispo.statut
+                                      )}`}
+                                    >
+                                      {getStatusLabel(photoDispo.statut)}
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <div className="text-xs text-gray-400">-</div>
+                              )}
+                            </div>
+                          );
+                        })}
                         </div>
                       </React.Fragment>
                     );

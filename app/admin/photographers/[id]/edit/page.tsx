@@ -34,6 +34,12 @@ interface Photographer {
   flyingBlueExpiry?: string;
   sncf?: string;
   sncfExpiry?: string;
+  inCharge?: boolean | string;
+  chargeOne?: string;
+  chargeTwo?: string;
+  chargeThree?: string;
+  chargeFour?: string;
+  chargeFive?: string;
 }
 
 export default function EditPhotographerPage() {
@@ -66,12 +72,19 @@ export default function EditPhotographerPage() {
     flyingBlueExpiry: '',
     sncf: '',
     sncfExpiry: '',
+    inCharge: false,
+    chargeOne: '',
+    chargeTwo: '',
+    chargeThree: '',
+    chargeFour: '',
+    chargeFive: '',
   });
   const [newPassword, setNewPassword] = useState('');
   const [newCamera, setNewCamera] = useState('');
   const [newObjectif, setNewObjectif] = useState('');
   const [newCarte, setNewCarte] = useState('');
   const [newFlash, setNewFlash] = useState('');
+  const [allPhotographers, setAllPhotographers] = useState<Photographer[]>([]);
 
   useEffect(() => {
     fetchPhotographer();
@@ -80,10 +93,22 @@ export default function EditPhotographerPage() {
   const fetchPhotographer = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/photographers/${photographerId}`);
-      if (res.ok) {
-        const data = await res.json();
+
+      // Charger le photographe et la liste complète des photographes en parallèle
+      const [photographerRes, allPhotographersRes] = await Promise.all([
+        fetch(`/api/photographers/${photographerId}`),
+        fetch('/api/photographers')
+      ]);
+
+      if (photographerRes.ok) {
+        const data = await photographerRes.json();
         setPhotographer(data.photographer);
+
+        // Charger tous les photographes pour le sélecteur
+        if (allPhotographersRes.ok) {
+          const allPhotosData = await allPhotographersRes.json();
+          setAllPhotographers(allPhotosData.photographers || []);
+        }
 
         // Parser les arrays JSON
         const parseCameras = () => {
@@ -139,6 +164,12 @@ export default function EditPhotographerPage() {
           flyingBlueExpiry: data.photographer.flyingBlueExpiry || '',
           sncf: data.photographer.sncf || '',
           sncfExpiry: data.photographer.sncfExpiry || '',
+          inCharge: data.photographer.inCharge === 'TRUE' || data.photographer.inCharge === true,
+          chargeOne: data.photographer.chargeOne || '',
+          chargeTwo: data.photographer.chargeTwo || '',
+          chargeThree: data.photographer.chargeThree || '',
+          chargeFour: data.photographer.chargeFour || '',
+          chargeFive: data.photographer.chargeFive || '',
         });
       }
     } catch (error) {
@@ -175,6 +206,12 @@ export default function EditPhotographerPage() {
         flyingBlueExpiry: formData.flyingBlueExpiry,
         sncf: formData.sncf,
         sncfExpiry: formData.sncfExpiry,
+        inCharge: formData.inCharge ? 'TRUE' : 'FALSE',
+        chargeOne: formData.chargeOne,
+        chargeTwo: formData.chargeTwo,
+        chargeThree: formData.chargeThree,
+        chargeFour: formData.chargeFour,
+        chargeFive: formData.chargeFive,
       };
 
       // Si un nouveau mot de passe est fourni
@@ -689,6 +726,178 @@ export default function EditPhotographerPage() {
                 </p>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Photographes à charge */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Photographes à charge</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="inCharge"
+                checked={formData.inCharge}
+                onChange={(e) => setFormData({ ...formData, inCharge: e.target.checked })}
+                className="h-4 w-4"
+              />
+              <Label htmlFor="inCharge">Ce photographe a des photographes à charge</Label>
+            </div>
+
+            {formData.inCharge && (
+              <div className="space-y-3 mt-4 pl-6 border-l-2 border-gray-200">
+                <p className="text-sm text-gray-600 mb-3">
+                  Sélectionnez jusqu'à 5 photographes que ce photographe référent pourra gérer
+                </p>
+
+                {/* Photographe 1 */}
+                <div>
+                  <Label htmlFor="chargeOne">Photographe 1</Label>
+                  <Select
+                    value={formData.chargeOne}
+                    onValueChange={(value) => setFormData({ ...formData, chargeOne: value })}
+                  >
+                    <SelectTrigger id="chargeOne">
+                      <SelectValue placeholder="Sélectionner un photographe" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Aucun</SelectItem>
+                      {allPhotographers
+                        .filter(p =>
+                          p.id !== photographerId &&
+                          p.id !== formData.chargeTwo &&
+                          p.id !== formData.chargeThree &&
+                          p.id !== formData.chargeFour &&
+                          p.id !== formData.chargeFive
+                        )
+                        .map(p => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.prenom} {p.nom}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Photographe 2 */}
+                <div>
+                  <Label htmlFor="chargeTwo">Photographe 2</Label>
+                  <Select
+                    value={formData.chargeTwo}
+                    onValueChange={(value) => setFormData({ ...formData, chargeTwo: value })}
+                  >
+                    <SelectTrigger id="chargeTwo">
+                      <SelectValue placeholder="Sélectionner un photographe" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Aucun</SelectItem>
+                      {allPhotographers
+                        .filter(p =>
+                          p.id !== photographerId &&
+                          p.id !== formData.chargeOne &&
+                          p.id !== formData.chargeThree &&
+                          p.id !== formData.chargeFour &&
+                          p.id !== formData.chargeFive
+                        )
+                        .map(p => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.prenom} {p.nom}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Photographe 3 */}
+                <div>
+                  <Label htmlFor="chargeThree">Photographe 3</Label>
+                  <Select
+                    value={formData.chargeThree}
+                    onValueChange={(value) => setFormData({ ...formData, chargeThree: value })}
+                  >
+                    <SelectTrigger id="chargeThree">
+                      <SelectValue placeholder="Sélectionner un photographe" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Aucun</SelectItem>
+                      {allPhotographers
+                        .filter(p =>
+                          p.id !== photographerId &&
+                          p.id !== formData.chargeOne &&
+                          p.id !== formData.chargeTwo &&
+                          p.id !== formData.chargeFour &&
+                          p.id !== formData.chargeFive
+                        )
+                        .map(p => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.prenom} {p.nom}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Photographe 4 */}
+                <div>
+                  <Label htmlFor="chargeFour">Photographe 4</Label>
+                  <Select
+                    value={formData.chargeFour}
+                    onValueChange={(value) => setFormData({ ...formData, chargeFour: value })}
+                  >
+                    <SelectTrigger id="chargeFour">
+                      <SelectValue placeholder="Sélectionner un photographe" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Aucun</SelectItem>
+                      {allPhotographers
+                        .filter(p =>
+                          p.id !== photographerId &&
+                          p.id !== formData.chargeOne &&
+                          p.id !== formData.chargeTwo &&
+                          p.id !== formData.chargeThree &&
+                          p.id !== formData.chargeFive
+                        )
+                        .map(p => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.prenom} {p.nom}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Photographe 5 */}
+                <div>
+                  <Label htmlFor="chargeFive">Photographe 5</Label>
+                  <Select
+                    value={formData.chargeFive}
+                    onValueChange={(value) => setFormData({ ...formData, chargeFive: value })}
+                  >
+                    <SelectTrigger id="chargeFive">
+                      <SelectValue placeholder="Sélectionner un photographe" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Aucun</SelectItem>
+                      {allPhotographers
+                        .filter(p =>
+                          p.id !== photographerId &&
+                          p.id !== formData.chargeOne &&
+                          p.id !== formData.chargeTwo &&
+                          p.id !== formData.chargeThree &&
+                          p.id !== formData.chargeFour
+                        )
+                        .map(p => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.prenom} {p.nom}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

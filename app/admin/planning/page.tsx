@@ -43,6 +43,7 @@ interface Photographer {
   nom: string;
   prenom: string;
   actif: boolean;
+  region?: string;
 }
 
 interface Admin {
@@ -101,6 +102,46 @@ const getStatusColorClass = (status: string) => {
     rejected: 'bg-red-100 border-red-300 text-red-900 hover:bg-red-200',
   };
   return colors[status] || 'bg-white border-gray-300';
+};
+
+// Fonction de tri des photographes par région puis alphabétiquement
+const sortPhotographersByRegion = (photographers: Photographer[]) => {
+  // Ordre des régions
+  const regionOrder = [
+    'Ile-de-France',
+    'Sud-Est',
+    'Sud-Ouest',
+    'Nord',
+    'Zone Centre',
+    'Zone Lyon',
+  ];
+
+  return [...photographers].sort((a, b) => {
+    const regionA = a.region || '';
+    const regionB = b.region || '';
+
+    // Trouver les indices dans l'ordre des régions
+    const indexA = regionOrder.indexOf(regionA);
+    const indexB = regionOrder.indexOf(regionB);
+
+    // Si les deux ont une région connue, trier par ordre de région
+    if (indexA !== -1 && indexB !== -1) {
+      if (indexA !== indexB) {
+        return indexA - indexB;
+      }
+    } else if (indexA !== -1) {
+      // A a une région connue, B non -> A avant B
+      return -1;
+    } else if (indexB !== -1) {
+      // B a une région connue, A non -> B avant A
+      return 1;
+    }
+
+    // Si même région (ou pas de région), trier alphabétiquement
+    const nameA = `${a.prenom} ${a.nom}`.toLowerCase();
+    const nameB = `${b.prenom} ${b.nom}`.toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
 };
 
 export default function AdminCalendrierPage() {
@@ -172,6 +213,9 @@ export default function AdminCalendrierPage() {
       const allDisponibilites = disponibilitesData.disponibilites || [];
       const allTarifs = tarifsData.tarifs || [];
 
+      // Trier les photographes par région puis alphabétiquement
+      const sortedPhotographers = sortPhotographersByRegion(allPhotographers);
+
       // Auto-archiver les courses passées
       const now = new Date();
       const coursesToArchive = allCourses.filter((course: Course) => {
@@ -205,8 +249,8 @@ export default function AdminCalendrierPage() {
         });
       }
 
-      // Combiner admins et photographes (admins en premier)
-      const allUsers = [...allAdmins, ...allPhotographers];
+      // Combiner admins et photographes (admins en premier, photographes triés)
+      const allUsers = [...allAdmins, ...sortedPhotographers];
 
       // Créer des disponibilités par défaut pour tous les utilisateurs qui n'en ont pas
       let finalDisponibilites: Disponibilite[] = [...allDisponibilites];
@@ -232,7 +276,7 @@ export default function AdminCalendrierPage() {
 
       setTarifs(allTarifs);
       setDisponibilites(finalDisponibilites);
-      setPhotographers(allPhotographers);
+      setPhotographers(sortedPhotographers);
       setAdmins(allAdmins);
 
       // Calculer les données enrichies pour chaque course
@@ -913,134 +957,6 @@ export default function AdminCalendrierPage() {
           </Button>
         </div>
       </div>
-
-      {/* Cartes récapitulatives compactes - cachées sur mobile */}
-      <TooltipProvider>
-        <div className="hidden md:grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-2">
-          <Card>
-            <CardContent className="px-2 py-2 md:px-3 md:py-3">
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground">
-                  <span className="md:hidden">Courses</span>
-                  <span className="hidden md:inline">Courses du mois</span>
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground">
-                      <Info className="h-3 w-3 md:h-4 md:w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs p-3">
-                    <p className="font-medium mb-2">Détail des courses :</p>
-                    {stats.coursesDetails.length > 0 ? (
-                      <ul className="space-y-1 text-xs">
-                        {stats.coursesDetails.slice(0, 5).map((course, idx) => (
-                          <li key={idx}>• {course.nom} ({course.ville}) - {course.validated} photographe{course.validated > 1 ? 's' : ''}</li>
-                        ))}
-                        {stats.coursesDetails.length > 5 && (
-                          <li className="text-muted-foreground">... et {stats.coursesDetails.length - 5} autre{stats.coursesDetails.length - 5 > 1 ? 's' : ''}</li>
-                        )}
-                      </ul>
-                    ) : (
-                      <p className="text-xs">Aucune course pour le moment</p>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="text-base sm:text-lg md:text-xl font-bold">{stats.totalCourses}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="px-2 py-2 md:px-3 md:py-3">
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground">
-                  <span className="md:hidden">Photos</span>
-                  <span className="hidden md:inline">Photographes</span>
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground">
-                      <Info className="h-3 w-3 md:h-4 md:w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs p-3">
-                    <p className="font-medium mb-2">Photographes actifs avec prestations :</p>
-                    {stats.photographersDetails.length > 0 ? (
-                      <ul className="space-y-1 text-xs">
-                        {stats.photographersDetails.slice(0, 5).map((photo, idx) => (
-                          <li key={idx}>• {photo.prenom} {photo.nom} - {photo.prestations} prestation{photo.prestations > 1 ? 's' : ''}</li>
-                        ))}
-                        {stats.photographersDetails.length > 5 && (
-                          <li className="text-muted-foreground">... et {stats.photographersDetails.length - 5} autre{stats.photographersDetails.length - 5 > 1 ? 's' : ''}</li>
-                        )}
-                      </ul>
-                    ) : (
-                      <p className="text-xs">Aucun photographe validé pour le moment</p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-2">Total actifs : {stats.totalPhotographers}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="text-base sm:text-lg md:text-xl font-bold">{stats.totalPhotographers}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="px-2 py-2 md:px-3 md:py-3">
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground">
-                  <span className="md:hidden">Presta.</span>
-                  <span className="hidden md:inline">Prestations</span>
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground">
-                      <Info className="h-3 w-3 md:h-4 md:w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs p-3">
-                    <p className="font-medium mb-2">Détail des prestations :</p>
-                    <ul className="space-y-1 text-xs">
-                      <li>• Photographes validés : {stats.prestationsDetails.validated}</li>
-                      <li>• Chefs d'équipe : {stats.prestationsDetails.teamLeaders}</li>
-                      <li className="font-medium mt-2">Total : {stats.totalPrestations}</li>
-                    </ul>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="text-base sm:text-lg md:text-xl font-bold">{stats.totalPrestations}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="px-2 py-2 md:px-3 md:py-3">
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground">
-                  <span className="hidden sm:inline">Coût total</span>
-                  <span className="sm:hidden">Coût</span>
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground">
-                      <Info className="h-3 w-3 md:h-4 md:w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs p-3">
-                    <p className="font-medium mb-2">Détail des coûts :</p>
-                    <ul className="space-y-1 text-xs">
-                      <li>• Tarifs photographes : {formatCurrency(stats.coutDetails.tarifBase)}</li>
-                      <li>• Bonus chefs d'équipe : {formatCurrency(stats.coutDetails.bonus)}</li>
-                      <li className="font-medium mt-2">Total : {formatCurrency(stats.coutTotal)}</li>
-                    </ul>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="text-base sm:text-lg md:text-xl font-bold">{formatCurrency(stats.coutTotal)}</div>
-            </CardContent>
-          </Card>
-        </div>
-      </TooltipProvider>
 
       {/* Barre d'outils */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">

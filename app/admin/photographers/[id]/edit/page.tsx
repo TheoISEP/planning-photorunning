@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
 interface Photographer {
@@ -22,6 +23,7 @@ interface Photographer {
   codePostal?: string;
   dateNaissance?: string;
   actif: boolean;
+  region?: string;
   cameras?: string | string[];
   objectifs?: string | string[];
   cartesMemoire?: string | string[];
@@ -51,6 +53,7 @@ export default function EditPhotographerPage() {
     codePostal: '',
     dateNaissance: '',
     actif: true,
+    region: '',
     cameras: [] as string[],
     objectifs: [] as string[],
     cartesMemoire: [] as string[],
@@ -121,6 +124,7 @@ export default function EditPhotographerPage() {
           codePostal: data.photographer.codePostal || '',
           dateNaissance: data.photographer.dateNaissance || '',
           actif: data.photographer.actif === 'TRUE' || data.photographer.actif === true,
+          region: data.photographer.region || '',
           cameras: parseCameras(),
           objectifs: parseObjectifs(),
           cartesMemoire: parseCartesMemoire(),
@@ -154,6 +158,7 @@ export default function EditPhotographerPage() {
         codePostal: formData.codePostal,
         dateNaissance: formData.dateNaissance,
         actif: formData.actif ? 'TRUE' : 'FALSE',
+        region: formData.region,
         cameras: formData.cameras,
         objectifs: formData.objectifs,
         cartesMemoire: formData.cartesMemoire,
@@ -287,6 +292,26 @@ export default function EditPhotographerPage() {
                 value={formData.dateNaissance}
                 onChange={(e) => setFormData({ ...formData, dateNaissance: e.target.value })}
               />
+            </div>
+
+            <div>
+              <Label htmlFor="region">Région</Label>
+              <Select
+                value={formData.region}
+                onValueChange={(value) => setFormData({ ...formData, region: value })}
+              >
+                <SelectTrigger id="region">
+                  <SelectValue placeholder="Sélectionner une région" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Ile-de-France">Île-de-France</SelectItem>
+                  <SelectItem value="Sud-Est">Sud-Est</SelectItem>
+                  <SelectItem value="Sud-Ouest">Sud-Ouest</SelectItem>
+                  <SelectItem value="Nord">Nord</SelectItem>
+                  <SelectItem value="Zone Centre">Zone Centre</SelectItem>
+                  <SelectItem value="Zone Lyon">Zone Lyon</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>

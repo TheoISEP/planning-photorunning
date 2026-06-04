@@ -20,6 +20,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const photographerSchema = z.object({
   email: z.string().email('Email invalide'),
@@ -31,6 +32,7 @@ const photographerSchema = z.object({
   ville: z.string().optional(),
   codePostal: z.string().optional(),
   dateNaissance: z.string().optional(),
+  region: z.string().optional(),
 });
 
 type PhotographerFormValues = z.infer<typeof photographerSchema>;
@@ -53,6 +55,7 @@ export default function NewPhotographerPage() {
       ville: '',
       codePostal: '',
       dateNaissance: '',
+      region: '',
     },
   });
 
@@ -85,6 +88,7 @@ export default function NewPhotographerPage() {
         ville: data.ville || '',
         codePostal: data.codePostal || '',
         dateNaissance: data.dateNaissance || '',
+        region: data.region || '',
         dateInscription: new Date().toISOString(),
         actif: true,
         cameras: JSON.stringify([]),
@@ -352,6 +356,32 @@ export default function NewPhotographerPage() {
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="region"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Région</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner une région" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Ile-de-France">Île-de-France</SelectItem>
+                          <SelectItem value="Sud-Est">Sud-Est</SelectItem>
+                          <SelectItem value="Sud-Ouest">Sud-Ouest</SelectItem>
+                          <SelectItem value="Nord">Nord</SelectItem>
+                          <SelectItem value="Zone Centre">Zone Centre</SelectItem>
+                          <SelectItem value="Zone Lyon">Zone Lyon</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

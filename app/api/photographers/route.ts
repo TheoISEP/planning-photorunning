@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
       ville: data.ville || '',
       codePostal: data.codePostal || '',
       dateNaissance: data.dateNaissance || '',
+      region: data.region || '',
       dateInscription: new Date().toISOString(),
       actif: 'TRUE',
       cameras: data.cameras ? JSON.stringify(data.cameras) : '[]',

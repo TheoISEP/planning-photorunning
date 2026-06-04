@@ -104,6 +104,19 @@ const getStatusColorClass = (status: string) => {
   return colors[status] || 'bg-white border-gray-300';
 };
 
+// Fonction pour obtenir la couleur de la région
+const getRegionColor = (region?: string): string => {
+  const regionColors: Record<string, string> = {
+    'Ile-de-France': 'bg-gray-500',
+    'Zone Lyon': 'bg-blue-500',
+    'Zone Centre': 'bg-orange-500',
+    'Sud-Est': 'bg-green-500',
+    'Sud-Ouest': 'bg-purple-500',
+    'Nord': 'bg-red-500',
+  };
+  return regionColors[region || ''] || 'bg-gray-300';
+};
+
 // Fonction de tri des photographes par région puis alphabétiquement
 const sortPhotographersByRegion = (photographers: Photographer[]) => {
   // Ordre des régions
@@ -1169,9 +1182,10 @@ export default function AdminCalendrierPage() {
                 <div key={photographer.id} className="p-2 text-center">
                   <Link
                     href={`/admin/photographers/${photographer.id}/profile`}
-                    className="hover:text-gray-700 hover:underline transition-colors text-xs flex flex-col items-center"
-                    title={`${photographer.prenom} ${photographer.nom}`}
+                    className="hover:text-gray-700 hover:underline transition-colors text-xs flex flex-col items-center gap-1"
+                    title={`${photographer.prenom} ${photographer.nom}${photographer.region ? ` - ${photographer.region}` : ''}`}
                   >
+                    <div className={`w-3 h-3 rounded-full ${getRegionColor(photographer.region)}`} />
                     <div className="truncate w-full">{photographer.prenom}</div>
                     <div className="text-[9px] truncate w-full">{photographer.nom}</div>
                   </Link>

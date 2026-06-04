@@ -278,7 +278,14 @@ export class GoogleSheetsService {
     const headers = rows[0];
     const dataRows = rows.slice(1);
 
-    return dataRows.map(row => this.rowToObject(headers, row));
+    return dataRows.map(row => {
+      const obj = this.rowToObject(headers, row);
+      // Alias: numberAttended (Google Sheets) -> coureursAttendus (app)
+      if (obj.numberAttended !== undefined && obj.coureursAttendus === undefined) {
+        obj.coureursAttendus = obj.numberAttended;
+      }
+      return obj;
+    });
   }
 
   async getCourseById(id: string) {
@@ -296,7 +303,12 @@ export class GoogleSheetsService {
 
     for (const row of dataRows) {
       if (row[idIndex] === id) {
-        return this.rowToObject(headers, row);
+        const obj = this.rowToObject(headers, row);
+        // Alias: numberAttended (Google Sheets) -> coureursAttendus (app)
+        if (obj.numberAttended !== undefined && obj.coureursAttendus === undefined) {
+          obj.coureursAttendus = obj.numberAttended;
+        }
+        return obj;
       }
     }
 

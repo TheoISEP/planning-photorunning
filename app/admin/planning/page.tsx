@@ -1503,7 +1503,7 @@ export default function AdminCalendrierPage() {
                                 {validatedCount}
                               </div>
                               <span className="text-[9px] text-muted-foreground">
-                                {validatedCount}-{availableCount}
+                                {availableCount}-{course.coureursAttendus || 0}
                               </span>
                               <span className="text-[10px] font-medium text-muted-foreground">
                                 💰 {course.tarif ? course.tarif.tarifPhotographe : 0}€

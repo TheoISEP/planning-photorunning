@@ -125,6 +125,36 @@ const REGION_ORDER = [
   'Zone Centre',
 ];
 
+// Fonction de tri des photographes par région puis alphabétiquement
+const sortPhotographersByRegion = (photographers: Photographer[]) => {
+  return [...photographers].sort((a, b) => {
+    const regionA = a.region || '';
+    const regionB = b.region || '';
+
+    // Trouver les indices dans l'ordre des régions
+    const indexA = REGION_ORDER.indexOf(regionA);
+    const indexB = REGION_ORDER.indexOf(regionB);
+
+    // Si les deux ont une région connue, trier par ordre de région
+    if (indexA !== -1 && indexB !== -1) {
+      if (indexA !== indexB) {
+        return indexA - indexB;
+      }
+    } else if (indexA !== -1) {
+      // A a une région connue, B non -> A avant B
+      return -1;
+    } else if (indexB !== -1) {
+      // B a une région connue, A non -> B avant A
+      return 1;
+    }
+
+    // Si même région (ou pas de région), trier alphabétiquement
+    const nameA = `${a.prenom} ${a.nom}`.toLowerCase();
+    const nameB = `${b.prenom} ${b.nom}`.toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
+};
+
 // Fonction pour regrouper les photographes par région
 const groupPhotographersByRegion = (photographers: Photographer[]) => {
   const groups: Array<{ region: string; photographers: Photographer[] }> = [];
@@ -142,7 +172,7 @@ const groupPhotographersByRegion = (photographers: Photographer[]) => {
   });
 
   // Trier les groupes selon l'ordre des régions
-  return groups.sort((a, b) => {
+  const sortedGroups = groups.sort((a, b) => {
     const indexA = REGION_ORDER.indexOf(a.region);
     const indexB = REGION_ORDER.indexOf(b.region);
 
@@ -151,6 +181,17 @@ const groupPhotographersByRegion = (photographers: Photographer[]) => {
     if (indexB !== -1) return 1;
     return 0;
   });
+
+  // Trier les photographes alphabétiquement dans chaque groupe
+  sortedGroups.forEach(group => {
+    group.photographers.sort((a, b) => {
+      const nameA = `${a.prenom} ${a.nom}`.toLowerCase();
+      const nameB = `${b.prenom} ${b.nom}`.toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+  });
+
+  return sortedGroups;
 };
 
 export default function AdminCalendrierPage() {
@@ -1012,6 +1053,40 @@ export default function AdminCalendrierPage() {
         <div className="overflow-x-auto overflow-y-auto h-full" style={{ position: 'relative', zoom: `${zoom}%` }}>
           {/* En-tête du tableau */}
           <div className="sticky top-0 z-20" style={{ position: 'sticky' }}>
+            {/* Ligne 1: En-têtes de région */}
+            <div
+              className="grid gap-0 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 border-b border-gray-400/30"
+              style={{
+                gridTemplateColumns: `200px 120px repeat(${[...admins, ...photographers].filter((u) => u.actif).length}, 70px)`,
+                minWidth: 'max-content'
+              }}
+            >
+              {/* Colonnes fixes */}
+              <div className="sticky left-0 z-50 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800" style={{ position: 'sticky', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}></div>
+              <div className="sticky z-50 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800" style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}></div>
+
+              {/* Admins - pas de région */}
+              {admins.filter((a) => a.actif).map(admin => (
+                <div key={admin.id}></div>
+              ))}
+
+              {/* Photographes - regroupés par région */}
+              {(() => {
+                const regionGroups = groupPhotographersByRegion(photographers.filter((p) => p.actif));
+                return regionGroups.map(group => (
+                  <React.Fragment key={group.region}>
+                    <div
+                      className={`p-1 text-center font-bold text-[10px] uppercase tracking-wider ${getRegionBackgroundColor(group.photographers[0]?.region)} border-l border-gray-400/40`}
+                      style={{ gridColumn: `span ${group.photographers.length}` }}
+                    >
+                      {group.region}
+                    </div>
+                  </React.Fragment>
+                ));
+              })()}
+            </div>
+
+            {/* Ligne 2: Noms des utilisateurs */}
             <div
               className="grid gap-0 bg-gradient-to-r from-gray-100 to-slate-100 dark:from-gray-900 dark:to-slate-900 border-b-2 border-gray-600/30"
               style={{
@@ -1049,53 +1124,18 @@ export default function AdminCalendrierPage() {
               ))}
 
               {/* Colonnes Photographes */}
-              {photographers.filter((p) => p.actif).map(photographer => (
-                <div key={photographer.id} className="p-2 text-center">
+              {sortPhotographersByRegion(photographers.filter((p) => p.actif)).map(photographer => (
+                <div key={photographer.id} className={`p-2 text-center ${getRegionBackgroundColor(photographer.region)}`}>
                   <Link
                     href={`/admin/photographers/${photographer.id}/profile`}
                     className="hover:text-gray-700 hover:underline transition-colors text-xs flex flex-col items-center"
-                    title={`${photographer.prenom} ${photographer.nom}`}
+                    title={`${photographer.prenom} ${photographer.nom}${photographer.region ? ` - ${photographer.region}` : ''}`}
                   >
                     <div className="truncate w-full">{photographer.prenom}</div>
                     <div className="text-[9px] truncate w-full">{photographer.nom}</div>
                   </Link>
                 </div>
               ))}
-            </div>
-
-            {/* Ligne des régions */}
-            <div
-              className="grid gap-0 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 border-b border-gray-300/50"
-              style={{
-                gridTemplateColumns: `200px 120px repeat(${[...admins, ...photographers].filter((u) => u.actif).length}, 70px)`,
-                minWidth: 'max-content'
-              }}
-            >
-              {/* Colonne Course vide - STICKY */}
-              <div className="sticky left-0 z-50 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800" style={{ position: 'sticky', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}></div>
-
-              {/* Colonne Date vide - STICKY */}
-              <div className="sticky z-50 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800" style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}></div>
-
-              {/* Admins - pas de région */}
-              {admins.filter((a) => a.actif).map(admin => (
-                <div key={admin.id}></div>
-              ))}
-
-              {/* Photographes - regroupés par région */}
-              {(() => {
-                const regionGroups = groupPhotographersByRegion(photographers.filter((p) => p.actif));
-                return regionGroups.map(group => (
-                  <React.Fragment key={group.region}>
-                    <div
-                      className={`p-1 text-center font-bold text-[10px] uppercase tracking-wider ${getRegionBackgroundColor(group.photographers[0]?.region)} border-l border-gray-400/40`}
-                      style={{ gridColumn: `span ${group.photographers.length}` }}
-                    >
-                      {group.region}
-                    </div>
-                  </React.Fragment>
-                ));
-              })()}
             </div>
           </div>
 
@@ -1121,7 +1161,7 @@ export default function AdminCalendrierPage() {
                     <div className="sticky z-10 p-3 border-r-2 border-orange-300 dark:border-orange-700 bg-orange-100 dark:bg-orange-900" style={{ left: '200px' }}>
                       <div className="text-xs">{monthData.courses.length} course{monthData.courses.length > 1 ? 's' : ''}</div>
                     </div>
-                    {[...admins, ...photographers].filter((u) => u.actif).map(user => {
+                    {[...admins, ...sortPhotographersByRegion(photographers.filter((p) => p.actif))].filter((u) => u.actif).map(user => {
                       // Calculer le nombre de fois où ce photographe est validé ou chef dans ce mois
                       const userCount = monthData.courses.reduce((count, course) => {
                         const dispo = course.disponibilites.find(d => d.photographeId === user.id);
@@ -1131,8 +1171,12 @@ export default function AdminCalendrierPage() {
                         return count;
                       }, 0);
 
+                      // Appliquer la couleur de région pour les photographes
+                      const isPhotographer = 'region' in user;
+                      const bgColor = isPhotographer ? getRegionBackgroundColor((user as Photographer).region) : '';
+
                       return (
-                        <div key={user.id} className="p-3 flex items-center justify-center text-xs font-semibold">
+                        <div key={user.id} className={`p-3 flex items-center justify-center text-xs font-semibold ${bgColor}`}>
                           {userCount > 0 ? userCount : '-'}
                         </div>
                       );
@@ -1365,14 +1409,14 @@ export default function AdminCalendrierPage() {
                   })}
 
                   {/* Colonnes photographes */}
-                  {photographers.filter((p) => p.actif).map(photographer => {
+                  {sortPhotographersByRegion(photographers.filter((p) => p.actif)).map(photographer => {
                     const dispo = course.disponibilites.find((d) => d.photographeId === photographer.id);
-                    if (!dispo) return <div key={photographer.id} className="flex items-center justify-center p-2">-</div>;
+                    if (!dispo) return <div key={photographer.id} className={`flex items-center justify-center p-2 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors ${getRegionBackgroundColor(photographer.region)}`}>-</div>;
 
                     const hasMultipleTarifs = course.tarifs && course.tarifs.length > 1;
 
                     return (
-                      <div key={photographer.id} className="p-2 flex flex-col items-start justify-start gap-0.5">
+                      <div key={photographer.id} className={`p-2 flex flex-col items-start justify-start gap-0.5 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors ${getRegionBackgroundColor(photographer.region)}`}>
                         <Select
                           value={dispo.statut}
                           onValueChange={(value) => handleStatusChange(dispo.id, value, course.id)}

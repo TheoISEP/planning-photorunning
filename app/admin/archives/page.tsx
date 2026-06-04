@@ -387,6 +387,28 @@ export default function AdminCalendrierPage() {
   }, [fetchData]);
 
 
+  const handleCourseStatusChange = async (courseId: string, newStatus: 'inProgress' | 'done') => {
+    try {
+      const res = await fetch(`/api/courses/${courseId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statutTraitement: newStatus }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Erreur lors de la mise à jour du statut');
+      }
+
+      // Mettre à jour l'état local
+      setCourses(courses.map(c =>
+        c.id === courseId ? { ...c, statutTraitement: newStatus } : c
+      ));
+    } catch (error) {
+      console.error('Erreur mise à jour statut course:', error);
+      alert('Erreur lors de la mise à jour du statut de la course');
+    }
+  };
+
   const handleStatusChange = async (
     disponibiliteId: string,
     newStatus: string,
@@ -1189,11 +1211,30 @@ export default function AdminCalendrierPage() {
                         >
                           {course.nom}
                         </Link>
-                        {course.statutTraitement === 'done' ? (
-                          <span className="text-[10px]">🟢</span>
-                        ) : (
-                          <span className="text-[10px]">🟠</span>
-                        )}
+                        <Select
+                          value={course.statutTraitement}
+                          onValueChange={(value: 'inProgress' | 'done') => handleCourseStatusChange(course.id, value)}
+                        >
+                          <SelectTrigger className="h-4 w-6 border-none bg-transparent p-0 focus:ring-0 hover:bg-gray-100 rounded">
+                            <SelectValue>
+                              {course.statutTraitement === 'done' ? '🟢' : '🟠'}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="inProgress">
+                              <div className="flex items-center gap-2">
+                                <span>🟠</span>
+                                <span className="text-xs">En cours</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="done">
+                              <div className="flex items-center gap-2">
+                                <span>🟢</span>
+                                <span className="text-xs">Fait</span>
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       <Button
                         variant="ghost"
@@ -1261,7 +1302,7 @@ export default function AdminCalendrierPage() {
                       <div key={admin.id} className="p-2 flex flex-col items-start justify-start gap-0.5">
                         <Select
                           value={dispo.statut}
-                          disabled={true}
+                          onValueChange={(value) => handleStatusChange(dispo.id, value, course.id)}
                         >
                           <SelectTrigger className={`h-7 text-[9px] w-full border transition-all focus:border-gray-600 px-0.5 font-medium ${getStatusColorClass(dispo.statut)}`}>
                             <SelectValue>
@@ -1312,7 +1353,7 @@ export default function AdminCalendrierPage() {
                         {hasMultipleTarifs && (
                           <Select
                             value={dispo.tarifId || ''}
-                            disabled={true}
+                            onValueChange={(value) => handleTarifChange(dispo.id, value, course.id)}
                           >
                             <SelectTrigger className="h-6 text-[8px] w-full border border-gray-300 bg-white hover:bg-gray-50 px-0.5">
                               <SelectValue placeholder="Tarif">
@@ -1350,7 +1391,7 @@ export default function AdminCalendrierPage() {
                       <div key={photographer.id} className="p-2 flex flex-col items-start justify-start gap-0.5">
                         <Select
                           value={dispo.statut}
-                          disabled={true}
+                          onValueChange={(value) => handleStatusChange(dispo.id, value, course.id)}
                         >
                           <SelectTrigger className={`h-7 text-[9px] w-full border transition-all focus:border-gray-600 px-0.5 font-medium ${getStatusColorClass(dispo.statut)}`}>
                             <SelectValue>
@@ -1401,7 +1442,7 @@ export default function AdminCalendrierPage() {
                         {hasMultipleTarifs && (
                           <Select
                             value={dispo.tarifId || ''}
-                            disabled={true}
+                            onValueChange={(value) => handleTarifChange(dispo.id, value, course.id)}
                           >
                             <SelectTrigger className="h-6 text-[8px] w-full border border-gray-300 bg-white hover:bg-gray-50 px-0.5">
                               <SelectValue placeholder="Tarif">

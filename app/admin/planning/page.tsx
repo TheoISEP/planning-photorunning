@@ -1330,7 +1330,7 @@ export default function AdminCalendrierPage() {
                       <div
                         key={course.id}
                         className={cn(
-                          "grid gap-0 border-b border-gray-200/50 hover:bg-gray-200 dark:hover:bg-gray-800/30 transition-colors",
+                          "group grid gap-0 border-b border-gray-200/50 transition-colors",
                           bgColor,
                           isNewWeekend && "border-t-2 border-t-blue-300/60 dark:border-t-blue-600/60"
                         )}
@@ -1342,7 +1342,7 @@ export default function AdminCalendrierPage() {
                         {/* Colonne infos course - STICKY */}
                         <div
                           className={cn(
-                            "sticky left-0 z-10 p-2 pr-1.5 border-r-2 border-gray-400/40",
+                            "sticky left-0 z-10 p-2 pr-1.5 border-r-2 border-gray-400/40 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors",
                             bgColor
                           )}
                           style={{ position: 'sticky', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
@@ -1431,7 +1431,7 @@ export default function AdminCalendrierPage() {
                           {/* Colonne Date - STICKY */}
                           <div
                             className={cn(
-                              "sticky z-10 p-2 pr-1.5 flex flex-col justify-start items-start gap-0.5 border-r-2 border-green-600/40",
+                              "sticky z-10 p-2 pr-1.5 flex flex-col justify-start items-start gap-0.5 border-r-2 border-green-600/40 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors",
                               bgColor
                             )}
                             style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
@@ -1449,12 +1449,12 @@ export default function AdminCalendrierPage() {
                           {/* Colonnes admins */}
                           {admins.filter((a) => a.actif).map(admin => {
                             const dispo = course.disponibilites.find((d) => d.photographeId === admin.id);
-                            if (!dispo) return <div key={admin.id} className="flex items-center justify-center p-2">-</div>;
+                            if (!dispo) return <div key={admin.id} className="flex items-center justify-center p-2 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors">-</div>;
 
                             const hasMultipleTarifs = course.tarifs && course.tarifs.length > 1;
 
                             return (
-                              <div key={admin.id} className="p-2 flex flex-col items-start justify-start gap-0.5">
+                              <div key={admin.id} className="p-2 flex flex-col items-start justify-start gap-0.5 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors">
                                 <Select
                                   value={dispo.statut}
                                   onValueChange={(value) => handleStatusChange(dispo.id, value, course.id)}
@@ -1538,12 +1538,12 @@ export default function AdminCalendrierPage() {
                           {/* Colonnes photographes */}
                           {photographers.filter((p) => p.actif).map(photographer => {
                             const dispo = course.disponibilites.find((d) => d.photographeId === photographer.id);
-                            if (!dispo) return <div key={photographer.id} className={`flex items-center justify-center p-2 ${getRegionBackgroundColor(photographer.region)}`}>-</div>;
+                            if (!dispo) return <div key={photographer.id} className={`flex items-center justify-center p-2 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors ${getRegionBackgroundColor(photographer.region)}`}>-</div>;
 
                             const hasMultipleTarifs = course.tarifs && course.tarifs.length > 1;
 
                             return (
-                              <div key={photographer.id} className={`p-2 flex flex-col items-start justify-start gap-0.5 ${getRegionBackgroundColor(photographer.region)}`}>
+                              <div key={photographer.id} className={`p-2 flex flex-col items-start justify-start gap-0.5 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors ${getRegionBackgroundColor(photographer.region)}`}>
                                 <Select
                                   value={dispo.statut}
                                   onValueChange={(value) => handleStatusChange(dispo.id, value, course.id)}

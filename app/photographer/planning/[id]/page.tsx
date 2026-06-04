@@ -214,7 +214,7 @@ export default function PhotographerCourseDetailPage() {
     );
   }
 
-  if (!course || !disponibilite) {
+  if (!course) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
@@ -227,7 +227,7 @@ export default function PhotographerCourseDetailPage() {
     );
   }
 
-  const isValidated = disponibilite.statut === 'validated' || disponibilite.statut === 'teamLeader';
+  const isValidated = disponibilite && (disponibilite.statut === 'validated' || disponibilite.statut === 'teamLeader');
 
   return (
     <div className="h-full overflow-auto">
@@ -242,7 +242,7 @@ export default function PhotographerCourseDetailPage() {
                   Retour
                 </Button>
               </Link>
-              <StatusBadge variant={disponibilite.statut} />
+              {disponibilite && <StatusBadge variant={disponibilite.statut} />}
             </div>
             <h1 className="text-2xl font-bold">{course.nom}</h1>
             <p className="text-sm text-muted-foreground mt-1">{course.localisation}</p>
@@ -373,9 +373,13 @@ export default function PhotographerCourseDetailPage() {
               <CardContent className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Statut actuel</span>
-                  <StatusBadge variant={disponibilite.statut} showIcon={false} />
+                  {disponibilite ? (
+                    <StatusBadge variant={disponibilite.statut} showIcon={false} />
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Non défini</span>
+                  )}
                 </div>
-                {disponibilite.dateDeclaration && (
+                {disponibilite?.dateDeclaration && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Date de déclaration</span>
                     <span className="font-medium">
@@ -392,7 +396,14 @@ export default function PhotographerCourseDetailPage() {
                 <CardTitle>Ma disponibilité</CardTitle>
               </CardHeader>
               <CardContent>
-                {disponibilite.statut === 'pending' && (
+                {!disponibilite && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                    <p className="text-sm text-yellow-800">
+                      Aucune disponibilité enregistrée pour cette course
+                    </p>
+                  </div>
+                )}
+                {disponibilite?.statut === 'pending' && (
                   <div className="space-y-2">
                     <Button
                       className="w-full"
@@ -410,7 +421,7 @@ export default function PhotographerCourseDetailPage() {
                   </div>
                 )}
 
-                {disponibilite.statut === 'available' && (
+                {disponibilite?.statut === 'available' && (
                   <div className="space-y-3">
                     <p className="text-sm text-gray-600 font-medium">Disponibilité déclarée</p>
                     <Button
@@ -423,7 +434,7 @@ export default function PhotographerCourseDetailPage() {
                   </div>
                 )}
 
-                {disponibilite.statut === 'unavailable' && (
+                {disponibilite?.statut === 'unavailable' && (
                   <div className="space-y-3">
                     <p className="text-sm text-muted-foreground">Non disponible</p>
                     <Button
@@ -435,7 +446,7 @@ export default function PhotographerCourseDetailPage() {
                   </div>
                 )}
 
-                {disponibilite.statut === 'validated' && (
+                {disponibilite?.statut === 'validated' && (
                   <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
                     <p className="text-sm text-gray-800 font-medium">
                       ✓ Vous êtes affecté à cette course
@@ -443,7 +454,7 @@ export default function PhotographerCourseDetailPage() {
                   </div>
                 )}
 
-                {disponibilite.statut === 'teamLeader' && (
+                {disponibilite?.statut === 'teamLeader' && (
                   <div className="bg-purple-50 border border-purple-200 rounded-md p-3">
                     <p className="text-sm text-purple-800 font-medium">
                       👑 Vous êtes chef d'équipe
@@ -451,7 +462,7 @@ export default function PhotographerCourseDetailPage() {
                   </div>
                 )}
 
-                {disponibilite.statut === 'rejected' && (
+                {disponibilite?.statut === 'rejected' && (
                   <div className="bg-red-50 border border-red-200 rounded-md p-3">
                     <p className="text-sm text-red-800">
                       Vous n'avez pas été retenu pour cette course

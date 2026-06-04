@@ -436,7 +436,8 @@ export default function PhotographerCalendrierPage() {
                 };
 
                 const config = dispo ? statusConfig[dispo.statut] : statusConfig.pending;
-                const isPending = dispo?.statut === 'pending';
+                // Afficher le sélecteur pour pending, available, unavailable (pas pour validated, teamLeader, rejected)
+                const canChangeStatus = dispo && ['pending', 'available', 'unavailable'].includes(dispo.statut);
 
                 return (
                   <div
@@ -452,7 +453,7 @@ export default function PhotographerCalendrierPage() {
                         <Link href={`/photographer/planning/${course.id}`} className="font-semibold text-sm flex-1 hover:underline">
                           {course.nom}
                         </Link>
-                        {!isPending && (
+                        {!canChangeStatus && (
                           <span className={cn('text-xs px-2 py-0.5 rounded font-medium', config.text)}>
                             {config.label}
                           </span>
@@ -484,8 +485,8 @@ export default function PhotographerCalendrierPage() {
                         )}
                       </div>
 
-                      {/* Sélecteur de disponibilité pour pending */}
-                      {isPending && dispo && currentUser && (
+                      {/* Sélecteur de disponibilité pour pending, available, unavailable */}
+                      {canChangeStatus && currentUser && (
                         <Select
                           value={dispo.statut}
                           onValueChange={(value) => handleStatusChange(dispo.id, value, course.id, currentUser.id)}

@@ -1157,17 +1157,85 @@ export default function AdminCalendrierPage() {
                       <div className="text-sm font-bold">
                         {format(new Date(monthData.year, monthData.month), 'MMMM yyyy', { locale: fr })}
                       </div>
+                      <div className="text-xs mt-1 text-gray-700 dark:text-gray-300">
+                        {(() => {
+                          // Calculer le coût total du mois (en excluant les admins non rémunérés)
+                          let monthTotal = 0;
+
+                          monthData.courses.forEach((course) => {
+                            course.disponibilites.forEach((dispo) => {
+                              if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
+                                // Vérifier si c'est un admin non rémunéré
+                                const admin = admins.find((a) => a.id === dispo.photographeId);
+                                const isNonPaidAdmin = admin && (admin.nonRemunere === true || admin.nonRemunere === 'TRUE');
+
+                                // Ne compter que si ce n'est pas un admin non rémunéré
+                                if (!isNonPaidAdmin) {
+                                  const courseTarif = dispo.tarifId
+                                    ? tarifs.find((t) => t.id === dispo.tarifId)
+                                    : course.tarif;
+
+                                  if (courseTarif) {
+                                    const amount = dispo.statut === 'teamLeader'
+                                      ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
+                                      : Number(courseTarif.tarifPhotographe);
+                                    monthTotal += amount;
+                                  }
+                                }
+                              }
+                            });
+                          });
+
+                          return `${monthTotal.toLocaleString('fr-FR')} €`;
+                        })()}
+                      </div>
                     </div>
                     <div className="sticky z-10 p-3 border-r-2 border-orange-300 dark:border-orange-700 bg-orange-100 dark:bg-orange-900" style={{ left: '200px' }}>
                       <div className="text-xs">{monthData.courses.length} course{monthData.courses.length > 1 ? 's' : ''}</div>
                     </div>
-                    {[...admins, ...sortPhotographersByRegion(photographers.filter((p) => p.actif))].filter((u) => u.actif).map(user => {
-                      // Calculer le nombre de fois où ce photographe/admin est validé ou chef dans ce mois + montant total
+                    {admins.filter((a) => a.actif).map(admin => {
+                      // Calculer le nombre de fois où cet admin est validé ou chef dans ce mois + montant total
+                      let userCount = 0;
+                      let userTotal = 0;
+                      const isNonPaidAdmin = admin.nonRemunere === true || admin.nonRemunere === 'TRUE';
+
+                      monthData.courses.forEach((course) => {
+                        const dispo = course.disponibilites.find(d => d.photographeId === admin.id);
+                        if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
+                          userCount += 1;
+
+                          // Trouver le tarif correspondant
+                          const courseTarif = dispo.tarifId
+                            ? tarifs.find((t) => t.id === dispo.tarifId)
+                            : course.tarif;
+
+                          if (courseTarif) {
+                            const amount = dispo.statut === 'teamLeader'
+                              ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
+                              : Number(courseTarif.tarifPhotographe);
+                            userTotal += amount;
+                          }
+                        }
+                      });
+
+                      return (
+                        <div key={admin.id} className="p-3 flex flex-col items-center justify-center text-xs font-semibold">
+                          <div>{userCount > 0 ? userCount : '-'}</div>
+                          {userCount > 0 && (
+                            <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">
+                              {isNonPaidAdmin ? '(' : ''}{userTotal.toLocaleString('fr-FR')} €{isNonPaidAdmin ? ')' : ''}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {sortPhotographersByRegion(photographers.filter((p) => p.actif)).map(photographer => {
+                      // Calculer le nombre de fois où ce photographe est validé ou chef dans ce mois + montant total
                       let userCount = 0;
                       let userTotal = 0;
 
                       monthData.courses.forEach((course) => {
-                        const dispo = course.disponibilites.find(d => d.photographeId === user.id);
+                        const dispo = course.disponibilites.find(d => d.photographeId === photographer.id);
                         if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
                           userCount += 1;
 
@@ -1186,11 +1254,10 @@ export default function AdminCalendrierPage() {
                       });
 
                       // Appliquer la couleur de région pour les photographes
-                      const isPhotographer = 'region' in user;
-                      const bgColor = isPhotographer ? getRegionBackgroundColor((user as Photographer).region) : '';
+                      const bgColor = getRegionBackgroundColor(photographer.region);
 
                       return (
-                        <div key={user.id} className={`p-3 flex flex-col items-center justify-center text-xs font-semibold ${bgColor}`}>
+                        <div key={photographer.id} className={`p-3 flex flex-col items-center justify-center text-xs font-semibold ${bgColor}`}>
                           <div>{userCount > 0 ? userCount : '-'}</div>
                           {userCount > 0 && (
                             <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">

@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/calendrier/StatusBadge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 interface Course {
   id: string;
@@ -123,9 +124,9 @@ export default function PhotographerCourseDetailPage() {
             setDisponibilite(myDispo);
           }
 
-          // Récupérer l'équipe (photographes validés ou chefs, SAUF l'utilisateur connecté)
+          // Récupérer l'équipe (tous les photographes validés ou chefs)
           const validatedMembers = dispoData.disponibilites.filter(
-            (d: any) => (d.statut === 'validated' || d.statut === 'teamLeader') && d.photographeId !== userId
+            (d: any) => d.statut === 'validated' || d.statut === 'teamLeader'
           );
 
           // Mapper et filtrer seulement les membres dont on trouve les données
@@ -310,43 +311,52 @@ export default function PhotographerCourseDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Équipe (afficher s'il y a au moins un coéquipier) */}
+            {/* Équipe assignée */}
             {team.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Vos coéquipiers ({team.length})</CardTitle>
+                  <CardTitle>Équipe assignée ({team.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {team.map((member) => (
-                      <div
-                        key={member.id}
-                        className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarFallback className={member.statut === 'teamLeader' ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-700"}>
-                              {getInitials(member.prenom, member.nom)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">
-                              {member.prenom} {member.nom}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {member.statut === 'teamLeader' ? (
-                                <span className="flex items-center gap-1">
-                                  <Star className="h-3 w-3 text-purple-500" />
-                                  Chef d'équipe
-                                </span>
-                              ) : (
-                                'Photographe'
-                              )}
-                            </p>
+                    {team.map((member) => {
+                      const isCurrentUser = member.photographeId === currentUserId;
+                      return (
+                        <div
+                          key={member.id}
+                          className={cn(
+                            "flex items-center justify-between p-3 rounded-lg border transition-colors",
+                            isCurrentUser
+                              ? "bg-blue-50 border-blue-200 dark:bg-blue-950/20"
+                              : "bg-card hover:bg-accent/50"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarFallback className={member.statut === 'teamLeader' ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-700"}>
+                                {getInitials(member.prenom, member.nom)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">
+                                {member.prenom} {member.nom}
+                                {isCurrentUser && <span className="text-xs text-blue-600 ml-2 font-semibold">(Vous)</span>}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {member.statut === 'teamLeader' ? (
+                                  <span className="flex items-center gap-1">
+                                    <Star className="h-3 w-3 text-purple-500" />
+                                    Chef d'équipe
+                                  </span>
+                                ) : (
+                                  'Photographe'
+                                )}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>

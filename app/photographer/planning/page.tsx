@@ -227,6 +227,27 @@ export default function PhotographerCalendrierPage() {
     fetchData();
   }, [fetchData]);
 
+  // Rafraîchir les données quand on revient sur la page (par exemple après avoir visité une course)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchData();
+      }
+    };
+
+    const handleFocus = () => {
+      fetchData();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [fetchData]);
+
   // Fonction pour recharger uniquement les disponibilités sans loader
   const refreshDisponibilites = async () => {
     if (!currentUser) return;
@@ -566,13 +587,13 @@ export default function PhotographerCalendrierPage() {
       </div>
 
       {/* Tableau (desktop uniquement) */}
-      <div className="hidden md:flex flex-1 min-h-0 rounded-lg border shadow-lg bg-white dark:bg-gray-950 overflow-hidden">
-        <div className="overflow-x-auto overflow-y-auto h-full" style={{ zoom: zoom > 90 ? `${zoom}%` : '100%' }}>
+      <div className="hidden md:flex flex-1 min-h-0 rounded-lg border shadow-lg bg-white dark:bg-gray-950 overflow-hidden w-full">
+        <div className="overflow-x-auto overflow-y-auto h-full w-full" style={{ zoom: zoom > 90 ? `${zoom}%` : '100%' }}>
           {/* En-tête */}
-          <div className="sticky top-0 z-20">
+          <div className="sticky top-0 z-20 w-full">
             <div
-              className="grid gap-0 bg-gradient-to-r from-gray-100 to-gray-100 dark:from-gray-900 dark:to-gray-900 border-b-2 border-gray-600/30"
-              style={{ gridTemplateColumns: 'minmax(180px, 1fr) 100px minmax(120px, 150px)', minWidth: '100%' }}
+              className="grid gap-0 bg-gradient-to-r from-gray-100 to-gray-100 dark:from-gray-900 dark:to-gray-900 border-b-2 border-gray-600/30 w-full"
+              style={{ gridTemplateColumns: '2fr 1fr 2fr' }}
             >
               <div
                 className="sticky left-0 z-30 p-3 pr-2 border-r-2 border-gray-600/40 font-semibold text-sm bg-gradient-to-r from-gray-100 to-gray-100 dark:from-gray-900 dark:to-gray-900"
@@ -582,7 +603,7 @@ export default function PhotographerCalendrierPage() {
               </div>
               <div
                 className="sticky z-30 p-3 pr-2 border-r-2 border-gray-600/40 font-semibold text-sm bg-gradient-to-r from-gray-100 to-gray-100 dark:from-gray-900 dark:to-gray-900"
-                style={{ position: 'sticky', left: 'minmax(180px, 1fr)', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
+                style={{ position: 'sticky', left: '40%', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
               >
                 Date
               </div>
@@ -633,8 +654,8 @@ export default function PhotographerCalendrierPage() {
                 <div key={monthKey}>
                   {/* Ligne mois */}
                   <div
-                    className="grid gap-0 bg-orange-100 dark:bg-orange-900 border-b-2 border-orange-300 font-semibold"
-                    style={{ gridTemplateColumns: 'minmax(180px, 1fr) 100px minmax(120px, 150px)', minWidth: '100%' }}
+                    className="grid gap-0 bg-orange-100 dark:bg-orange-900 border-b-2 border-orange-300 font-semibold w-full"
+                    style={{ gridTemplateColumns: '2fr 1fr 2fr' }}
                   >
                     <div className="sticky left-0 z-10 p-3 pr-2 border-r-2 border-orange-300 bg-orange-100 dark:bg-orange-900">
                       <div className="text-sm md:text-base font-bold">
@@ -643,7 +664,7 @@ export default function PhotographerCalendrierPage() {
                     </div>
                     <div
                       className="sticky z-10 p-3 pr-2 border-r-2 border-orange-300 bg-orange-100 dark:bg-orange-900"
-                      style={{ left: 'minmax(180px, 1fr)' }}
+                      style={{ left: '40%' }}
                     >
                       <div className="text-xs">
                         {monthData.courses.length} course{monthData.courses.length > 1 ? 's' : ''}
@@ -687,7 +708,7 @@ export default function PhotographerCalendrierPage() {
                     const rowBgColor = isValidated
                       ? myDispo.statut === 'teamLeader'
                         ? 'bg-purple-50 dark:bg-purple-950/30'
-                        : 'bg-gray-100 dark:bg-gray-900/40'
+                        : 'bg-green-50 dark:bg-green-950/30'
                       : bgColor;
 
                     // Détection des changements de week-end
@@ -708,14 +729,14 @@ export default function PhotographerCalendrierPage() {
 
                         <div
                           className={cn(
-                            'grid gap-0 border-b transition-all duration-200',
+                            'grid gap-0 border-b transition-all duration-200 w-full',
                             rowBgColor,
-                            isValidated && 'border-l-4 border-l-gray-600 hover:bg-gray-200 shadow-sm',
-                            myDispo?.statut === 'teamLeader' && 'border-l-4 border-l-purple-600 hover:bg-purple-200',
+                            isValidated && myDispo.statut !== 'teamLeader' && 'border-l-4 border-l-green-600 hover:bg-green-100 shadow-sm',
+                            myDispo?.statut === 'teamLeader' && 'border-l-4 border-l-purple-600 hover:bg-purple-100',
                             isRejected && 'opacity-40 hover:opacity-60 border-gray-200/50',
                             !isValidated && !isRejected && 'border-gray-200/50 hover:bg-gray-100'
                           )}
-                          style={{ gridTemplateColumns: 'minmax(180px, 1fr) 100px minmax(120px, 150px)', minWidth: '100%' }}
+                          style={{ gridTemplateColumns: '2fr 1fr 2fr' }}
                         >
                         {/* Colonne Course */}
                         <div

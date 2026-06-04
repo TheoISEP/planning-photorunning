@@ -44,7 +44,6 @@ interface PhotographerStats {
   nombreCourses: number;
   nombrePrestations: number;
   montantTotal: number;
-  heuresTravail: number;
   tauxReussite?: number;
 }
 
@@ -109,7 +108,6 @@ export default function PhotographerCalendrierPage() {
     nombreCourses: 0,
     nombrePrestations: 0,
     montantTotal: 0,
-    heuresTravail: 0,
     tauxReussite: 0,
   });
 
@@ -214,7 +212,6 @@ export default function PhotographerCalendrierPage() {
             nombreCourses: Number(statsData.photographerStats.nombreCourses) || 0,
             nombrePrestations: Number(statsData.photographerStats.nombrePrestations) || 0,
             montantTotal: Number(statsData.photographerStats.montantTotal) || 0,
-            heuresTravail: Number(statsData.photographerStats.heuresTravail) || 0,
             tauxReussite: Number(statsData.photographerStats.tauxReussite) || 0,
           });
         }
@@ -388,95 +385,6 @@ export default function PhotographerCalendrierPage() {
           </Button>
         </div>
       </div>
-
-      {/* Statistiques personnelles - cachées sur mobile */}
-      <TooltipProvider>
-        <div className="hidden md:grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3 flex-shrink-0">
-          <Card className="shadow-md border-gray-100">
-            <CardContent className="p-3.5 md:p-4">
-              <div className="flex items-start justify-between mb-2">
-                <div className="text-[11px] md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  Courses
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground touch-manipulation -mt-0.5">
-                      <Info className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" align="end" className="max-w-[200px]">
-                    <p className="text-xs">Nombre de courses validées ce mois</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="text-2xl md:text-3xl font-bold text-foreground">{myStats.nombreCourses}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-md border-blue-100">
-            <CardContent className="p-3.5 md:p-4">
-              <div className="flex items-start justify-between mb-2">
-                <div className="text-[11px] md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  Prestations
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground touch-manipulation -mt-0.5">
-                      <Info className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" align="end" className="max-w-[200px]">
-                    <p className="text-xs">Total de vos prestations ce mois</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="text-2xl md:text-3xl font-bold text-foreground">{myStats.nombrePrestations}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-md border-gray-200 bg-gray-50/50">
-            <CardContent className="p-3.5 md:p-4">
-              <div className="flex items-start justify-between mb-2">
-                <div className="text-[11px] md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  CA Mois
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground touch-manipulation -mt-0.5">
-                      <Info className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" align="end" className="max-w-[200px]">
-                    <p className="text-xs">Total de vos rémunérations ce mois</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="text-xl md:text-2xl font-bold text-gray-700 leading-tight">{formatCurrency(myStats.montantTotal)}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-md border-purple-100">
-            <CardContent className="p-3.5 md:p-4">
-              <div className="flex items-start justify-between mb-2">
-                <div className="text-[11px] md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  Heures
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground touch-manipulation -mt-0.5">
-                      <Info className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" align="end" className="max-w-[200px]">
-                    <p className="text-xs">Heures de travail ce mois</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="text-2xl md:text-3xl font-bold text-foreground">{myStats.heuresTravail}h</div>
-            </CardContent>
-          </Card>
-        </div>
-      </TooltipProvider>
 
       {/* Barre zoom - cachée sur mobile */}
       <div className="hidden md:flex items-center justify-end gap-2 flex-shrink-0">

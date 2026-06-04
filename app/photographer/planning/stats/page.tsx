@@ -14,7 +14,6 @@ interface MonthStats {
   nombreCourses: number;
   nombrePrestations: number;
   montantTotal: number;
-  heuresTravail: number;
 }
 
 function calculatePercentChange(current: number, previous: number): number {
@@ -44,7 +43,6 @@ export default function PhotographerStatsPage() {
     nombreCourses: 0,
     nombrePrestations: 0,
     montantTotal: 0,
-    heuresTravail: 0,
   });
   const [monthlyBreakdown, setMonthlyBreakdown] = useState<MonthStats[]>([]);
 
@@ -76,7 +74,6 @@ export default function PhotographerStatsPage() {
         nombreCourses: parseInt(currentMonthData?.nombreCourses || '0'),
         nombrePrestations: parseInt(currentMonthData?.nombrePrestations || '0'),
         montantTotal: parseFloat(currentMonthData?.montantTotal || '0'),
-        heuresTravail: parseFloat(currentMonthData?.heuresTravail || '0'),
       });
 
       // Statistiques du mois précédent
@@ -91,7 +88,6 @@ export default function PhotographerStatsPage() {
         nombreCourses: parseInt(previousMonthData?.nombreCourses || '0'),
         nombrePrestations: parseInt(previousMonthData?.nombrePrestations || '0'),
         montantTotal: parseFloat(previousMonthData?.montantTotal || '0'),
-        heuresTravail: parseFloat(previousMonthData?.heuresTravail || '0'),
       });
 
       // Statistiques annuelles
@@ -99,13 +95,11 @@ export default function PhotographerStatsPage() {
       const nombreCourses = yearStats.reduce((sum: number, stat: any) => sum + parseInt(stat.nombreCourses || '0'), 0);
       const nombrePrestations = yearStats.reduce((sum: number, stat: any) => sum + parseInt(stat.nombrePrestations || '0'), 0);
       const montantTotal = yearStats.reduce((sum: number, stat: any) => sum + parseFloat(stat.montantTotal || '0'), 0);
-      const heuresTravail = yearStats.reduce((sum: number, stat: any) => sum + parseFloat(stat.heuresTravail || '0'), 0);
 
       setYearlyStats({
         nombreCourses,
         nombrePrestations,
         montantTotal,
-        heuresTravail,
       });
 
       // Détail mois par mois
@@ -120,7 +114,6 @@ export default function PhotographerStatsPage() {
           nombreCourses: parseInt(monthData?.nombreCourses || '0'),
           nombrePrestations: parseInt(monthData?.nombrePrestations || '0'),
           montantTotal: parseFloat(monthData?.montantTotal || '0'),
-          heuresTravail: parseFloat(monthData?.heuresTravail || '0'),
         });
       }
       setMonthlyBreakdown(months);
@@ -163,9 +156,6 @@ export default function PhotographerStatsPage() {
     : 0;
   const monthPrestationsChange = currentMonthStats && previousMonthStats
     ? calculatePercentChange(currentMonthStats.nombrePrestations, previousMonthStats.nombrePrestations)
-    : 0;
-  const monthHoursChange = currentMonthStats && previousMonthStats
-    ? calculatePercentChange(currentMonthStats.heuresTravail, previousMonthStats.heuresTravail)
     : 0;
 
   return (

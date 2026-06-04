@@ -348,7 +348,7 @@ export function PhotographerShell({ children, user }: { children: React.ReactNod
 					</header>
 
 					<PhotographerMain className="min-w-0 flex-1 overflow-hidden rounded-2xl border bg-card shadow-md">
-						<div className="mx-auto w-full h-full max-w-[1440px] px-3 py-4 md:px-6 md:py-6">{children}</div>
+						<div className="w-full h-full px-3 py-4 md:px-6 md:py-6">{children}</div>
 					</PhotographerMain>
 				</div>
 			</div>

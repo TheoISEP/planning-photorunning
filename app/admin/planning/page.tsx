@@ -1275,10 +1275,33 @@ export default function AdminCalendrierPage() {
                       </div>
                       <div className="text-xs mt-1 text-gray-700 dark:text-gray-300">
                         {(() => {
-                          // Calculer le coût total du mois
-                          const monthTotal = monthData.courses.reduce((total, course) => {
-                            return total + (course.coutTotal || 0);
-                          }, 0);
+                          // Calculer le coût total du mois (en excluant les admins non rémunérés)
+                          let monthTotal = 0;
+
+                          monthData.courses.forEach((course) => {
+                            course.disponibilites.forEach((dispo) => {
+                              if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
+                                // Vérifier si c'est un admin non rémunéré
+                                const admin = admins.find((a) => a.id === dispo.photographeId);
+                                const isNonPaidAdmin = admin && (admin.nonRemunere === true || admin.nonRemunere === 'TRUE');
+
+                                // Ne compter que si ce n'est pas un admin non rémunéré
+                                if (!isNonPaidAdmin) {
+                                  const courseTarif = dispo.tarifId
+                                    ? tarifs.find((t) => t.id === dispo.tarifId)
+                                    : tarifs.find((t) => t.courseId === course.id);
+
+                                  if (courseTarif) {
+                                    const amount = dispo.statut === 'teamLeader'
+                                      ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
+                                      : Number(courseTarif.tarifPhotographe);
+                                    monthTotal += amount;
+                                  }
+                                }
+                              }
+                            });
+                          });
+
                           return `${monthTotal.toLocaleString('fr-FR')} €`;
                         })()}
                       </div>
@@ -1290,6 +1313,7 @@ export default function AdminCalendrierPage() {
                       // Calculer le nombre de fois où cet admin est validé ou chef dans ce mois + montant total
                       let userCount = 0;
                       let userTotal = 0;
+                      const isNonPaidAdmin = admin.nonRemunere === true || admin.nonRemunere === 'TRUE';
 
                       monthData.courses.forEach((course) => {
                         const dispo = course.disponibilites.find(d => d.photographeId === admin.id);
@@ -1302,9 +1326,13 @@ export default function AdminCalendrierPage() {
                             : tarifs.find((t) => t.courseId === course.id);
 
                           if (courseTarif) {
-                            const amount = dispo.statut === 'teamLeader'
-                              ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
-                              : Number(courseTarif.tarifPhotographe);
+                            // Pour les admins non rémunérés : uniquement le tarif de base (pas de bonus chef)
+                            // Pour voir la "valeur photographe"
+                            const amount = isNonPaidAdmin
+                              ? Number(courseTarif.tarifPhotographe)
+                              : (dispo.statut === 'teamLeader'
+                                ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
+                                : Number(courseTarif.tarifPhotographe));
                             userTotal += amount;
                           }
                         }
@@ -1315,7 +1343,7 @@ export default function AdminCalendrierPage() {
                           <div>{userCount > 0 ? userCount : '-'}</div>
                           {userCount > 0 && (
                             <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">
-                              {userTotal.toLocaleString('fr-FR')} €
+                              {isNonPaidAdmin ? '(' : ''}{userTotal.toLocaleString('fr-FR')} €{isNonPaidAdmin ? ')' : ''}
                             </div>
                           )}
                         </div>

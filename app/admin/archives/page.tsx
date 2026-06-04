@@ -1220,7 +1220,7 @@ export default function AdminCalendrierPage() {
                       });
 
                       return (
-                        <div key={admin.id} className="p-3 flex flex-col items-center justify-center text-xs font-semibold">
+                        <div key={admin.id} className="p-3 flex flex-col items-center justify-center text-xs font-semibold bg-orange-100 dark:bg-orange-900">
                           <div>{userCount > 0 ? userCount : '-'}</div>
                           {userCount > 0 && (
                             <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">
@@ -1254,11 +1254,8 @@ export default function AdminCalendrierPage() {
                         }
                       });
 
-                      // Appliquer la couleur de région pour les photographes
-                      const bgColor = getRegionBackgroundColor(photographer.region);
-
                       return (
-                        <div key={photographer.id} className={`p-3 flex flex-col items-center justify-center text-xs font-semibold ${bgColor}`}>
+                        <div key={photographer.id} className="p-3 flex flex-col items-center justify-center text-xs font-semibold bg-orange-100 dark:bg-orange-900">
                           <div>{userCount > 0 ? userCount : '-'}</div>
                           {userCount > 0 && (
                             <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">
@@ -1280,7 +1277,7 @@ export default function AdminCalendrierPage() {
                 <div
                   key={course.id}
                   className={cn(
-                    "grid gap-0 border-b border-gray-200/50 hover:bg-gray-100 dark:hover:bg-gray-900/30 transition-colors",
+                    "group grid gap-0 border-b border-gray-200/50 hover:bg-gray-100 dark:hover:bg-gray-900/30 transition-colors",
                     bgColor,
                     "dark:bg-gray-950"
                   )}

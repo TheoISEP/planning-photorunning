@@ -240,22 +240,21 @@ export default function EditAdminPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="nom">Nom *</Label>
-                <Input
-                  id="nom"
-                  value={formData.nom}
-                  onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div>
                 <Label htmlFor="prenom">Prénom *</Label>
                 <Input
                   id="prenom"
                   value={formData.prenom}
                   onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
                   required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="nom">Nom</Label>
+                <Input
+                  id="nom"
+                  value={formData.nom}
+                  onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
                 />
               </div>
             </div>

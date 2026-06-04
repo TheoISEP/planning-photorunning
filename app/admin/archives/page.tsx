@@ -1162,22 +1162,41 @@ export default function AdminCalendrierPage() {
                       <div className="text-xs">{monthData.courses.length} course{monthData.courses.length > 1 ? 's' : ''}</div>
                     </div>
                     {[...admins, ...sortPhotographersByRegion(photographers.filter((p) => p.actif))].filter((u) => u.actif).map(user => {
-                      // Calculer le nombre de fois où ce photographe est validé ou chef dans ce mois
-                      const userCount = monthData.courses.reduce((count, course) => {
+                      // Calculer le nombre de fois où ce photographe/admin est validé ou chef dans ce mois + montant total
+                      let userCount = 0;
+                      let userTotal = 0;
+
+                      monthData.courses.forEach((course) => {
                         const dispo = course.disponibilites.find(d => d.photographeId === user.id);
                         if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
-                          return count + 1;
+                          userCount += 1;
+
+                          // Trouver le tarif correspondant
+                          const courseTarif = dispo.tarifId
+                            ? tarifs.find((t) => t.id === dispo.tarifId)
+                            : course.tarif;
+
+                          if (courseTarif) {
+                            const amount = dispo.statut === 'teamLeader'
+                              ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
+                              : Number(courseTarif.tarifPhotographe);
+                            userTotal += amount;
+                          }
                         }
-                        return count;
-                      }, 0);
+                      });
 
                       // Appliquer la couleur de région pour les photographes
                       const isPhotographer = 'region' in user;
                       const bgColor = isPhotographer ? getRegionBackgroundColor((user as Photographer).region) : '';
 
                       return (
-                        <div key={user.id} className={`p-3 flex items-center justify-center text-xs font-semibold ${bgColor}`}>
-                          {userCount > 0 ? userCount : '-'}
+                        <div key={user.id} className={`p-3 flex flex-col items-center justify-center text-xs font-semibold ${bgColor}`}>
+                          <div>{userCount > 0 ? userCount : '-'}</div>
+                          {userCount > 0 && (
+                            <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">
+                              {userTotal.toLocaleString('fr-FR')} €
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1385,25 +1404,6 @@ export default function AdminCalendrierPage() {
                           </Select>
                         )}
 
-                        {/* Affichage du montant si validé ou chef */}
-                        {(dispo.statut === 'validated' || dispo.statut === 'teamLeader') && (() => {
-                          const tarifDispo = dispo.tarifId
-                            ? course.tarifs?.find(t => t.id === dispo.tarifId)
-                            : course.tarif;
-
-                          if (tarifDispo) {
-                            const tarifPhoto = Number(tarifDispo.tarifPhotographe) || 0;
-                            const bonusChef = Number(tarifDispo.bonusChefEquipe) || 0;
-                            const montant = dispo.statut === 'teamLeader' ? tarifPhoto + bonusChef : tarifPhoto;
-
-                            return (
-                              <div className="text-[9px] font-bold text-green-700 mt-0.5">
-                                {montant}€
-                              </div>
-                            );
-                          }
-                          return null;
-                        })()}
                       </div>
                     );
                   })}
@@ -1494,25 +1494,6 @@ export default function AdminCalendrierPage() {
                           </Select>
                         )}
 
-                        {/* Affichage du montant si validé ou chef */}
-                        {(dispo.statut === 'validated' || dispo.statut === 'teamLeader') && (() => {
-                          const tarifDispo = dispo.tarifId
-                            ? course.tarifs?.find(t => t.id === dispo.tarifId)
-                            : course.tarif;
-
-                          if (tarifDispo) {
-                            const tarifPhoto = Number(tarifDispo.tarifPhotographe) || 0;
-                            const bonusChef = Number(tarifDispo.bonusChefEquipe) || 0;
-                            const montant = dispo.statut === 'teamLeader' ? tarifPhoto + bonusChef : tarifPhoto;
-
-                            return (
-                              <div className="text-[9px] font-bold text-green-700 mt-0.5">
-                                {montant}€
-                              </div>
-                            );
-                          }
-                          return null;
-                        })()}
                       </div>
                     );
                   })}

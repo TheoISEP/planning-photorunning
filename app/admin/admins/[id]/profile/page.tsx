@@ -147,9 +147,17 @@ export default function AdminProfilePage() {
             </div>
             <p className="text-sm text-gray-600 mt-1">Administrateur</p>
           </div>
-          <Link href={`/admin/admins/${adminId}/edit`}>
-            <Button variant="outline">Modifier</Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href={`/admin/admins/${adminId}/stats`}>
+              <Button variant="outline">
+                <CreditCard className="h-4 w-4 mr-2" />
+                Voir les coûts
+              </Button>
+            </Link>
+            <Link href={`/admin/admins/${adminId}/edit`}>
+              <Button variant="outline">Modifier</Button>
+            </Link>
+          </div>
         </div>
       </div>
 

@@ -30,29 +30,36 @@ export async function GET(
     let isAdmin = false;
     let isNonPaidAdmin = false;
 
-    // Chercher d'abord dans les photographes
+    // Récupérer les deux listes
     const photographers = await sheetsService.getAllPhotographers();
-    targetUser = photographers.find((p: any) => p.id === id);
+    const admins = await sheetsService.getAllAdmins();
 
-    // Si pas trouvé, chercher dans les admins
-    if (!targetUser) {
-      const admins = await sheetsService.getAllAdmins();
-      targetUser = admins.find((a: any) => a.id === id);
-      if (targetUser) {
-        isAdmin = true;
-        // Vérifier toutes les formes possibles de nonRemunere
-        isNonPaidAdmin = targetUser.nonRemunere === true ||
-                        targetUser.nonRemunere === 'TRUE' ||
-                        targetUser.nonRemunere === 'true' ||
-                        String(targetUser.nonRemunere).toLowerCase() === 'true';
-      }
+    // Chercher d'abord dans les admins (priorité)
+    targetUser = admins.find((a: any) => a.id === id);
+    if (targetUser) {
+      isAdmin = true;
+      // Vérifier toutes les formes possibles de nonRemunere
+      isNonPaidAdmin = targetUser.nonRemunere === true ||
+                      targetUser.nonRemunere === 'TRUE' ||
+                      targetUser.nonRemunere === 'true' ||
+                      String(targetUser.nonRemunere).toLowerCase() === 'true';
+    } else {
+      // Si pas trouvé dans les admins, chercher dans les photographes
+      targetUser = photographers.find((p: any) => p.id === id);
     }
 
     if (!targetUser) {
       return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 });
     }
 
-    console.log(`User: ${targetUser.prenom} ${targetUser.nom}, isAdmin: ${isAdmin}, isNonPaidAdmin: ${isNonPaidAdmin}, nonRemunere value: ${targetUser.nonRemunere}`);
+    console.log('========== USER INFO ==========');
+    console.log(`User ID: ${id}`);
+    console.log(`User: ${targetUser.prenom} ${targetUser.nom}`);
+    console.log(`isAdmin: ${isAdmin}`);
+    console.log(`isNonPaidAdmin: ${isNonPaidAdmin}`);
+    console.log(`nonRemunere raw value: ${JSON.stringify(targetUser.nonRemunere)}`);
+    console.log(`nonRemunere type: ${typeof targetUser.nonRemunere}`);
+    console.log('==============================');
 
     // Récupérer toutes les disponibilités de cet utilisateur
     const disponibilites = await sheetsService.getDisponibilitesByPhotographerId(id);

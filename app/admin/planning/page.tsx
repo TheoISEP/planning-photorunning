@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Plus, ZoomIn, ZoomOut, Calendar, Users, Briefcase, Euro, Filter, ArrowUpDown, Info, Archive } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, Calendar, Users, Briefcase, Euro, Filter, ArrowUpDown, Info, Archive, List, LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -115,6 +115,7 @@ export default function AdminCalendrierPage() {
   // Filtres
   const [statutFilter, setStatutFilter] = useState<string>('all');
   const [zoom, setZoom] = useState(90);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid'); // Mode d'affichage responsive
 
   // Dialogs d'archivage
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
@@ -1057,19 +1058,157 @@ export default function AdminCalendrierPage() {
           </Select>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Zoom:</span>
-          <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={zoom <= 50}>
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium min-w-[3rem] text-center">{zoom}%</span>
-          <Button variant="outline" size="sm" onClick={handleZoomIn} disabled={zoom >= 150}>
-            <ZoomIn className="h-4 w-4" />
-          </Button>
+          {/* Toggle vue liste/grille (mobile uniquement) */}
+          <div className="md:hidden flex items-center gap-1 mr-2">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              title="Vue calendrier"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              title="Vue liste"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Contrôles de zoom (cachés en mobile si mode liste) */}
+          <div className={cn("flex items-center gap-2", viewMode === 'list' && "hidden md:flex")}>
+            <span className="text-xs text-muted-foreground">Zoom:</span>
+            <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={zoom <= 50}>
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <span className="text-sm font-medium min-w-[3rem] text-center">{zoom}%</span>
+            <Button variant="outline" size="sm" onClick={handleZoomIn} disabled={zoom >= 150}>
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Tableau type Excel - NOUVELLE STRUCTURE */}
-      <div className="sticky top-[100px] rounded-lg border shadow-lg bg-white dark:bg-gray-950 overflow-hidden" style={{ height: 'calc(100vh - 140px)' }}>
+      {/* Vue liste (mobile en mode liste uniquement) */}
+      {viewMode === 'list' && (
+        <div className="md:hidden overflow-y-auto space-y-3 px-2" style={{ height: 'calc(100vh - 140px)' }}>
+          {sortedMonths.map((monthData) => {
+            const monthKey = `${monthData.year}-${monthData.month}`;
+
+            return (
+              <div key={monthKey} className="space-y-2">
+                {/* En-tête du mois */}
+                <div className="sticky top-0 z-10 bg-gradient-to-r from-orange-100 to-orange-50 dark:from-orange-900 dark:to-orange-950 p-3 rounded-lg border-2 border-orange-300">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-base capitalize">
+                      {format(new Date(monthData.year, monthData.month), 'MMMM yyyy', { locale: fr })}
+                    </h3>
+                    <div className="text-xs text-muted-foreground">
+                      {monthData.courses.length} course{monthData.courses.length > 1 ? 's' : ''}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cartes des courses */}
+                {monthData.courses.map((course) => (
+                  <div
+                    key={course.id}
+                    className="bg-white dark:bg-gray-950 p-3 rounded-lg border-2 shadow-sm"
+                  >
+                    <div className="space-y-2">
+                      {/* Titre et icônes */}
+                      <div className="flex items-start justify-between gap-2">
+                        <Link
+                          href={`/admin/planning/${course.id}`}
+                          className="font-semibold text-sm flex-1 hover:text-blue-600 transition-colors"
+                        >
+                          {course.nom}
+                        </Link>
+                        <div className="flex items-center gap-1">
+                          {course.statutTraitement === 'done' ? (
+                            <span className="text-[10px]">🟢</span>
+                          ) : (
+                            <span className="text-[10px]">🟠</span>
+                          )}
+                          <div className="flex items-center gap-0.5">
+                            {course.hotelValid && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  toggleValidation(course.id, 'hotelValid');
+                                }}
+                                className={`text-[9px] font-bold px-1 py-0.5 rounded border cursor-pointer transition-colors ${course.hotelValid === 'TRUE' || course.hotelValid === true ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'}`}
+                              >
+                                H
+                              </button>
+                            )}
+                            {course.transportValid && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  toggleValidation(course.id, 'transportValid');
+                                }}
+                                className={`text-[9px] font-bold px-1 py-0.5 rounded border cursor-pointer transition-colors ${course.transportValid === 'TRUE' || course.transportValid === true ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'}`}
+                              >
+                                T
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Informations */}
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <span className="font-medium">📍</span>
+                          <span className="truncate">{course.ville}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <span className="font-medium">📅</span>
+                          <span>{format(new Date(course.dateDebut), 'dd/MM', { locale: fr })}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">📷</span>
+                          <span className="font-semibold text-foreground">{course.photographesValides}/{course.photographesDisponibles}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">💶</span>
+                          <span className="font-semibold text-foreground">{course.coutTotal}€</span>
+                        </div>
+                      </div>
+
+                      {/* Actions rapides */}
+                      <div className="flex gap-2 pt-1">
+                        <Link
+                          href={`/admin/planning/${course.id}`}
+                          className="flex-1 text-center text-xs py-1.5 px-2 rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors"
+                        >
+                          Voir détails
+                        </Link>
+                        <Link
+                          href={`/admin/planning/${course.id}/edit`}
+                          className="flex-1 text-center text-xs py-1.5 px-2 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 transition-colors"
+                        >
+                          Modifier
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Tableau type Excel - NOUVELLE STRUCTURE (caché en mobile si mode liste) */}
+      <div className={cn(
+        "sticky top-[100px] rounded-lg border shadow-lg bg-white dark:bg-gray-950 overflow-hidden",
+        viewMode === 'list' && "hidden md:block"
+      )} style={{ height: 'calc(100vh - 140px)' }}>
         <div className="h-full overflow-x-auto overflow-y-auto" style={{ zoom: `${zoom}%` }}>
           {/* En-tête du tableau - STICKY TOP */}
           <div className="sticky top-0 z-40 bg-white dark:bg-gray-950 shadow-sm">

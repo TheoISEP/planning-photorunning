@@ -394,8 +394,93 @@ export default function PhotographerCalendrierPage() {
         </Button>
       </div>
 
-      {/* Tableau */}
-      <div className="flex-1 min-h-0 rounded-lg border shadow-lg bg-white dark:bg-gray-950 overflow-hidden">
+      {/* Vue liste (mobile uniquement) */}
+      <div className="md:hidden flex-1 min-h-0 overflow-y-auto space-y-3 px-2">
+        {sortedMonths.map((monthData) => {
+          const monthKey = `${monthData.year}-${monthData.month}`;
+
+          return (
+            <div key={monthKey} className="space-y-2">
+              {/* En-tête du mois */}
+              <div className="sticky top-0 z-10 bg-gradient-to-r from-orange-100 to-orange-50 dark:from-orange-900 dark:to-orange-950 p-3 rounded-lg border-2 border-orange-300">
+                <h3 className="font-bold text-base capitalize">
+                  {format(new Date(monthData.year, monthData.month), 'MMMM yyyy', { locale: fr })}
+                </h3>
+              </div>
+
+              {/* Cartes des courses */}
+              {monthData.courses.map((course) => {
+                const dispo = currentUser
+                  ? disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id)
+                  : null;
+
+                const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+                const courseTarif = dispo?.tarifId
+                  ? tarifs.find((t) => t.id === dispo.tarifId)
+                  : courseTarifs[0];
+
+                const statusConfig = {
+                  validated: { bg: 'bg-green-50 border-green-300', text: 'text-green-700', label: '✓ Validé' },
+                  teamLeader: { bg: 'bg-purple-50 border-purple-300', text: 'text-purple-700', label: '★ Chef d\'équipe' },
+                  pending: { bg: 'bg-yellow-50 border-yellow-300', text: 'text-yellow-700', label: '⏳ En attente' },
+                  available: { bg: 'bg-blue-50 border-blue-300', text: 'text-blue-700', label: '✓ Disponible' },
+                  unavailable: { bg: 'bg-gray-50 border-gray-300', text: 'text-gray-600', label: '✗ Indisponible' },
+                  rejected: { bg: 'bg-red-50 border-red-300', text: 'text-red-700', label: '✗ Refusé' },
+                };
+
+                const config = dispo ? statusConfig[dispo.statut] : statusConfig.pending;
+
+                return (
+                  <Link
+                    key={course.id}
+                    href={`/photographer/planning/${course.id}`}
+                    className={cn(
+                      'block p-3 rounded-lg border-2 transition-all',
+                      config.bg,
+                      'hover:shadow-md'
+                    )}
+                  >
+                    <div className="space-y-2">
+                      {/* Titre et statut */}
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-semibold text-sm flex-1">{course.nom}</h4>
+                        <span className={cn('text-xs px-2 py-0.5 rounded font-medium', config.text)}>
+                          {config.label}
+                        </span>
+                      </div>
+
+                      {/* Informations */}
+                      <div className="space-y-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">📍</span>
+                          <span>{course.localisation || course.ville}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">📅</span>
+                          <span>{format(new Date(course.dateDebut), 'dd/MM/yyyy', { locale: fr })}</span>
+                        </div>
+                        {courseTarif && (dispo?.statut === 'validated' || dispo?.statut === 'teamLeader') && (
+                          <div className="flex items-center gap-1">
+                            <span className="font-medium">💶</span>
+                            <span className="font-semibold text-foreground">
+                              {dispo.statut === 'teamLeader'
+                                ? `${Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)}€`
+                                : `${courseTarif.tarifPhotographe}€`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Tableau (desktop uniquement) */}
+      <div className="hidden md:flex flex-1 min-h-0 rounded-lg border shadow-lg bg-white dark:bg-gray-950 overflow-hidden">
         <div className="overflow-x-auto overflow-y-auto h-full" style={{ zoom: zoom > 90 ? `${zoom}%` : '100%' }}>
           {/* En-tête */}
           <div className="sticky top-0 z-20">

@@ -41,7 +41,7 @@ export default function LoginPage() {
       if (data.user.role === 'admin') {
         router.push('/admin/planning');
       } else {
-        router.push('/photographer/calendrier');
+        router.push('/photographer/planning');
       }
     } catch (err: any) {
       setError('Erreur de connexion au serveur');

@@ -154,7 +154,10 @@ export default function PhotographerCalendrierPage() {
       // Traiter les disponibilités
       if (disponibilitesRes.ok) {
         const disponibilitesData = await disponibilitesRes.json();
-        setDisponibilites(disponibilitesData.disponibilites || []);
+        const allDispos = disponibilitesData.disponibilites || [];
+        console.log('📊 Disponibilités chargées:', allDispos.length, 'currentUser:', userId);
+        console.log('📊 Mes disponibilités:', allDispos.filter((d: any) => d.photographeId === userId));
+        setDisponibilites(allDispos);
       }
 
       // Traiter les statistiques personnelles depuis Google Sheets
@@ -446,13 +449,40 @@ export default function PhotographerCalendrierPage() {
         {sortedMonths.map((monthData) => {
           const monthKey = `${monthData.year}-${monthData.month}`;
 
+          // Calculer le montant total du mois pour les courses validées
+          const monthTotal = monthData.courses.reduce((total, course) => {
+            if (!currentUser) return total;
+            const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id);
+            if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
+              const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+              const courseTarif = dispo.tarifId
+                ? tarifs.find((t) => t.id === dispo.tarifId)
+                : courseTarifs[0];
+
+              if (courseTarif) {
+                const amount = dispo.statut === 'teamLeader'
+                  ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
+                  : Number(courseTarif.tarifPhotographe);
+                return total + amount;
+              }
+            }
+            return total;
+          }, 0);
+
           return (
             <div key={monthKey} className="space-y-2">
               {/* En-tête du mois */}
               <div className="sticky top-0 z-10 bg-gradient-to-r from-orange-100 to-orange-50 dark:from-orange-900 dark:to-orange-950 p-3 rounded-lg border-2 border-orange-300">
-                <h3 className="font-bold text-base capitalize">
-                  {format(new Date(monthData.year, monthData.month), 'MMMM yyyy', { locale: fr })}
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-base capitalize">
+                    {format(new Date(monthData.year, monthData.month), 'MMMM yyyy', { locale: fr })}
+                  </h3>
+                  {monthTotal > 0 && (
+                    <span className="font-bold text-sm text-orange-700 dark:text-orange-300">
+                      {monthTotal.toLocaleString('fr-FR')}€
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Cartes des courses */}
@@ -467,6 +497,13 @@ export default function PhotographerCalendrierPage() {
                 const dispo = currentUser
                   ? disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id)
                   : null;
+
+                // Debug: log pour comprendre pourquoi le sélecteur ne s'affiche pas
+                if (!dispo) {
+                  console.log('❌ Pas de dispo pour la course:', course.nom, 'courseId:', course.id, 'currentUser:', currentUser?.id);
+                } else {
+                  console.log('✅ Dispo trouvée pour', course.nom, '- statut:', dispo.statut, 'canChange:', ['pending', 'available', 'unavailable'].includes(dispo.statut));
+                }
 
                 const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
                 const courseTarif = dispo?.tarifId
@@ -746,7 +783,7 @@ export default function PhotographerCalendrierPage() {
                               <span className="text-base">{myDispo?.statut === 'teamLeader' ? '👑' : '✓'}</span>
                             )}
                             <Link
-                              href={`/photographer/calendrier/${course.id}`}
+                              href={`/photographer/planning/${course.id}`}
                               className={cn(
                                 'font-semibold hover:underline text-sm touch-manipulation',
                                 isValidated && 'text-gray-800',

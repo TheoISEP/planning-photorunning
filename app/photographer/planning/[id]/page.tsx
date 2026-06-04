@@ -304,8 +304,8 @@ export default function PhotographerCourseDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Équipe (afficher seulement si l'utilisateur actuel est validé ou chef d'équipe) */}
-            {team.length > 0 && isValidated && (
+            {/* Équipe (afficher s'il y a au moins un membre validé/chef d'équipe) */}
+            {team.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle>Équipe assignée ({team.length})</CardTitle>

@@ -27,7 +27,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
         const data = await res.json();
         if (data.user.role !== 'admin') {
-          router.push('/photographer/calendrier');
+          router.push('/photographer/planning');
           return;
         }
         setUser(data.user);

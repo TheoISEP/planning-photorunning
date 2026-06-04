@@ -126,11 +126,9 @@ export default function PhotographerCalendrierPage() {
         }
       }
 
-      // Charger les données en parallèle pour optimiser la vitesse
-      const [coursesRes, tarifsRes, disponibilitesRes, statsRes] = await Promise.all([
+      // Charger seulement les données nécessaires pour le photographe
+      const [coursesRes, statsRes] = await Promise.all([
         fetch('/api/courses'),
-        fetch('/api/tarifs'),
-        fetch('/api/disponibilites'),
         fetch('/api/statistics'), // Récupère les stats personnelles pour le photographe
       ]);
 
@@ -144,68 +142,75 @@ export default function PhotographerCalendrierPage() {
         setCourses(activeCourses);
       }
 
-      // Traiter les tarifs
-      if (tarifsRes.ok) {
-        const tarifsData = await tarifsRes.json();
-        // Convertir les tarifs en nombres pour éviter la concaténation de chaînes
-        const tarifsWithNumbers = (tarifsData.tarifs || []).map((t: any) => ({
-          ...t,
-          tarifPhotographe: Number(t.tarifPhotographe) || 0,
-          bonusChefEquipe: Number(t.bonusChefEquipe) || 0,
-        }));
-        setTarifs(tarifsWithNumbers);
-      }
+      // Charger tarifs et disponibilités seulement pour l'utilisateur connecté
+      if (userId && activeCourses.length > 0) {
+        const [tarifsRes, disponibilitesRes] = await Promise.all([
+          fetch('/api/tarifs'),
+          fetch(`/api/disponibilites?photographerId=${userId}`), // Filtrer côté serveur
+        ]);
 
-      // Traiter les disponibilités
-      if (disponibilitesRes.ok) {
-        const disponibilitesData = await disponibilitesRes.json();
-        const allDispos = disponibilitesData.disponibilites || [];
-        setDisponibilites(allDispos);
+        // Traiter les tarifs
+        if (tarifsRes.ok) {
+          const tarifsData = await tarifsRes.json();
+          // Convertir les tarifs en nombres pour éviter la concaténation de chaînes
+          const tarifsWithNumbers = (tarifsData.tarifs || []).map((t: any) => ({
+            ...t,
+            tarifPhotographe: Number(t.tarifPhotographe) || 0,
+            bonusChefEquipe: Number(t.bonusChefEquipe) || 0,
+          }));
+          setTarifs(tarifsWithNumbers);
+        }
+
+        // Traiter les disponibilités (déjà filtrées par userId)
+        let allDispos: any[] = [];
+        if (disponibilitesRes.ok) {
+          const disponibilitesData = await disponibilitesRes.json();
+          allDispos = disponibilitesData.disponibilites || [];
+          setDisponibilites(allDispos);
+        }
 
         // Créer automatiquement les disponibilités manquantes
-        if (userId && activeCourses.length > 0) {
-          const missingDispos: any[] = [];
+        const missingDispos: any[] = [];
 
-          activeCourses.forEach((course: Course) => {
-            const hasDisponibilite = allDispos.some(
-              (d: any) => d.courseId === course.id && d.photographeId === userId
-            );
+        activeCourses.forEach((course: Course) => {
+          const hasDisponibilite = allDispos.some(
+            (d: any) => d.courseId === course.id && d.photographeId === userId
+          );
 
-            if (!hasDisponibilite) {
-              missingDispos.push({
-                courseId: course.id,
-                photographeId: userId,
-                statut: 'pending',
-                dateDeclaration: new Date().toISOString(),
+          if (!hasDisponibilite) {
+            missingDispos.push({
+              courseId: course.id,
+              photographeId: userId,
+              statut: 'pending',
+              dateDeclaration: new Date().toISOString(),
+            });
+          }
+        });
+
+        // Créer les disponibilités manquantes une par une
+        if (missingDispos.length > 0) {
+          const createdDispos: any[] = [];
+
+          for (const dispo of missingDispos) {
+            try {
+              const createRes = await fetch('/api/disponibilites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dispo),
               });
-            }
-          });
 
-          // Créer les disponibilités manquantes une par une
-          if (missingDispos.length > 0) {
-            const createdDispos: any[] = [];
-
-            for (const dispo of missingDispos) {
-              try {
-                const createRes = await fetch('/api/disponibilites', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(dispo),
-                });
-
-                if (createRes.ok) {
-                  const newDispo = await createRes.json();
-                  createdDispos.push(newDispo.disponibilite);
-                }
-              } catch (error) {
-                // Erreur silencieuse, on continue avec les autres
+              if (createRes.ok) {
+                const newDispo = await createRes.json();
+                createdDispos.push(newDispo.disponibilite);
               }
+            } catch (error) {
+              // Erreur silencieuse, on continue avec les autres
             }
+          }
 
-            // Ajouter toutes les nouvelles disponibilités créées
-            if (createdDispos.length > 0) {
-              setDisponibilites([...allDispos, ...createdDispos]);
-            }
+          // Ajouter toutes les nouvelles disponibilités créées
+          if (createdDispos.length > 0) {
+            setDisponibilites([...allDispos, ...createdDispos]);
           }
         }
       }

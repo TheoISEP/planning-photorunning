@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ZoomIn, ZoomOut, ArrowUpDown, Info, CalendarPlus } from 'lucide-react';
+import { ArrowUpDown, Info, CalendarPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -101,7 +101,6 @@ export default function PhotographerCalendrierPage() {
   const [tarifs, setTarifs] = useState<Tarif[]>([]);
   const [disponibilites, setDisponibilites] = useState<Disponibilite[]>([]);
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
-  const [zoom, setZoom] = useState(90);
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Stats personnelles du photographe depuis Google Sheets
@@ -330,9 +329,6 @@ export default function PhotographerCalendrierPage() {
     return colors[status] || 'bg-white border-gray-300';
   };
 
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 10, 150));
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 10, 50));
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -410,18 +406,6 @@ export default function PhotographerCalendrierPage() {
             </Link>
           </Button>
         </div>
-      </div>
-
-      {/* Barre zoom - cachée sur mobile */}
-      <div className="hidden md:flex items-center justify-end gap-2 flex-shrink-0">
-        <span className="text-xs text-muted-foreground">Zoom:</span>
-        <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={zoom <= 50} className="h-9">
-          <ZoomOut className="h-4 w-4" />
-        </Button>
-        <span className="text-sm font-medium min-w-[3rem] text-center">{zoom}%</span>
-        <Button variant="outline" size="sm" onClick={handleZoomIn} disabled={zoom >= 150} className="h-9">
-          <ZoomIn className="h-4 w-4" />
-        </Button>
       </div>
 
       {/* Vue liste (mobile uniquement) */}
@@ -593,7 +577,7 @@ export default function PhotographerCalendrierPage() {
 
       {/* Tableau (desktop uniquement) */}
       <div className="hidden md:flex flex-1 min-h-0 rounded-lg border shadow-lg bg-white dark:bg-gray-950 overflow-hidden w-full">
-        <div className="overflow-x-auto overflow-y-auto h-full w-full" style={{ zoom: zoom > 90 ? `${zoom}%` : '100%' }}>
+        <div className="overflow-x-auto overflow-y-auto h-full w-full">
           {/* En-tête */}
           <div className="sticky top-0 z-20 w-full">
             <div

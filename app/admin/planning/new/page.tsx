@@ -100,7 +100,7 @@ export default function NewCalendrierEventPage() {
 			dateDebut: startDateTime.toISOString(),
 			dateFin: endDateTime.toISOString(),
 			statutTraitement: 'inProgress' as const,
-			coureursAttendus: values.expectedRunners ? parseInt(values.expectedRunners) : undefined,
+			numberAttended: values.expectedRunners ? parseInt(values.expectedRunners) : undefined,
 			dateCreation: new Date().toISOString(),
 			creePar: 'admin-001',
 			visible: true,
@@ -232,12 +232,12 @@ export default function NewCalendrierEventPage() {
 								name="expectedRunners"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Nombre de coureurs attendus</FormLabel>
+										<FormLabel>Nombre de photographes attendus</FormLabel>
 										<FormControl>
-											<Input type="number" placeholder="5000" {...field} />
+											<Input type="number" placeholder="6" {...field} />
 										</FormControl>
 										<FormDescription>
-											Optionnel, affiché discrètement dans le tableau
+											Affiché dans le planning (ex: 6-8 = 6 disponibles sur 8 attendus)
 										</FormDescription>
 										<FormMessage />
 									</FormItem>

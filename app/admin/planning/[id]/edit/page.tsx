@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -151,7 +152,7 @@ export default function EditCoursePage() {
         description: data.description || '',
         dateDebut: new Date(data.dateDebut).toISOString(),
         dateFin: new Date(data.dateFin).toISOString(),
-        coureursAttendus: data.coureursAttendus ? parseInt(data.coureursAttendus) : 0,
+        numberAttended: data.coureursAttendus ? parseInt(data.coureursAttendus) : 0,
         hotel: data.hotel || '',
         transport: data.transport || '',
         supplementaire: data.supplementaire || '',
@@ -296,10 +297,13 @@ export default function EditCoursePage() {
                   name="coureursAttendus"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nombre de coureurs attendus</FormLabel>
+                      <FormLabel>Nombre de photographes attendus</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="Ex: 5000" {...field} />
+                        <Input type="number" placeholder="Ex: 6" {...field} />
                       </FormControl>
+                      <FormDescription>
+                        Affiché dans le planning (ex: 6-8 = 6 disponibles sur 8 attendus)
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

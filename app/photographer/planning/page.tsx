@@ -409,7 +409,14 @@ export default function PhotographerCalendrierPage() {
               </div>
 
               {/* Cartes des courses */}
-              {monthData.courses.map((course) => {
+              {monthData.courses
+                .filter((course) => {
+                  // Filtrer les courses rejected
+                  if (!currentUser) return true;
+                  const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id);
+                  return !dispo || dispo.statut !== 'rejected';
+                })
+                .map((course) => {
                 const dispo = currentUser
                   ? disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id)
                   : null;
@@ -429,24 +436,27 @@ export default function PhotographerCalendrierPage() {
                 };
 
                 const config = dispo ? statusConfig[dispo.statut] : statusConfig.pending;
+                const isPending = dispo?.statut === 'pending';
 
                 return (
-                  <Link
+                  <div
                     key={course.id}
-                    href={`/photographer/planning/${course.id}`}
                     className={cn(
-                      'block p-3 rounded-lg border-2 transition-all',
-                      config.bg,
-                      'hover:shadow-md'
+                      'p-3 rounded-lg border-2 transition-all',
+                      config.bg
                     )}
                   >
                     <div className="space-y-2">
                       {/* Titre et statut */}
                       <div className="flex items-start justify-between gap-2">
-                        <h4 className="font-semibold text-sm flex-1">{course.nom}</h4>
-                        <span className={cn('text-xs px-2 py-0.5 rounded font-medium', config.text)}>
-                          {config.label}
-                        </span>
+                        <Link href={`/photographer/planning/${course.id}`} className="font-semibold text-sm flex-1 hover:underline">
+                          {course.nom}
+                        </Link>
+                        {!isPending && (
+                          <span className={cn('text-xs px-2 py-0.5 rounded font-medium', config.text)}>
+                            {config.label}
+                          </span>
+                        )}
                       </div>
 
                       {/* Informations */}
@@ -470,8 +480,25 @@ export default function PhotographerCalendrierPage() {
                           </div>
                         )}
                       </div>
+
+                      {/* Sélecteur de disponibilité pour pending */}
+                      {isPending && dispo && currentUser && (
+                        <Select
+                          value={dispo.statut}
+                          onValueChange={(value) => handleStatusChange(dispo.id, value, course.id, currentUser.id)}
+                        >
+                          <SelectTrigger className="w-full h-9 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">⏳ En attente</SelectItem>
+                            <SelectItem value="available">✓ Disponible</SelectItem>
+                            <SelectItem value="unavailable">✗ Indisponible</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
@@ -577,7 +604,14 @@ export default function PhotographerCalendrierPage() {
 
                   {/* Courses */}
                   {(() => {
-                    const sortedCourses = monthData.courses.sort((a, b) => new Date(a.dateDebut).getTime() - new Date(b.dateDebut).getTime());
+                    const sortedCourses = monthData.courses
+                      .filter((course) => {
+                        // Filtrer les courses rejected
+                        if (!currentUser) return true;
+                        const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id);
+                        return !dispo || dispo.statut !== 'rejected';
+                      })
+                      .sort((a, b) => new Date(a.dateDebut).getTime() - new Date(b.dateDebut).getTime());
                     return sortedCourses.map((course, courseIdx) => {
                     const myDispo = currentUser
                       ? disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id)

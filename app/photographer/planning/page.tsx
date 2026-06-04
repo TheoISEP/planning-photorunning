@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -223,22 +223,32 @@ export default function PhotographerCalendrierPage() {
     }
   }, []);
 
-  const pathname = usePathname();
-  const previousPathRef = useRef<string | null>(null);
-
   // Charger les données au montage initial
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Rafraîchir les données quand on revient sur cette page depuis une autre route
+  // Rafraîchir les données quand on revient en arrière (bouton retour du navigateur)
   useEffect(() => {
-    // Si on vient d'une autre page (par exemple après avoir visité une course)
-    if (previousPathRef.current !== null && previousPathRef.current !== pathname) {
+    const handlePopState = () => {
+      // Se déclenche lors de la navigation arrière/avant
       fetchData();
-    }
-    previousPathRef.current = pathname;
-  }, [pathname, fetchData]);
+    };
+
+    // Écouter l'événement popstate (navigation arrière/avant)
+    window.addEventListener('popstate', handlePopState);
+
+    // Écouter aussi l'événement de focus (quand on revient sur l'onglet)
+    const handleFocus = () => {
+      fetchData();
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [fetchData]);
 
   // Fonction pour recharger uniquement les disponibilités sans loader
   const refreshDisponibilites = async () => {

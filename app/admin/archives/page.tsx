@@ -100,6 +100,19 @@ const getStatusColorClass = (status: string) => {
   return colors[status] || 'bg-white border-gray-300';
 };
 
+// Fonction pour obtenir la couleur de fond de la région (tons sobres)
+const getRegionBackgroundColor = (region?: string): string => {
+  const regionColors: Record<string, string> = {
+    'Ile-de-France': 'bg-gray-50',
+    'Zone Lyon': 'bg-blue-50',
+    'Zone Centre': 'bg-amber-50',
+    'Sud-Est': 'bg-emerald-50',
+    'Sud-Ouest': 'bg-purple-50',
+    'Nord': 'bg-rose-50',
+  };
+  return regionColors[region || ''] || 'bg-white';
+};
+
 export default function AdminCalendrierPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -900,7 +913,11 @@ export default function AdminCalendrierPage() {
                     <Link
                       key={course.id}
                       href={`/admin/planning/${course.id}`}
-                      className="block p-3 rounded-lg border-2 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-sm hover:border-gray-400 transition-all opacity-75"
+                      className={cn(
+                        "block p-3 rounded-lg border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:border-gray-400 transition-all opacity-75",
+                        getRegionBackgroundColor(course.localisation),
+                        "dark:bg-gray-900"
+                      )}
                     >
                       {/* En-tête */}
                       <div className="flex items-start justify-between mb-2">
@@ -1051,16 +1068,15 @@ export default function AdminCalendrierPage() {
                   {monthData.courses.map((course, courseIdx) => {
               const validatedCount = course.photographesValides;
               const availableCount = course.photographesDisponibles;
-              const bgColor = courseIdx % 2 === 0
-                ? "bg-gray-50 dark:bg-gray-950"
-                : "bg-gray-50 dark:bg-gray-950";
+              const bgColor = getRegionBackgroundColor(course.localisation);
 
               return (
                 <div
                   key={course.id}
                   className={cn(
                     "grid gap-0 border-b border-gray-200/50 hover:bg-gray-100 dark:hover:bg-gray-900/30 transition-colors",
-                    bgColor
+                    bgColor,
+                    "dark:bg-gray-950"
                   )}
                   style={{
                     gridTemplateColumns: `200px 120px repeat(${[...admins, ...photographers].filter((u) => u.actif).length}, 70px)`,

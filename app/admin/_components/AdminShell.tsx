@@ -46,6 +46,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
 	{ href: "/admin/planning", label: "Calendrier", icon: LayoutGrid },
+	{ href: "/admin/calendar", label: "Mon calendrier", icon: CalendarIcon },
 	{ href: "/admin/costs", label: "Récap coûts", icon: Euro },
 	{ href: "/admin/archives", label: "Archives", icon: Archive },
 	{ href: "/admin/photographers", label: "Photographes", icon: Camera },
@@ -114,6 +115,11 @@ function getAdminMeta(pathname: string): { title: string; crumbs: Crumb[]; prima
 	if (section === "archives") {
 		crumbs.push({ label: "Archives", href: "/admin/archives" });
 		return { title: "Archives", crumbs };
+	}
+
+	if (section === "calendar") {
+		crumbs.push({ label: "Mon calendrier" });
+		return { title: "Mon calendrier", crumbs };
 	}
 
 	if (section === "account") {

@@ -1283,7 +1283,12 @@ export default function AdminCalendrierPage() {
                               if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
                                 // Vérifier si c'est un admin non rémunéré
                                 const admin = admins.find((a) => a.id === dispo.photographeId);
-                                const isNonPaidAdmin = admin && (admin.rem === 'non' || admin.rem === 'non');
+                                const isNonPaidAdmin = admin && (
+                                  admin.rem === true ||
+                                  admin.rem === 'TRUE' ||
+                                  admin.rem === 'true' ||
+                                  String(admin.rem).toLowerCase() === 'true'
+                                );
 
                                 // Ne compter que si ce n'est pas un admin non rémunéré
                                 if (!isNonPaidAdmin) {
@@ -1313,7 +1318,10 @@ export default function AdminCalendrierPage() {
                       // Calculer le nombre de fois où cet admin est validé ou chef dans ce mois + montant total
                       let userCount = 0;
                       let userTotal = 0;
-                      const isNonPaidAdmin = admin.rem === 'non' || admin.rem === 'non';
+                      const isNonPaidAdmin = admin.rem === true ||
+                                            admin.rem === 'TRUE' ||
+                                            admin.rem === 'true' ||
+                                            String(admin.rem).toLowerCase() === 'true';
 
                       monthData.courses.forEach((course) => {
                         const dispo = course.disponibilites.find(d => d.photographeId === admin.id);

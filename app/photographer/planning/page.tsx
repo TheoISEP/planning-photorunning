@@ -147,7 +147,13 @@ export default function PhotographerCalendrierPage() {
       // Traiter les tarifs
       if (tarifsRes.ok) {
         const tarifsData = await tarifsRes.json();
-        setTarifs(tarifsData.tarifs || []);
+        // Convertir les tarifs en nombres pour éviter la concaténation de chaînes
+        const tarifsWithNumbers = (tarifsData.tarifs || []).map((t: any) => ({
+          ...t,
+          tarifPhotographe: Number(t.tarifPhotographe) || 0,
+          bonusChefEquipe: Number(t.bonusChefEquipe) || 0,
+        }));
+        setTarifs(tarifsWithNumbers);
       }
 
       // Traiter les disponibilités

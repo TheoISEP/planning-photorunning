@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Plus, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Calendar, Users, Briefcase, Euro, Filter, ArrowUpDown, Info, Archive, ArrowLeft } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Calendar, Users, Briefcase, Euro, Filter, ArrowUpDown, Info, Archive, ArrowLeft, List, LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -111,6 +111,7 @@ export default function AdminCalendrierPage() {
   // Filtres
   const [statutFilter, setStatutFilter] = useState<string>('all');
   const [zoom, setZoom] = useState(90);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Dialogs d'archivage
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
@@ -929,6 +930,24 @@ export default function AdminCalendrierPage() {
       {/* Barre d'outils */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-shrink-0">
         <div className="flex items-center gap-2 flex-1">
+          {/* Toggle vue mobile uniquement */}
+          <div className="md:hidden flex items-center gap-1 mr-2">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+
           <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
           <Select value={statutFilter} onValueChange={setStatutFilter}>
             <SelectTrigger className="w-full sm:w-[200px]">
@@ -941,7 +960,10 @@ export default function AdminCalendrierPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-2">
+        <div className={cn(
+          "flex items-center gap-2",
+          viewMode === 'list' && "hidden md:flex"
+        )}>
           <span className="text-xs text-muted-foreground">Zoom:</span>
           <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={zoom <= 50}>
             <ZoomOut className="h-4 w-4" />
@@ -953,8 +975,88 @@ export default function AdminCalendrierPage() {
         </div>
       </div>
 
+      {/* Vue liste mobile */}
+      {viewMode === 'list' && (
+        <div className="md:hidden flex-1 min-h-0 overflow-y-auto space-y-3 px-2">
+          {sortedMonths.length === 0 ? (
+            <div className="flex items-center justify-center p-12">
+              <div className="text-center">
+                <p className="text-muted-foreground">Aucune course archivée</p>
+              </div>
+            </div>
+          ) : (
+            sortedMonths.map((monthData) => {
+              const monthKey = `${monthData.year}-${monthData.month}`;
+              return (
+                <div key={monthKey} className="space-y-2">
+                  {/* Header mois */}
+                  <div className="sticky top-0 z-10 bg-gradient-to-r from-orange-100 to-orange-50 dark:from-orange-900 dark:to-orange-800 px-3 py-2 rounded-lg shadow-sm border border-orange-200 dark:border-orange-700">
+                    <h3 className="font-bold text-base capitalize">
+                      {format(new Date(monthData.year, monthData.month), 'MMMM yyyy', { locale: fr })}
+                    </h3>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
+                      <span>{monthData.courses.length} course{monthData.courses.length > 1 ? 's' : ''}</span>
+                      <span className="font-semibold">{formatCurrency(monthData.total.coutTotal)}</span>
+                    </div>
+                  </div>
+
+                  {/* Courses du mois */}
+                  {monthData.courses.map((course) => (
+                    <Link
+                      key={course.id}
+                      href={`/admin/planning/${course.id}`}
+                      className="block p-3 rounded-lg border-2 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-sm hover:border-gray-400 transition-all opacity-75"
+                    >
+                      {/* En-tête */}
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <h4 className="font-bold text-sm">{course.nom}</h4>
+                            {course.statutTraitement === 'done' ? (
+                              <span className="text-xs">🟢</span>
+                            ) : (
+                              <span className="text-xs">🟠</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            📍 {course.localisation}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Infos */}
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">📅</span>
+                          <span>{format(new Date(course.dateDebut), 'd MMM yyyy', { locale: fr })}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">👥</span>
+                          <span>{course.photographesValides} validé{course.photographesValides > 1 ? 's' : ''}</span>
+                        </div>
+                        {course.tarif && (
+                          <div className="flex items-center gap-1">
+                            <span className="font-medium">💶</span>
+                            <span className="font-semibold text-foreground">
+                              {formatCurrency(course.coutTotal)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
       {/* Tableau type Excel - NOUVELLE STRUCTURE */}
-      <div className="flex-1 rounded-lg border shadow-lg bg-white dark:bg-gray-950 overflow-hidden">
+      <div className={cn(
+        "flex-1 rounded-lg border shadow-lg bg-white dark:bg-gray-950 overflow-hidden",
+        viewMode === 'list' && "hidden md:block"
+      )}>
         <div className="overflow-x-auto overflow-y-auto h-full" style={{ position: 'relative', zoom: `${zoom}%` }}>
           {/* En-tête du tableau */}
           <div className="sticky top-0 z-20" style={{ position: 'sticky' }}>

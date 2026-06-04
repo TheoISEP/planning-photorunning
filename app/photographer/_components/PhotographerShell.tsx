@@ -44,7 +44,7 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-	{ href: "/photographer/calendrier", label: "Calendrier", icon: LayoutGrid },
+	{ href: "/photographer/planning", label: "Calendrier", icon: LayoutGrid },
 	{ href: "/photographer/archives", label: "Archives", icon: Archive },
 	{ href: "/photographer/profil", label: "Mon compte", icon: UserCircle },
 ];
@@ -53,27 +53,27 @@ type Crumb = { label: string; href?: string };
 
 function getPhotographerMeta(pathname: string): { title: string; crumbs: Crumb[]; primaryAction?: { href: string; label: string } } {
 	const parts = pathname.split("/").filter(Boolean);
-	const crumbs: Crumb[] = [{ label: "Photographe", href: "/photographer/calendrier" }];
+	const crumbs: Crumb[] = [{ label: "Photographe", href: "/photographer/planning" }];
 
 	if (parts.length < 2) return { title: "Photographe", crumbs };
 
 	const section = parts[1];
 
-	if (section === "calendrier") {
-		crumbs.push({ label: "Calendrier", href: "/photographer/calendrier" });
+	if (section === "planning") {
+		crumbs.push({ label: "Calendrier", href: "/photographer/planning" });
 
-		// /photographer/calendrier
+		// /photographer/planning
 		if (parts.length === 2) {
 			return { title: "Calendrier", crumbs };
 		}
 
-		// /photographer/calendrier/stats
+		// /photographer/planning/stats
 		if (parts[2] === "stats") {
 			crumbs.push({ label: "Statistiques" });
 			return { title: "Statistiques calendrier", crumbs };
 		}
 
-		// /photographer/calendrier/[id]
+		// /photographer/planning/[id]
 		crumbs.push({ label: `Course` });
 		return { title: "Détail de la course", crumbs };
 	}
@@ -193,7 +193,7 @@ function PhotographerUserMenu({ user }: { user: { email: string; nom: string; pr
 					<UserCircle className="size-4" />
 					Mon profil
 				</DropdownMenuItem>
-				<DropdownMenuItem onSelect={() => router.push("/photographer/calendrier")}>
+				<DropdownMenuItem onSelect={() => router.push("/photographer/planning")}>
 					<LayoutGrid className="size-4" />
 					Calendrier
 				</DropdownMenuItem>
@@ -242,7 +242,7 @@ export function PhotographerShell({ children, user }: { children: React.ReactNod
 						collapsed ? "w-[56px]" : "w-full"
 					)}>
 						<div className={cn("flex items-center justify-between gap-2 px-3 py-4 border-b", collapsed && "justify-center px-2")}>
-							<Link href="/photographer/calendrier" className={cn("flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-gray-900/20", collapsed && "px-1")}>
+							<Link href="/photographer/planning" className={cn("flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-gray-900/20", collapsed && "px-1")}>
 								<div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-lg bg-gray-600 flex items-center justify-center">
 									<span className="text-white font-bold text-sm">PR</span>
 								</div>

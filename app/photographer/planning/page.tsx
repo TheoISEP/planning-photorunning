@@ -285,7 +285,7 @@ export default function PhotographerCalendrierPage() {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Button variant="outline" size="sm" asChild className="w-full sm:w-auto h-10 sm:h-9">
-            <Link href="/photographer/calendrier/stats">
+            <Link href="/photographer/planning/stats">
               <ArrowUpDown className="h-4 w-4 mr-2" />
               Mes statistiques
             </Link>
@@ -469,12 +469,15 @@ export default function PhotographerCalendrierPage() {
                           <span className="font-medium">📅</span>
                           <span>{format(new Date(course.dateDebut), 'dd/MM/yyyy', { locale: fr })}</span>
                         </div>
-                        {courseTarif && (dispo?.statut === 'validated' || dispo?.statut === 'teamLeader') && (
+                        {courseTarif && (
                           <div className="flex items-center gap-1">
                             <span className="font-medium">💶</span>
-                            <span className="font-semibold text-foreground">
-                              {dispo.statut === 'teamLeader'
-                                ? `${Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)}€`
+                            <span className={cn(
+                              "font-semibold",
+                              (dispo?.statut === 'validated' || dispo?.statut === 'teamLeader') ? "text-foreground" : "text-muted-foreground"
+                            )}>
+                              {dispo?.statut === 'teamLeader'
+                                ? `${Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)}€ (chef)`
                                 : `${courseTarif.tarifPhotographe}€`}
                             </span>
                           </div>

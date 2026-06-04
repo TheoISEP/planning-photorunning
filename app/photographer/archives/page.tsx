@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ZoomIn, ZoomOut, Info, ArrowLeft } from 'lucide-react';
+import { ZoomIn, ZoomOut, Info, ArrowLeft, Euro } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -216,7 +216,7 @@ export default function PhotographerArchivesPage() {
       <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between flex-shrink-0">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/photographer/calendrier">
+            <Link href="/photographer/planning">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Retour au calendrier
@@ -296,8 +296,8 @@ export default function PhotographerArchivesPage() {
         </div>
       </TooltipProvider>
 
-      {/* Barre zoom */}
-      <div className="flex items-center justify-end gap-2 flex-shrink-0">
+      {/* Barre zoom - Masquer sur mobile */}
+      <div className="hidden md:flex items-center justify-end gap-2 flex-shrink-0">
         <span className="text-xs text-muted-foreground">Zoom:</span>
         <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={zoom <= 50}>
           <ZoomOut className="h-4 w-4" />
@@ -308,8 +308,103 @@ export default function PhotographerArchivesPage() {
         </Button>
       </div>
 
-      {/* Tableau */}
-      <div className="flex-1 rounded-lg border shadow-lg bg-white dark:bg-gray-950 overflow-hidden">
+      {/* Vue liste mobile */}
+      <div className="md:hidden flex-1 min-h-0 overflow-y-auto space-y-3 px-2">
+        {sortedMonths.length === 0 ? (
+          <div className="flex items-center justify-center p-12">
+            <div className="text-center">
+              <p className="text-muted-foreground">Aucune course archivée</p>
+            </div>
+          </div>
+        ) : (
+          sortedMonths.map((monthData) => {
+            const monthKey = `${monthData.year}-${monthData.month}`;
+            return (
+              <div key={monthKey} className="space-y-2">
+                {/* Header mois */}
+                <div className="sticky top-0 z-10 bg-gradient-to-r from-orange-100 to-orange-50 dark:from-orange-900 dark:to-orange-800 px-3 py-2 rounded-lg shadow-sm border border-orange-200 dark:border-orange-700">
+                  <h3 className="font-bold text-base capitalize">
+                    {format(new Date(monthData.year, monthData.month), 'MMMM yyyy', { locale: fr })}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {monthData.courses.length} course{monthData.courses.length > 1 ? 's' : ''}
+                  </p>
+                </div>
+
+                {/* Courses du mois */}
+                {monthData.courses.map((course) => {
+                  const myDispo = currentUser
+                    ? disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id)
+                    : undefined;
+
+                  const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+                  const courseTarif = courseTarifs[0];
+
+                  const isValidated = myDispo && (myDispo.statut === 'validated' || myDispo.statut === 'teamLeader');
+
+                  const config = {
+                    bg: 'bg-gray-50 dark:bg-gray-900',
+                    border: 'border-gray-200 dark:border-gray-700',
+                  };
+
+                  return (
+                    <div
+                      key={course.id}
+                      className={cn(
+                        'p-3 rounded-lg border-2 shadow-sm opacity-75',
+                        config.bg,
+                        config.border
+                      )}
+                    >
+                      {/* En-tête */}
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            {isValidated && (
+                              <span className="text-sm">{myDispo?.statut === 'teamLeader' ? '👑' : '✓'}</span>
+                            )}
+                            <h4 className="font-bold text-sm">{course.nom}</h4>
+                            <span className="text-xs">🟢</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            📍 {course.localisation}
+                          </p>
+                        </div>
+                        {myDispo && (
+                          <Badge variant={getStatusColor(myDispo.statut)} className="text-xs ml-2">
+                            {getStatusLabel(myDispo.statut)}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Infos */}
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">📅</span>
+                          <span>{format(new Date(course.dateDebut), 'd MMM yyyy', { locale: fr })}</span>
+                        </div>
+                        {courseTarif && isValidated && (
+                          <div className="flex items-center gap-1">
+                            <span className="font-medium">💶</span>
+                            <span className="font-semibold text-foreground">
+                              {myDispo?.statut === 'teamLeader'
+                                ? `${Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)}€ (chef)`
+                                : `${courseTarif.tarifPhotographe}€`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Tableau - Desktop uniquement */}
+      <div className="hidden md:block flex-1 rounded-lg border shadow-lg bg-white dark:bg-gray-950 overflow-hidden">
         <div className="overflow-x-auto overflow-y-auto h-full" style={{ zoom: `${zoom}%` }}>
           {/* En-tête */}
           <div className="sticky top-0 z-20">

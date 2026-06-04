@@ -7,7 +7,7 @@ export default function PhotographerPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/photographer/calendrier');
+    router.replace('/photographer/planning');
   }, [router]);
 
   return (

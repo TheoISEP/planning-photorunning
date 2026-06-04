@@ -1,5 +1,6 @@
 'use client';
 
+// Archives page with region-based color coding
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';

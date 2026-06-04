@@ -214,7 +214,7 @@ export default function PhotographerCourseDetailPage() {
     );
   }
 
-  if (!course || !disponibilite || !tarif) {
+  if (!course || !disponibilite) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">

@@ -23,8 +23,17 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const courseId = searchParams.get('courseId');
 
-    // Si c'est un photographe, récupérer seulement ses disponibilités
+    // Si c'est un photographe
     if (user.role === 'photographer') {
+      // Si courseId est fourni, récupérer TOUTES les disponibilités de cette course
+      // (pour pouvoir afficher l'équipe assignée)
+      if (courseId) {
+        const allDisponibilites = await sheetsService.getAllDisponibilites();
+        const disponibilites = allDisponibilites.filter((d: any) => d.courseId === courseId);
+        return NextResponse.json({ disponibilites });
+      }
+
+      // Sinon, récupérer seulement les disponibilités du photographe
       const disponibilites = await sheetsService.getDisponibilitesByPhotographerId(user.id);
 
       // Récupérer les infos des courses et tarifs pour chaque disponibilité

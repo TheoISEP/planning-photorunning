@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -223,30 +223,22 @@ export default function PhotographerCalendrierPage() {
     }
   }, []);
 
+  const pathname = usePathname();
+  const previousPathRef = useRef<string | null>(null);
+
+  // Charger les données au montage initial
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Rafraîchir les données quand on revient sur la page (par exemple après avoir visité une course)
+  // Rafraîchir les données quand on revient sur cette page depuis une autre route
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        fetchData();
-      }
-    };
-
-    const handleFocus = () => {
+    // Si on vient d'une autre page (par exemple après avoir visité une course)
+    if (previousPathRef.current !== null && previousPathRef.current !== pathname) {
       fetchData();
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [fetchData]);
+    }
+    previousPathRef.current = pathname;
+  }, [pathname, fetchData]);
 
   // Fonction pour recharger uniquement les disponibilités sans loader
   const refreshDisponibilites = async () => {

@@ -86,8 +86,72 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Si c'est un admin, récupérer les statistiques globales
+    // Si c'est un admin, vérifier s'il veut ses stats personnelles ou les stats globales
     if (user.role === 'admin') {
+      const { searchParams } = new URL(request.url);
+      const personal = searchParams.get('personal') === 'true';
+
+      // Si l'admin veut ses statistiques personnelles (pour "Mon calendrier")
+      if (personal) {
+        // Calculer les stats de l'admin comme pour un photographe
+        const disponibilites = await sheetsService.getDisponibilitesByPhotographerId(user.id);
+
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth(); // 0-11
+
+        let nombreCourses = 0;
+        let nombrePrestations = 0;
+        let montantTotal = 0;
+        let heuresTravail = 0;
+
+        for (const dispo of disponibilites) {
+          if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
+            const course = await sheetsService.getCourseById(dispo.courseId);
+            if (!course) continue;
+
+            const courseDate = new Date(course.dateDebut);
+            const courseYear = courseDate.getFullYear();
+            const courseMonth = courseDate.getMonth();
+
+            if (courseYear === currentYear && courseMonth === currentMonth) {
+              nombreCourses++;
+              nombrePrestations++;
+
+              const tarif = dispo.tarifId
+                ? await sheetsService.getTarifById(dispo.tarifId)
+                : (await sheetsService.getTarifsByCourseId(dispo.courseId))[0];
+
+              if (tarif) {
+                const tarifBase = Number(tarif.tarifPhotographe) || 0;
+                const bonus = dispo.statut === 'teamLeader' ? (Number(tarif.bonusChefEquipe) || 0) : 0;
+                montantTotal += tarifBase + bonus;
+
+                const nbJours = Number(tarif.nombreJours) || 1;
+                heuresTravail += nbJours * 8;
+              }
+            }
+          }
+        }
+
+        const currentMonthStats = {
+          photographeId: user.id,
+          mois: currentMonth + 1,
+          annee: currentYear,
+          nombreCourses,
+          nombrePrestations,
+          montantTotal,
+          heuresTravail,
+          tauxReussite: 100
+        };
+
+        return NextResponse.json({
+          photographerStats: currentMonthStats,
+          allStats: [currentMonthStats]
+        });
+      }
+
+      // Sinon, retourner les statistiques globales
       const currentAdminStats = await sheetsService.getCurrentAdminStatistics();
       const allPhotographersStats = await sheetsService.getAllPhotographerStatistics();
 

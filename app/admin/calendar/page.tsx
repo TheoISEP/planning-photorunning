@@ -131,7 +131,7 @@ export default function AdminCalendarPage() {
         fetch('/api/courses'),
         fetch('/api/tarifs'),
         fetch('/api/disponibilites'),
-        fetch('/api/statistics'), // Récupère les stats personnelles pour le photographe
+        fetch('/api/statistics?personal=true'), // Récupère les stats personnelles pour l'admin
       ]);
 
       // Traiter les courses

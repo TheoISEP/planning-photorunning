@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -40,6 +41,8 @@ const formSchema = z.object({
 	hotelNotes: z.string().optional(),
 	transportNotes: z.string().optional(),
 	specialNotes: z.string().optional(),
+	hotelValid: z.boolean().optional(),
+	transportValid: z.boolean().optional(),
 	hotelPrice: z.string().optional(),
 	transportPrice: z.string().optional(),
 	foodPrice: z.string().optional(),
@@ -65,6 +68,8 @@ export default function NewCalendrierEventPage() {
 			hotelNotes: "",
 			transportNotes: "",
 			specialNotes: "",
+			hotelValid: false,
+			transportValid: false,
 			hotelPrice: "",
 			transportPrice: "",
 			foodPrice: "",
@@ -102,6 +107,8 @@ export default function NewCalendrierEventPage() {
 			hotel: values.hotelNotes || '',
 			transport: values.transportNotes || '',
 			supplementaire: values.specialNotes || '',
+			hotelValid: values.hotelValid ? 'TRUE' : 'FALSE',
+			transportValid: values.transportValid ? 'TRUE' : 'FALSE',
 			hotelPrice: values.hotelPrice || '',
 			transportPrice: values.transportPrice || '',
 			foodPrice: values.foodPrice || '',
@@ -494,41 +501,81 @@ export default function NewCalendrierEventPage() {
 							<CardDescription>Informations privées visibles uniquement par les admins</CardDescription>
 						</CardHeader>
 						<CardContent className="space-y-4">
-							<FormField
-								control={form.control}
-								name="hotelNotes"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Hôtel</FormLabel>
-										<FormControl>
-											<Textarea
-												placeholder="Informations sur l'hébergement..."
-												className="min-h-[80px]"
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
+							<div className="space-y-2">
+								<FormField
+									control={form.control}
+									name="hotelNotes"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Hôtel</FormLabel>
+											<FormControl>
+												<Textarea
+													placeholder="Informations sur l'hébergement..."
+													className="min-h-[80px]"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
 
-							<FormField
-								control={form.control}
-								name="transportNotes"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Transport</FormLabel>
-										<FormControl>
-											<Textarea
-												placeholder="Informations sur le transport..."
-												className="min-h-[80px]"
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
+								<FormField
+									control={form.control}
+									name="hotelValid"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-start space-x-3 space-y-0">
+											<FormControl>
+												<Checkbox
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+											<div className="space-y-1 leading-none">
+												<FormLabel>Hôtel validé</FormLabel>
+											</div>
+										</FormItem>
+									)}
+								/>
+							</div>
+
+							<div className="space-y-2">
+								<FormField
+									control={form.control}
+									name="transportNotes"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Transport</FormLabel>
+											<FormControl>
+												<Textarea
+													placeholder="Informations sur le transport..."
+													className="min-h-[80px]"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="transportValid"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-start space-x-3 space-y-0">
+											<FormControl>
+												<Checkbox
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+											<div className="space-y-1 leading-none">
+												<FormLabel>Transport validé</FormLabel>
+											</div>
+										</FormItem>
+									)}
+								/>
+							</div>
 
 							<FormField
 								control={form.control}

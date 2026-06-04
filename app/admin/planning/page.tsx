@@ -1519,14 +1519,29 @@ export default function AdminCalendrierPage() {
                             )}
                             style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
                           >
-                            <div className="text-xs font-semibold text-gray-700">
-                              {format(new Date(course.dateDebut), "dd/MM/yy", { locale: fr })}
-                            </div>
-                            {course.dateFin && course.dateFin !== course.dateDebut && (
-                              <div className="text-[10px] text-muted-foreground">
-                                au {format(new Date(course.dateFin), "dd/MM/yy", { locale: fr })}
-                              </div>
-                            )}
+                            {(() => {
+                              const dateDebut = new Date(course.dateDebut);
+                              const dateFin = new Date(course.dateFin);
+                              const nbJours = Math.ceil((dateFin.getTime() - dateDebut.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+                              return (
+                                <>
+                                  <div className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                                    {format(dateDebut, "dd/MM/yy", { locale: fr })}
+                                    {nbJours > 1 && (
+                                      <span className="text-[9px] bg-blue-100 text-blue-800 px-1 rounded">
+                                        {nbJours}j
+                                      </span>
+                                    )}
+                                  </div>
+                                  {course.dateFin && course.dateFin !== course.dateDebut && (
+                                    <div className="text-xs text-gray-700">
+                                      au {format(dateFin, "dd/MM/yy", { locale: fr })}
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
 
                           {/* Colonnes admins */}

@@ -123,16 +123,22 @@ export default function PhotographerCourseDetailPage() {
             setDisponibilite(myDispo);
           }
 
-          // Récupérer l'équipe (photographes validés ou chefs)
+          // Récupérer l'équipe (photographes validés ou chefs, SAUF l'utilisateur connecté)
           const validatedMembers = dispoData.disponibilites.filter(
-            (d: any) => d.statut === 'validated' || d.statut === 'teamLeader'
+            (d: any) => (d.statut === 'validated' || d.statut === 'teamLeader') && d.photographeId !== userId
           );
 
           // Mapper et filtrer seulement les membres dont on trouve les données
+          // Utiliser un Set pour éviter les doublons basés sur photographeId
+          const seenIds = new Set<string>();
           const teamWithNames: TeamMember[] = [];
 
           validatedMembers.forEach((d: any) => {
-            const person = [...allPhotographers, ...allAdmins].find((p: any) => p.id === d.photographeId);
+            // Éviter les doublons
+            if (seenIds.has(d.photographeId)) return;
+            seenIds.add(d.photographeId);
+
+            const person = allPeople.find((p: any) => p.id === d.photographeId);
 
             // Si la personne est trouvée, l'ajouter à l'équipe
             if (person) {
@@ -304,51 +310,43 @@ export default function PhotographerCourseDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Équipe (afficher s'il y a au moins un membre validé/chef d'équipe) */}
+            {/* Équipe (afficher s'il y a au moins un coéquipier) */}
             {team.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Équipe assignée ({team.length})</CardTitle>
+                  <CardTitle>Vos coéquipiers ({team.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {team.map((member) => {
-                      const isCurrentUser = member.photographeId === currentUserId;
-                      return (
-                        <div
-                          key={member.id}
-                          className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                            isCurrentUser
-                              ? 'bg-gray-50 border-gray-300 dark:bg-gray-900/20'
-                              : 'bg-card hover:bg-accent/50'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarFallback className={member.statut === 'teamLeader' ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-700"}>
-                                {getInitials(member.prenom, member.nom)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium">
-                                {member.prenom} {member.nom}
-                                {isCurrentUser && <span className="text-xs text-gray-600 ml-2">(Vous)</span>}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {member.statut === 'teamLeader' ? (
-                                  <span className="flex items-center gap-1">
-                                    <Star className="h-3 w-3 text-purple-500" />
-                                    Chef d'équipe
-                                  </span>
-                                ) : (
-                                  'Photographe'
-                                )}
-                              </p>
-                            </div>
+                    {team.map((member) => (
+                      <div
+                        key={member.id}
+                        className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarFallback className={member.statut === 'teamLeader' ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-700"}>
+                              {getInitials(member.prenom, member.nom)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">
+                              {member.prenom} {member.nom}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {member.statut === 'teamLeader' ? (
+                                <span className="flex items-center gap-1">
+                                  <Star className="h-3 w-3 text-purple-500" />
+                                  Chef d'équipe
+                                </span>
+                              ) : (
+                                'Photographe'
+                              )}
+                            </p>
                           </div>
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>

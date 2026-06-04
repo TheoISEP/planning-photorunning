@@ -137,11 +137,12 @@ export default function PhotographerCalendrierPage() {
       ]);
 
       // Traiter les courses
+      let activeCourses: Course[] = [];
       if (coursesRes.ok) {
         const coursesData = await coursesRes.json();
         const allCourses = coursesData.courses || [];
         // Filtrer les courses non archivées
-        const activeCourses = allCourses.filter((c: Course) => c.archived !== 'oui');
+        activeCourses = allCourses.filter((c: Course) => c.archived !== 'oui');
         setCourses(activeCourses);
       }
 
@@ -155,9 +156,54 @@ export default function PhotographerCalendrierPage() {
       if (disponibilitesRes.ok) {
         const disponibilitesData = await disponibilitesRes.json();
         const allDispos = disponibilitesData.disponibilites || [];
-        console.log('📊 Disponibilités chargées:', allDispos.length, 'currentUser:', userId);
-        console.log('📊 Mes disponibilités:', allDispos.filter((d: any) => d.photographeId === userId));
         setDisponibilites(allDispos);
+
+        // Créer automatiquement les disponibilités manquantes
+        if (userId && activeCourses.length > 0) {
+          const missingDispos: any[] = [];
+
+          activeCourses.forEach((course: Course) => {
+            const hasDisponibilite = allDispos.some(
+              (d: any) => d.courseId === course.id && d.photographeId === userId
+            );
+
+            if (!hasDisponibilite) {
+              missingDispos.push({
+                courseId: course.id,
+                photographeId: userId,
+                statut: 'pending',
+                dateDeclaration: new Date().toISOString(),
+              });
+            }
+          });
+
+          // Créer les disponibilités manquantes une par une
+          if (missingDispos.length > 0) {
+            const createdDispos: any[] = [];
+
+            for (const dispo of missingDispos) {
+              try {
+                const createRes = await fetch('/api/disponibilites', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(dispo),
+                });
+
+                if (createRes.ok) {
+                  const newDispo = await createRes.json();
+                  createdDispos.push(newDispo.disponibilite);
+                }
+              } catch (error) {
+                // Erreur silencieuse, on continue avec les autres
+              }
+            }
+
+            // Ajouter toutes les nouvelles disponibilités créées
+            if (createdDispos.length > 0) {
+              setDisponibilites([...allDispos, ...createdDispos]);
+            }
+          }
+        }
       }
 
       // Traiter les statistiques personnelles depuis Google Sheets
@@ -498,13 +544,6 @@ export default function PhotographerCalendrierPage() {
                   ? disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id)
                   : null;
 
-                // Debug: log pour comprendre pourquoi le sélecteur ne s'affiche pas
-                if (!dispo) {
-                  console.log('❌ Pas de dispo pour la course:', course.nom, 'courseId:', course.id, 'currentUser:', currentUser?.id);
-                } else {
-                  console.log('✅ Dispo trouvée pour', course.nom, '- statut:', dispo.statut, 'canChange:', ['pending', 'available', 'unavailable'].includes(dispo.statut));
-                }
-
                 const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
                 const courseTarif = dispo?.tarifId
                   ? tarifs.find((t) => t.id === dispo.tarifId)
@@ -592,10 +631,7 @@ export default function PhotographerCalendrierPage() {
                         <div className="w-full">
                           <Select
                             value={dispo.statut}
-                            onValueChange={(value) => {
-                              console.log('Changing status from', dispo.statut, 'to', value);
-                              handleStatusChange(dispo.id, value, course.id, currentUser.id);
-                            }}
+                            onValueChange={(value) => handleStatusChange(dispo.id, value, course.id, currentUser.id)}
                           >
                             <SelectTrigger className="w-full h-9 text-xs">
                               <SelectValue>

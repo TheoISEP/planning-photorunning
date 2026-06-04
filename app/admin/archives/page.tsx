@@ -29,6 +29,7 @@ interface Course {
   dateFin: string;
   statutTraitement: 'inProgress' | 'done';
   coureursAttendus?: number;
+  numberAttended?: number;
   visible: boolean;
   archived?: string;
   archivedAt?: string;

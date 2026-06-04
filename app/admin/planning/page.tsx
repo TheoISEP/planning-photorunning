@@ -104,17 +104,17 @@ const getStatusColorClass = (status: string) => {
   return colors[status] || 'bg-white border-gray-300';
 };
 
-// Fonction pour obtenir la couleur de la région
-const getRegionColor = (region?: string): string => {
+// Fonction pour obtenir la couleur de fond de la région (tons sobres)
+const getRegionBackgroundColor = (region?: string): string => {
   const regionColors: Record<string, string> = {
-    'Ile-de-France': 'bg-gray-500',
-    'Zone Lyon': 'bg-blue-500',
-    'Zone Centre': 'bg-orange-500',
-    'Sud-Est': 'bg-green-500',
-    'Sud-Ouest': 'bg-purple-500',
-    'Nord': 'bg-red-500',
+    'Ile-de-France': 'bg-gray-50',
+    'Zone Lyon': 'bg-blue-50',
+    'Zone Centre': 'bg-amber-50',
+    'Sud-Est': 'bg-emerald-50',
+    'Sud-Ouest': 'bg-purple-50',
+    'Nord': 'bg-rose-50',
   };
-  return regionColors[region || ''] || 'bg-gray-300';
+  return regionColors[region || ''] || 'bg-white';
 };
 
 // Fonction de tri des photographes par région puis alphabétiquement
@@ -125,8 +125,8 @@ const sortPhotographersByRegion = (photographers: Photographer[]) => {
     'Sud-Est',
     'Sud-Ouest',
     'Nord',
-    'Zone Centre',
     'Zone Lyon',
+    'Zone Centre',
   ];
 
   return [...photographers].sort((a, b) => {
@@ -1179,13 +1179,12 @@ export default function AdminCalendrierPage() {
 
               {/* Colonnes Photographes */}
               {photographers.filter((p) => p.actif).map(photographer => (
-                <div key={photographer.id} className="p-2 text-center">
+                <div key={photographer.id} className={`p-2 text-center ${getRegionBackgroundColor(photographer.region)}`}>
                   <Link
                     href={`/admin/photographers/${photographer.id}/profile`}
-                    className="hover:text-gray-700 hover:underline transition-colors text-xs flex flex-col items-center gap-1"
+                    className="hover:text-gray-700 hover:underline transition-colors text-xs flex flex-col items-center"
                     title={`${photographer.prenom} ${photographer.nom}${photographer.region ? ` - ${photographer.region}` : ''}`}
                   >
-                    <div className={`w-3 h-3 rounded-full ${getRegionColor(photographer.region)}`} />
                     <div className="truncate w-full">{photographer.prenom}</div>
                     <div className="text-[9px] truncate w-full">{photographer.nom}</div>
                   </Link>
@@ -1216,10 +1215,10 @@ export default function AdminCalendrierPage() {
                     <div className="sticky z-10 p-3 border-r-2 border-orange-300 dark:border-orange-700 bg-orange-100 dark:bg-orange-900" style={{ left: '200px' }}>
                       <div className="text-xs">{monthData.courses.length} course{monthData.courses.length > 1 ? 's' : ''}</div>
                     </div>
-                    {[...admins, ...photographers].filter((u) => u.actif).map(user => {
-                      // Calculer le nombre de fois où ce photographe est validé ou chef dans ce mois
+                    {admins.filter((a) => a.actif).map(admin => {
+                      // Calculer le nombre de fois où cet admin est validé ou chef dans ce mois
                       const userCount = monthData.courses.reduce((count, course) => {
-                        const dispo = course.disponibilites.find(d => d.photographeId === user.id);
+                        const dispo = course.disponibilites.find(d => d.photographeId === admin.id);
                         if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
                           return count + 1;
                         }
@@ -1227,7 +1226,23 @@ export default function AdminCalendrierPage() {
                       }, 0);
 
                       return (
-                        <div key={user.id} className="p-3 flex items-center justify-center text-xs font-semibold">
+                        <div key={admin.id} className="p-3 flex items-center justify-center text-xs font-semibold">
+                          {userCount > 0 ? userCount : '-'}
+                        </div>
+                      );
+                    })}
+                    {photographers.filter((p) => p.actif).map(photographer => {
+                      // Calculer le nombre de fois où ce photographe est validé ou chef dans ce mois
+                      const userCount = monthData.courses.reduce((count, course) => {
+                        const dispo = course.disponibilites.find(d => d.photographeId === photographer.id);
+                        if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
+                          return count + 1;
+                        }
+                        return count;
+                      }, 0);
+
+                      return (
+                        <div key={photographer.id} className={`p-3 flex items-center justify-center text-xs font-semibold ${getRegionBackgroundColor(photographer.region)}`}>
                           {userCount > 0 ? userCount : '-'}
                         </div>
                       );
@@ -1461,12 +1476,12 @@ export default function AdminCalendrierPage() {
                           {/* Colonnes photographes */}
                           {photographers.filter((p) => p.actif).map(photographer => {
                             const dispo = course.disponibilites.find((d) => d.photographeId === photographer.id);
-                            if (!dispo) return <div key={photographer.id} className="flex items-center justify-center p-2">-</div>;
+                            if (!dispo) return <div key={photographer.id} className={`flex items-center justify-center p-2 ${getRegionBackgroundColor(photographer.region)}`}>-</div>;
 
                             const hasMultipleTarifs = course.tarifs && course.tarifs.length > 1;
 
                             return (
-                              <div key={photographer.id} className="p-2 flex flex-col items-start justify-start gap-0.5">
+                              <div key={photographer.id} className={`p-2 flex flex-col items-start justify-start gap-0.5 ${getRegionBackgroundColor(photographer.region)}`}>
                                 <Select
                                   value={dispo.statut}
                                   onValueChange={(value) => handleStatusChange(dispo.id, value, course.id)}

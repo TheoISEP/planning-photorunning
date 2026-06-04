@@ -132,7 +132,7 @@ export default function PhotographerCourseDetailPage() {
           const teamWithNames: TeamMember[] = [];
 
           validatedMembers.forEach((d: any) => {
-            const person = allPeople.find((p: any) => p.id === d.photographeId);
+            const person = [...allPhotographers, ...allAdmins].find((p: any) => p.id === d.photographeId);
 
             // Si la personne est trouvée, l'ajouter à l'équipe
             if (person) {
@@ -212,8 +212,8 @@ export default function PhotographerCourseDetailPage() {
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <p className="text-lg font-medium">Course introuvable</p>
-          <Link href="/photographer/calendrier" className="mt-4 inline-block">
-            <Button variant="outline">Retour au calendrier</Button>
+          <Link href="/photographer/planning" className="mt-4 inline-block">
+            <Button variant="outline">Retour au planning</Button>
           </Link>
         </div>
       </div>
@@ -229,7 +229,7 @@ export default function PhotographerCourseDetailPage() {
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-4 mb-2">
-              <Link href="/photographer/calendrier">
+              <Link href="/photographer/planning">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Retour

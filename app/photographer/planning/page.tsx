@@ -760,7 +760,7 @@ export default function PhotographerCalendrierPage() {
                                 >
                                   💰{' '}
                                   {myDispo?.statut === 'teamLeader'
-                                    ? courseTarif.tarifPhotographe + courseTarif.bonusChefEquipe
+                                    ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
                                     : courseTarif.tarifPhotographe}
                                   €
                                 </span>

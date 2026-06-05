@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Euro, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Euro, ChevronLeft, ChevronRight, Trophy } from 'lucide-react';
 
 interface Course {
   id: string;
@@ -47,6 +48,7 @@ const MONTH_NAMES = [
 ];
 
 export default function CostsRecapPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<Course[]>([]);
   const [tarifs, setTarifs] = useState<Tarif[]>([]);
@@ -202,22 +204,32 @@ export default function CostsRecapPage() {
             Vue d&apos;ensemble des coûts par mois pour l&apos;année {selectedYear}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Button
             variant="outline"
-            size="icon"
-            onClick={() => setSelectedYear(selectedYear - 1)}
+            onClick={() => router.push('/admin/costs/ranking')}
+            className="gap-2"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <Trophy className="h-4 w-4" />
+            Classement photographes
           </Button>
-          <div className="text-xl font-bold px-4">{selectedYear}</div>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setSelectedYear(selectedYear + 1)}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSelectedYear(selectedYear - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="text-xl font-bold px-4">{selectedYear}</div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSelectedYear(selectedYear + 1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 

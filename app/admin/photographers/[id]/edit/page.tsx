@@ -763,7 +763,6 @@ export default function EditPhotographerPage() {
                       <SelectValue placeholder="Sélectionner un photographe" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Aucun</SelectItem>
                       {allPhotographers
                         .filter(p =>
                           p.id !== photographerId &&
@@ -792,7 +791,6 @@ export default function EditPhotographerPage() {
                       <SelectValue placeholder="Sélectionner un photographe" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Aucun</SelectItem>
                       {allPhotographers
                         .filter(p =>
                           p.id !== photographerId &&
@@ -821,7 +819,6 @@ export default function EditPhotographerPage() {
                       <SelectValue placeholder="Sélectionner un photographe" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Aucun</SelectItem>
                       {allPhotographers
                         .filter(p =>
                           p.id !== photographerId &&
@@ -850,7 +847,6 @@ export default function EditPhotographerPage() {
                       <SelectValue placeholder="Sélectionner un photographe" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Aucun</SelectItem>
                       {allPhotographers
                         .filter(p =>
                           p.id !== photographerId &&
@@ -879,7 +875,6 @@ export default function EditPhotographerPage() {
                       <SelectValue placeholder="Sélectionner un photographe" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Aucun</SelectItem>
                       {allPhotographers
                         .filter(p =>
                           p.id !== photographerId &&

@@ -915,8 +915,8 @@ export default function PhotographerCalendrierPage() {
                         {/* Séparateur de week-end */}
                         {isNewWeekend && (
                           <div
-                            className="border-t border-gray-300/30 dark:border-gray-700/30"
-                            style={{ gridColumn: '1 / -1', height: '1px' }}
+                            className="border-t-4 border-orange-300 dark:border-orange-700 bg-gradient-to-r from-orange-100/50 to-transparent dark:from-orange-900/30 dark:to-transparent"
+                            style={{ gridColumn: '1 / -1', height: '8px' }}
                           />
                         )}
 

@@ -621,7 +621,10 @@ export default function PhotographerCalendrierPage() {
                 const config = dispo ? statusConfig[dispo.statut] : statusConfig.pending;
                 // Afficher le sélecteur pour pending, available, unavailable (pas pour validated, teamLeader, rejected)
                 const isValidatedOrLeader = dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader');
+                const isRejected = dispo && dispo.statut === 'rejected';
                 const canChangeStatus = dispo && ['pending', 'available', 'unavailable'].includes(dispo.statut);
+                // Afficher le sélecteur si : pas encore de dispo OU statut modifiable (et pas rejeté, pas validé, pas chef)
+                const shouldShowSelector = !isValidatedOrLeader && !isRejected;
 
                 return (
                   <div
@@ -687,7 +690,7 @@ export default function PhotographerCalendrierPage() {
                       )}
 
                       {/* Sélecteur de disponibilité pour pending, available, unavailable */}
-                      {((canChangeStatus && dispo) || (!dispo && course.statutTraitement === 'inProgress')) && activePhotographerId && (
+                      {shouldShowSelector && activePhotographerId && (
                         <div className="w-full">
                           <Select
                             value={dispo?.statut || 'pending'}

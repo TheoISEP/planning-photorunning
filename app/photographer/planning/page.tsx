@@ -687,17 +687,17 @@ export default function PhotographerCalendrierPage() {
                       )}
 
                       {/* Sélecteur de disponibilité pour pending, available, unavailable */}
-                      {canChangeStatus && activePhotographerId && dispo && (
+                      {((canChangeStatus && dispo) || (!dispo && course.statutTraitement === 'inProgress')) && activePhotographerId && (
                         <div className="w-full">
                           <Select
-                            value={dispo.statut}
-                            onValueChange={(value) => handleStatusChange(dispo.id, value, course.id, activePhotographerId)}
+                            value={dispo?.statut || 'pending'}
+                            onValueChange={(value) => handleStatusChange(dispo?.id || `dispo-${course.id}-${activePhotographerId}`, value, course.id, activePhotographerId)}
                           >
                             <SelectTrigger className="w-full h-9 text-xs">
                               <SelectValue>
-                                {dispo.statut === 'pending' && '⏳ En attente'}
-                                {dispo.statut === 'available' && '✓ Disponible'}
-                                {dispo.statut === 'unavailable' && '✗ Indisponible'}
+                                {(!dispo || dispo.statut === 'pending') && '⏳ En attente'}
+                                {dispo?.statut === 'available' && '✓ Disponible'}
+                                {dispo?.statut === 'unavailable' && '✗ Indisponible'}
                               </SelectValue>
                             </SelectTrigger>
                             <SelectContent>

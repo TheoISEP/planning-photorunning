@@ -362,10 +362,29 @@ export default function PhotographerCalendrierPage() {
     }
 
     try {
+      // Vérifier si la disponibilité existe déjà
+      const existingDispo = disponibilites.find(d => d.id === disponibiliteId);
+      const isNewDispo = !existingDispo || disponibiliteId.startsWith('dispo-');
+
       // Mise à jour optimiste
-      setDisponibilites((prev) =>
-        prev.map((d) => (d.id === disponibiliteId ? { ...d, statut: newStatus as Disponibilite['statut'] } : d))
-      );
+      if (isNewDispo) {
+        // Créer une nouvelle disponibilité temporaire
+        const tempId = `temp-${Date.now()}`;
+        setDisponibilites((prev) => [
+          ...prev,
+          {
+            id: tempId,
+            photographeId: photographerId,
+            courseId: courseId,
+            statut: newStatus as Disponibilite['statut'],
+          }
+        ]);
+      } else {
+        // Mettre à jour la disponibilité existante
+        setDisponibilites((prev) =>
+          prev.map((d) => (d.id === disponibiliteId ? { ...d, statut: newStatus as Disponibilite['statut'] } : d))
+        );
+      }
 
       // Appel API
       const res = await fetch('/api/disponibilites', {
@@ -383,6 +402,11 @@ export default function PhotographerCalendrierPage() {
       if (!res.ok) {
         // Rollback en cas d'erreur
         refreshDisponibilites();
+      } else {
+        // Rafraîchir pour obtenir le vrai ID du serveur
+        if (isNewDispo) {
+          refreshDisponibilites();
+        }
       }
     } catch (error) {
       refreshDisponibilites();
@@ -599,6 +623,7 @@ export default function PhotographerCalendrierPage() {
                   const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === activePhotographerId);
                   return !dispo || dispo.statut !== 'rejected';
                 })
+                .sort((a, b) => new Date(a.dateDebut).getTime() - new Date(b.dateDebut).getTime())
                 .map((course) => {
                 const dispo = activePhotographerId
                   ? disponibilites.find((d) => d.courseId === course.id && d.photographeId === activePhotographerId)

@@ -414,6 +414,90 @@ export default function PhotographerProfilePage() {
                   )}
                 </div>
               </div>
+
+              <Separator />
+
+              {/* Cartes mémoire */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <Label>Cartes mémoire</Label>
+                  {editMode && (
+                    <Button size="sm" variant="outline" onClick={() => addEquipment('cartesMemoire')}>
+                      <Plus className="h-4 w-4 mr-1" />
+                      Ajouter
+                    </Button>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {(formData.cartesMemoire || []).map((carte, index) => (
+                    <div key={index} className="flex gap-2">
+                      {editMode ? (
+                        <>
+                          <Input
+                            value={carte}
+                            onChange={(e) => updateEquipment('cartesMemoire', index, e.target.value)}
+                            placeholder="Ex: SanDisk 128GB"
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeEquipment('cartesMemoire', index)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </>
+                      ) : (
+                        <p className="text-sm text-gray-900">• {carte}</p>
+                      )}
+                    </div>
+                  ))}
+                  {(formData.cartesMemoire || []).length === 0 && !editMode && (
+                    <p className="text-sm text-gray-500">Aucune carte mémoire renseignée</p>
+                  )}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Flashs */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <Label>Flashs</Label>
+                  {editMode && (
+                    <Button size="sm" variant="outline" onClick={() => addEquipment('flashs')}>
+                      <Plus className="h-4 w-4 mr-1" />
+                      Ajouter
+                    </Button>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {(formData.flashs || []).map((flash, index) => (
+                    <div key={index} className="flex gap-2">
+                      {editMode ? (
+                        <>
+                          <Input
+                            value={flash}
+                            onChange={(e) => updateEquipment('flashs', index, e.target.value)}
+                            placeholder="Ex: Canon Speedlite 600EX"
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeEquipment('flashs', index)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </>
+                      ) : (
+                        <p className="text-sm text-gray-900">• {flash}</p>
+                      )}
+                    </div>
+                  ))}
+                  {(formData.flashs || []).length === 0 && !editMode && (
+                    <p className="text-sm text-gray-500">Aucun flash renseigné</p>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
 

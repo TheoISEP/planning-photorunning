@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { AvailabilityCell } from './_components/AvailabilityCell';
 
 interface Course {
   id: string;
@@ -238,53 +239,16 @@ export default function PhotographerCalendrierPage() {
         }
         setDisponibilites(allDispos);
 
-        // Créer automatiquement les disponibilités manquantes pour TOUS les photographes
-        const missingDispos: any[] = [];
-
-        activeCourses.forEach((course: Course) => {
-          // Pour chaque photographe (principal + à charge)
-          allPhotographerIds.forEach(photographerId => {
-            const hasDisponibilite = allDispos.some(
-              (d: any) => d.courseId === course.id && d.photographeId === photographerId
-            );
-
-            if (!hasDisponibilite) {
-              missingDispos.push({
-                courseId: course.id,
-                photographeId: photographerId,
-                statut: 'pending',
-                dateDeclaration: new Date().toISOString(),
-              });
-            }
-          });
-        });
-
-        // Créer les disponibilités manquantes une par une
-        if (missingDispos.length > 0) {
-          const createdDispos: any[] = [];
-
-          for (const dispo of missingDispos) {
-            try {
-              const createRes = await fetch('/api/disponibilites', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dispo),
-              });
-
-              if (createRes.ok) {
-                const newDispo = await createRes.json();
-                createdDispos.push(newDispo.disponibilite);
-              }
-            } catch (error) {
-              // Erreur silencieuse, on continue avec les autres
-            }
-          }
-
-          // Ajouter toutes les nouvelles disponibilités créées
-          if (createdDispos.length > 0) {
-            setDisponibilites([...allDispos, ...createdDispos]);
-          }
-        }
+        // DÉSACTIVÉ: Création automatique des disponibilités manquantes
+        // Cette approche causait des problèmes de performance et de quota API:
+        // - Trop de requêtes séquentielles (une par disponibilité manquante)
+        // - Dépassement du quota Google Sheets (60 requêtes/minute)
+        // - Chargement très lent de la page (5-8 secondes)
+        // - Risque de 409 Conflict si plusieurs requêtes parallèles
+        //
+        // Solution: Les disponibilités sont créées automatiquement à la demande
+        // via l'endpoint PATCH /api/disponibilites quand l'utilisateur change le statut
+        // (voir ligne 318-348 de /app/api/disponibilites/route.ts)
       }
 
       // Traiter les statistiques personnelles depuis Google Sheets
@@ -340,21 +304,21 @@ export default function PhotographerCalendrierPage() {
     fetchData();
   }, [fetchData, refreshKey]);
 
-  // Rafraîchir les données quand on revient sur la page
+  // DÉSACTIVÉ: Rafraîchir les données quand on revient sur la page
+  // Ce comportement était trop agressif et rechargeait constamment les données
+  // Le cache de 5-10 minutes est suffisant pour garder les données à jour
+  /*
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // Forcer un refresh en changeant la clé
         setRefreshKey(prev => prev + 1);
       }
     };
 
     const handleFocus = () => {
-      // Forcer un refresh en changeant la clé
       setRefreshKey(prev => prev + 1);
     };
 
-    // Écouter les événements de visibilité
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
 
@@ -363,6 +327,7 @@ export default function PhotographerCalendrierPage() {
       window.removeEventListener('focus', handleFocus);
     };
   }, []);
+  */
 
   // Fonction pour recharger uniquement les disponibilités sans loader
   const refreshDisponibilites = async () => {
@@ -735,10 +700,7 @@ export default function PhotographerCalendrierPage() {
               >
                 Course
               </div>
-              <div
-                className="sticky z-30 p-3 pr-2 border-r-2 border-gray-600/40 font-semibold text-sm bg-gradient-to-r from-gray-100 to-gray-100 dark:from-gray-900 dark:to-gray-900"
-                style={{ position: 'sticky', left: '40%', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
-              >
+              <div className="p-3 pr-2 border-r-2 border-gray-600/40 font-semibold text-sm text-center">
                 Date
               </div>
               <div className="p-3 text-center font-semibold text-sm border-r border-gray-600/40">
@@ -795,6 +757,15 @@ export default function PhotographerCalendrierPage() {
               const myValidatedCount = currentUser ? calculatePhotographerMonthStats(currentUser.id).validatedCount : 0;
               const myMonthlyAmount = currentUser ? calculatePhotographerMonthStats(currentUser.id).monthlyAmount : 0;
 
+              // Calculer le total de tous les photographes pour ce mois
+              const allPhotographersIds = [
+                ...(currentUser ? [currentUser.id] : []),
+                ...managedPhotographers.map(p => p.id)
+              ];
+              const totalMonthAmount = allPhotographersIds.reduce((sum, id) => {
+                return sum + calculatePhotographerMonthStats(id).monthlyAmount;
+              }, 0);
+
               return (
                 <div key={monthKey}>
                   {/* Ligne mois */}
@@ -805,13 +776,15 @@ export default function PhotographerCalendrierPage() {
                     <div className="sticky left-0 z-10 p-3 pr-2 border-r-2 border-orange-300 bg-orange-100 dark:bg-orange-900">
                       <div className="text-sm md:text-base font-bold">
                         {format(new Date(monthData.year, monthData.month), 'MMMM yyyy', { locale: fr })}
+                        {totalMonthAmount > 0 && (
+                          <div className="text-xs font-bold text-orange-700 dark:text-orange-300 mt-1">
+                            Total: {formatCurrency(totalMonthAmount)}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div
-                      className="sticky z-10 p-3 pr-2 border-r-2 border-orange-300 bg-orange-100 dark:bg-orange-900"
-                      style={{ left: '40%' }}
-                    >
-                      <div className="text-xs">
+                    <div className="p-3 pr-2 border-r-2 border-orange-300 bg-orange-100 dark:bg-orange-900">
+                      <div className="text-xs text-center">
                         {monthData.courses.length} course{monthData.courses.length > 1 ? 's' : ''}
                       </div>
                     </div>
@@ -865,6 +838,32 @@ export default function PhotographerCalendrierPage() {
 
                     const isValidated = myDispo && (myDispo.statut === 'validated' || myDispo.statut === 'teamLeader');
                     const isRejected = myDispo && myDispo.statut === 'rejected';
+
+                    // Calculer les validations et le coût total pour TOUS les photographes
+                    const allPhotographersIds = [
+                      ...(currentUser ? [currentUser.id] : []),
+                      ...managedPhotographers.map(p => p.id)
+                    ];
+
+                    const allValidatedDispos = disponibilites.filter(d =>
+                      d.courseId === course.id &&
+                      allPhotographersIds.includes(d.photographeId) &&
+                      (d.statut === 'validated' || d.statut === 'teamLeader')
+                    );
+
+                    const totalCourseAmount = allValidatedDispos.reduce((sum, dispo) => {
+                      const tarifForDispo = dispo.tarifId
+                        ? tarifs.find(t => t.id === dispo.tarifId)
+                        : courseTarif;
+
+                      if (tarifForDispo) {
+                        const amount = dispo.statut === 'teamLeader'
+                          ? Number(tarifForDispo.tarifPhotographe) + Number(tarifForDispo.bonusChefEquipe)
+                          : Number(tarifForDispo.tarifPhotographe);
+                        return sum + amount;
+                      }
+                      return sum;
+                    }, 0);
 
                     const bgColor = courseIdx % 2 === 0 ? 'bg-gray-50 dark:bg-gray-950' : 'bg-gray-50 dark:bg-gray-950';
                     const rowBgColor = isValidated
@@ -922,187 +921,53 @@ export default function PhotographerCalendrierPage() {
                             {course.statutTraitement === 'done' ? <span className="text-xs">🟢</span> : <span className="text-xs">🟠</span>}
                           </div>
                           <div className="text-xs text-muted-foreground">📍 {course.ville || course.localisation}</div>
-                          {courseTarif && (
-                            <div className="flex items-center gap-1.5 mt-1.5">
-                              {isValidated && courseTarif ? (
-                                <span
-                                  className={cn(
-                                    'text-sm font-bold',
-                                    myDispo?.statut === 'teamLeader' ? 'text-purple-700' : 'text-gray-700'
-                                  )}
-                                >
-                                  💰{' '}
-                                  {myDispo?.statut === 'teamLeader'
-                                    ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
-                                    : courseTarif.tarifPhotographe}
-                                  €
-                                </span>
-                              ) : (
-                                <span className="text-xs font-medium text-muted-foreground">
-                                  💰 {courseTarif.tarifPhotographe}€
-                                </span>
+
+                          {/* Afficher tous les photographes validés */}
+                          {allValidatedDispos.length > 0 && (
+                            <div className="mt-1.5 space-y-0.5">
+                              <div className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                {allValidatedDispos.length} validé{allValidatedDispos.length > 1 ? 's' : ''}
+                              </div>
+                              {totalCourseAmount > 0 && (
+                                <div className="text-sm font-bold text-green-700 dark:text-green-400">
+                                  💰 Total: {totalCourseAmount}€
+                                </div>
                               )}
+                            </div>
+                          )}
+
+                          {allValidatedDispos.length === 0 && courseTarif && (
+                            <div className="flex items-center gap-1.5 mt-1.5">
+                              <span className="text-xs font-medium text-muted-foreground">
+                                💰 {courseTarif.tarifPhotographe}€
+                              </span>
                             </div>
                           )}
                         </div>
 
                         {/* Colonne Date */}
-                        <div
-                          className={cn('sticky z-10 p-3 pr-2 flex flex-col justify-center border-r-2 border-gray-600/40', rowBgColor)}
-                          style={{ position: 'sticky', left: 'minmax(180px, 1fr)', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
-                        >
-                          <div className="text-sm font-semibold">{format(new Date(course.dateDebut), 'dd/MM', { locale: fr })}</div>
+                        <div className="p-3 pr-2 flex flex-col justify-center border-r-2 border-gray-600/40">
+                          <div className="text-sm font-semibold text-center">{format(new Date(course.dateDebut), 'dd/MM', { locale: fr })}</div>
                           {course.dateFin && course.dateFin !== course.dateDebut && (
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-xs text-muted-foreground text-center">
                               → {format(new Date(course.dateFin), 'dd/MM', { locale: fr })}
                             </div>
                           )}
                         </div>
 
                         {/* Colonne Mon Statut */}
-                        <div className="p-2 flex flex-col items-center justify-center gap-1">
-                          {myDispo ? (
-                            <>
-                              {/* Si la course est "inProgress" ET que le photographe est en pending/available/unavailable, il peut modifier */}
-                              {course.statutTraitement === 'inProgress' &&
-                               (myDispo.statut === 'pending' || myDispo.statut === 'available' || myDispo.statut === 'unavailable') ? (
-                                <Select
-                                  value={myDispo.statut}
-                                  onValueChange={(value) => currentUser && handleStatusChange(myDispo.id, value, course.id, currentUser.id)}
-                                >
-                                  <SelectTrigger
-                                    className={`h-10 md:h-9 text-sm w-full min-w-[110px] border transition-all focus:border-gray-600 px-3 font-medium touch-manipulation ${getStatusColorClass(
-                                      myDispo.statut
-                                    )}`}
-                                  >
-                                    <SelectValue>{getStatusLabel(myDispo.statut)}</SelectValue>
-                                  </SelectTrigger>
-                                  <SelectContent className="z-[9999]">
-                                    <SelectItem value="pending" className="h-10 md:h-9">
-                                      <div className="flex items-center gap-2">
-                                        <div className="h-2.5 w-2.5 rounded-full bg-yellow-500" />
-                                        <span className="text-sm">Attente</span>
-                                      </div>
-                                    </SelectItem>
-                                    <SelectItem value="available" className="h-10 md:h-9">
-                                      <div className="flex items-center gap-2">
-                                        <div className="h-2.5 w-2.5 rounded-full bg-blue-500" />
-                                        <span className="text-sm">Dispo</span>
-                                      </div>
-                                    </SelectItem>
-                                    <SelectItem value="unavailable" className="h-10 md:h-9">
-                                      <div className="flex items-center gap-2">
-                                        <div className="h-2.5 w-2.5 rounded-full bg-gray-400" />
-                                        <span className="text-sm">Pas dispo</span>
-                                      </div>
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              ) : (
-                                <div
-                                  className={`h-10 md:h-9 text-sm w-full min-w-[110px] border px-3 font-medium flex items-center justify-center rounded-md ${getStatusColorClass(
-                                    myDispo.statut
-                                  )}`}
-                                >
-                                  {getStatusLabel(myDispo.statut)}
-                                </div>
-                              )}
-
-                              {hasMultipleTarifs && myDispo.tarifId && (
-                                <div className="text-[9px] w-full text-center text-gray-600 mt-1">
-                                  {courseTarifs.find((t) => t.id === myDispo.tarifId)?.description || 'Tarif personnalisé'}
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <div className="flex flex-col gap-1.5 w-full px-1">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-10 md:h-9 text-sm font-medium bg-blue-50 hover:bg-blue-100 border-blue-300 touch-manipulation active:scale-95 transition-transform"
-                                onClick={async () => {
-                                  if (!currentUser) return;
-
-                                  const newDispoId = `dispo-${course.id}-${currentUser.id}`;
-
-                                  // Mise à jour optimiste
-                                  setDisponibilites((prev) => [
-                                    ...prev,
-                                    {
-                                      id: newDispoId,
-                                      photographeId: currentUser.id,
-                                      courseId: course.id,
-                                      statut: 'available' as const,
-                                    }
-                                  ]);
-
-                                  try {
-                                    const res = await fetch('/api/disponibilites', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({
-                                        photographeId: currentUser.id,
-                                        courseId: course.id,
-                                        statut: 'available',
-                                        dateDeclaration: new Date().toISOString(),
-                                      }),
-                                    });
-                                    if (!res.ok) {
-                                      // Rollback en cas d'erreur
-                                      refreshDisponibilites();
-                                    }
-                                  } catch (error) {
-                                    console.error('Erreur:', error);
-                                    refreshDisponibilites();
-                                  }
-                                }}
-                              >
-                                ✓ Dispo
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-10 md:h-9 text-sm font-medium bg-gray-50 hover:bg-gray-100 border-gray-300 touch-manipulation active:scale-95 transition-transform"
-                                onClick={async () => {
-                                  if (!currentUser) return;
-
-                                  const newDispoId = `dispo-${course.id}-${currentUser.id}`;
-
-                                  // Mise à jour optimiste
-                                  setDisponibilites((prev) => [
-                                    ...prev,
-                                    {
-                                      id: newDispoId,
-                                      photographeId: currentUser.id,
-                                      courseId: course.id,
-                                      statut: 'unavailable' as const,
-                                    }
-                                  ]);
-
-                                  try {
-                                    const res = await fetch('/api/disponibilites', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({
-                                        photographeId: currentUser.id,
-                                        courseId: course.id,
-                                        statut: 'unavailable',
-                                        dateDeclaration: new Date().toISOString(),
-                                      }),
-                                    });
-                                    if (!res.ok) {
-                                      // Rollback en cas d'erreur
-                                      refreshDisponibilites();
-                                    }
-                                  } catch (error) {
-                                    console.error('Erreur:', error);
-                                    refreshDisponibilites();
-                                  }
-                                }}
-                              >
-                                ✗ Pas dispo
-                              </Button>
-                            </div>
+                        <div className="p-2 flex flex-col items-center justify-center gap-1 border-r border-gray-600/40">
+                          {currentUser && (
+                            <AvailabilityCell
+                              disponibilite={myDispo || null}
+                              course={course}
+                              photographerId={currentUser.id}
+                              onStatusChange={handleStatusChange}
+                              tarifDescription={hasMultipleTarifs && myDispo?.tarifId
+                                ? courseTarifs.find((t) => t.id === myDispo.tarifId)?.description || 'Tarif personnalisé'
+                                : undefined
+                              }
+                            />
                           )}
                         </div>
 
@@ -1113,57 +978,15 @@ export default function PhotographerCalendrierPage() {
                           );
 
                           return (
-                            <div key={photographer.id} className="p-2 flex flex-col items-center justify-center gap-1 border-l border-gray-200">
-                              {photoDispo ? (
-                                <>
-                                  {/* Si la course est "inProgress" ET que le photographe est en pending/available/unavailable, le référent peut modifier */}
-                                  {course.statutTraitement === 'inProgress' &&
-                                   (photoDispo.statut === 'pending' || photoDispo.statut === 'available' || photoDispo.statut === 'unavailable') ? (
-                                    <Select
-                                      value={photoDispo.statut}
-                                      onValueChange={(value) => handleStatusChange(photoDispo.id, value, course.id, photographer.id)}
-                                    >
-                                      <SelectTrigger
-                                        className={`h-10 md:h-9 text-sm w-full min-w-[110px] border transition-all focus:border-gray-600 px-3 font-medium touch-manipulation ${getStatusColorClass(
-                                          photoDispo.statut
-                                        )}`}
-                                      >
-                                        <SelectValue>{getStatusLabel(photoDispo.statut)}</SelectValue>
-                                      </SelectTrigger>
-                                      <SelectContent className="z-[9999]">
-                                        <SelectItem value="pending" className="h-10 md:h-9">
-                                          <div className="flex items-center gap-2">
-                                            <div className="h-2.5 w-2.5 rounded-full bg-yellow-500" />
-                                            <span className="text-sm">Attente</span>
-                                          </div>
-                                        </SelectItem>
-                                        <SelectItem value="available" className="h-10 md:h-9">
-                                          <div className="flex items-center gap-2">
-                                            <div className="h-2.5 w-2.5 rounded-full bg-blue-500" />
-                                            <span className="text-sm">Dispo</span>
-                                          </div>
-                                        </SelectItem>
-                                        <SelectItem value="unavailable" className="h-10 md:h-9">
-                                          <div className="flex items-center gap-2">
-                                            <div className="h-2.5 w-2.5 rounded-full bg-gray-400" />
-                                            <span className="text-sm">Pas dispo</span>
-                                          </div>
-                                        </SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  ) : (
-                                    <div
-                                      className={`h-10 md:h-9 text-sm w-full min-w-[110px] border px-3 font-medium flex items-center justify-center rounded-md ${getStatusColorClass(
-                                        photoDispo.statut
-                                      )}`}
-                                    >
-                                      {getStatusLabel(photoDispo.statut)}
-                                    </div>
-                                  )}
-                                </>
-                              ) : (
-                                <div className="text-xs text-gray-400">-</div>
-                              )}
+                            <div key={photographer.id} className="p-2 flex flex-col items-center justify-center gap-1 border-r border-gray-600/40">
+                              <AvailabilityCell
+                                disponibilite={photoDispo || null}
+                                course={course}
+                                photographerId={photographer.id}
+                                onStatusChange={handleStatusChange}
+                                tarifAmount={courseTarif?.tarifPhotographe}
+                                bonusChefEquipe={courseTarif?.bonusChefEquipe}
+                              />
                             </div>
                           );
                         })}

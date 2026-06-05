@@ -25,9 +25,23 @@ export async function GET(
     const { id } = await params;
     const sheetsService = new GoogleSheetsService();
 
-    // Vérifier que le photographe ne peut voir que son propre profil (sauf admin)
+    // Vérifier les permissions
+    // Admin peut voir tout le monde
+    // Photographe ne peut voir que lui-même ou ses photographes à charge
     if (user.role === 'photographer' && user.id !== id) {
-      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+      // Vérifier si le photographe connecté est référent de celui-ci
+      const currentPhotographer = await sheetsService.getPhotographerById(user.id);
+      const isReferent = currentPhotographer && (
+        currentPhotographer.chargeOne === id ||
+        currentPhotographer.chargeTwo === id ||
+        currentPhotographer.chargeThree === id ||
+        currentPhotographer.chargeFour === id ||
+        currentPhotographer.chargeFive === id
+      );
+
+      if (!isReferent) {
+        return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+      }
     }
 
     const photographer = await sheetsService.getPhotographerById(id);
@@ -87,23 +101,53 @@ export async function PATCH(
 
     const { id } = await params;
 
-    // Vérifier que le photographe ne peut modifier que son propre profil (sauf admin)
-    if (user.role === 'photographer' && user.id !== id) {
-      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
-    }
-
     const data = await request.json();
+    const sheetsService = new GoogleSheetsService();
+
+    // Vérifier les permissions et définir les restrictions
+    let isReferentEdit = false;
+    if (user.role === 'photographer' && user.id !== id) {
+      // Vérifier si le photographe connecté est référent de celui-ci
+      const currentPhotographer = await sheetsService.getPhotographerById(user.id);
+      const isReferent = currentPhotographer && (
+        currentPhotographer.chargeOne === id ||
+        currentPhotographer.chargeTwo === id ||
+        currentPhotographer.chargeThree === id ||
+        currentPhotographer.chargeFour === id ||
+        currentPhotographer.chargeFive === id
+      );
+
+      if (!isReferent) {
+        return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+      }
+
+      isReferentEdit = true;
+    }
 
     // Si un mot de passe est fourni, le hasher
     if (data.password) {
       data.password = await authService.hashPassword(data.password);
     }
 
-    // Empêcher la modification de certains champs sensibles par le photographe
+    // Empêcher la modification de certains champs sensibles
     if (user.role === 'photographer') {
-      delete data.email;
-      // Le photographe peut changer son propre mot de passe
-      delete data.actif;
+      if (isReferentEdit) {
+        // Un référent ne peut pas modifier ces champs
+        delete data.password;
+        delete data.email;
+        delete data.actif;
+        delete data.inCharge;
+        delete data.chargeOne;
+        delete data.chargeTwo;
+        delete data.chargeThree;
+        delete data.chargeFour;
+        delete data.chargeFive;
+      } else {
+        // Un photographe modifiant son propre profil
+        delete data.email;
+        delete data.actif;
+        // Le photographe peut changer son propre mot de passe
+      }
     }
 
     // Convertir les arrays en JSON strings si nécessaire
@@ -120,7 +164,6 @@ export async function PATCH(
       data.flashs = JSON.stringify(data.flashs);
     }
 
-    const sheetsService = new GoogleSheetsService();
     const updatedPhotographer = await sheetsService.updatePhotographer(id, data);
 
     // Ne pas renvoyer le mot de passe

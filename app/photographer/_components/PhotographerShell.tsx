@@ -128,10 +128,12 @@ function SidebarContent({
 	pathname,
 	collapsed,
 	onNavigate,
+	managedPhotographers,
 }: {
 	pathname: string;
 	collapsed: boolean;
 	onNavigate?: () => void;
+	managedPhotographers?: Array<{ id: string; prenom: string; nom: string }>;
 }) {
 	return (
 		<nav className="flex flex-col gap-1 p-2">
@@ -144,6 +146,40 @@ function SidebarContent({
 					onNavigate={onNavigate}
 				/>
 			))}
+
+			{/* Section "Mes photographes" si référent */}
+			{managedPhotographers && managedPhotographers.length > 0 && (
+				<>
+					<div className="px-3 py-2 mt-2 border-t">
+						<p className={cn("text-xs font-semibold text-muted-foreground uppercase tracking-wider", collapsed && "sr-only")}>
+							Mes photographes
+						</p>
+					</div>
+					{managedPhotographers.map((photographer) => {
+						const href = `/photographer/${photographer.id}/profile`;
+						const active = pathname === href || pathname.startsWith(href + "/");
+						return (
+							<Link
+								key={photographer.id}
+								href={href}
+								onClick={onNavigate}
+								title={collapsed ? `${photographer.prenom} ${photographer.nom}` : undefined}
+								className={cn(
+									"group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-500/30",
+									active
+										? "bg-gray-600 text-white shadow-lg dark:bg-gray-700"
+										: "text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-900/20"
+								)}
+							>
+								<Camera className={cn("size-4 shrink-0 transition-colors", active ? "text-white" : "text-muted-foreground group-hover:text-foreground")} />
+								<span className={cn("truncate", collapsed && "sr-only")}>
+									{photographer.prenom} {photographer.nom}
+								</span>
+							</Link>
+						);
+					})}
+				</>
+			)}
 		</nav>
 	);
 }
@@ -210,7 +246,15 @@ function PhotographerUserMenu({ user }: { user: { email: string; nom: string; pr
 	);
 }
 
-export function PhotographerShell({ children, user }: { children: React.ReactNode; user: { email: string; nom: string; prenom?: string } | null }) {
+export function PhotographerShell({
+	children,
+	user,
+	managedPhotographers = []
+}: {
+	children: React.ReactNode;
+	user: { email: string; nom: string; prenom?: string } | null;
+	managedPhotographers?: Array<{ id: string; prenom: string; nom: string }>;
+}) {
 	const pathname = usePathname();
 	const [collapsed, setCollapsed] = React.useState(false);
 	const [mounted, setMounted] = React.useState(false);
@@ -254,7 +298,7 @@ export function PhotographerShell({ children, user }: { children: React.ReactNod
 						</div>
 
 						<div className="flex-1 overflow-auto">
-							<SidebarContent pathname={pathname} collapsed={collapsed} />
+							<SidebarContent pathname={pathname} collapsed={collapsed} managedPhotographers={managedPhotographers} />
 						</div>
 
 						<div className="p-2 border-t">
@@ -302,7 +346,7 @@ export function PhotographerShell({ children, user }: { children: React.ReactNod
 													</div>
 												</DialogHeader>
 												<div className="px-3 py-4 overflow-y-auto" style={{ maxHeight: "calc(100dvh - 100px)" }}>
-													<SidebarContent pathname={pathname} collapsed={false} onNavigate={() => setMobileMenuOpen(false)} />
+													<SidebarContent pathname={pathname} collapsed={false} onNavigate={() => setMobileMenuOpen(false)} managedPhotographers={managedPhotographers} />
 												</div>
 											</DialogContent>
 										</Dialog>

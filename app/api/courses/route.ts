@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleSheetsService } from '@/lib/google-sheets';
 import { AuthService } from '@/lib/auth-google-sheets';
 import { cookies } from 'next/headers';
+import { cache, CacheKeys, withCache } from '@/lib/cache';
 
 // GET /api/courses - Liste toutes les courses
 export async function GET(request: NextRequest) {
   try {
     const sheetsService = new GoogleSheetsService();
-    const courses = await sheetsService.getAllCourses();
+    const courses = await withCache(
+      CacheKeys.allCourses(),
+      () => sheetsService.getAllCourses(),
+      60000 // 1 minute de cache
+    );
 
     return NextResponse.json({ courses });
   } catch (error: any) {

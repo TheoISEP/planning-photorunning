@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -11,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { AvailabilityCell } from '@/app/photographer/planning/_components/AvailabilityCell';
 
 interface Course {
   id: string;
@@ -41,6 +43,13 @@ interface Disponibilite {
   tarifId?: string;
 }
 
+interface Photographer {
+  id: string;
+  nom: string;
+  prenom: string;
+  referentId?: string;
+}
+
 export default function PhotographerArchivesPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -48,6 +57,8 @@ export default function PhotographerArchivesPage() {
   const [tarifs, setTarifs] = useState<Tarif[]>([]);
   const [disponibilites, setDisponibilites] = useState<Disponibilite[]>([]);
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
+  const [currentPhotographer, setCurrentPhotographer] = useState<Photographer | null>(null);
+  const [managedPhotographers, setManagedPhotographers] = useState<Photographer[]>([]);
   const [zoom, setZoom] = useState(90);
 
   // Stats des archives
@@ -72,11 +83,11 @@ export default function PhotographerArchivesPage() {
         }
       }
 
-      // Charger les données en parallèle
-      const [coursesRes, tarifsRes, disponibilitesRes] = await Promise.all([
+      // Charger les données en parallèle (sans disponibilités pour l'instant)
+      const [coursesRes, tarifsRes, photographersRes] = await Promise.all([
         fetch('/api/courses'),
         fetch('/api/tarifs'),
-        fetch('/api/disponibilites'),
+        fetch('/api/photographers'),
       ]);
 
       // Traiter les courses
@@ -93,13 +104,50 @@ export default function PhotographerArchivesPage() {
       let tarifsData: any = null;
       if (tarifsRes.ok) {
         tarifsData = await tarifsRes.json();
-        setTarifs(tarifsData.tarifs || []);
+        // Convertir les tarifs en nombres pour éviter la concaténation de chaînes
+        const tarifsWithNumbers = (tarifsData.tarifs || []).map((t: any) => ({
+          ...t,
+          tarifPhotographe: Number(t.tarifPhotographe) || 0,
+          bonusChefEquipe: Number(t.bonusChefEquipe) || 0,
+        }));
+        setTarifs(tarifsWithNumbers);
+        tarifsData.tarifs = tarifsWithNumbers;
       }
 
-      // Traiter les disponibilités
-      if (disponibilitesRes.ok) {
-        const disponibilitesData = await disponibilitesRes.json();
-        const allDisponibilites = disponibilitesData.disponibilites || [];
+      // Traiter les photographes et charger leurs disponibilités
+      let managedPhotographerIds: string[] = [];
+      if (photographersRes.ok && userId) {
+        const photographersData = await photographersRes.json();
+        const allPhotographers = photographersData.photographers || [];
+
+        // Trouver le photographe actuel
+        const currentPhotog = allPhotographers.find((p: Photographer) => p.id === userId);
+        setCurrentPhotographer(currentPhotog || null);
+
+        // Trouver les photographes gérés
+        const managed = allPhotographers.filter((p: Photographer) => p.referentId === userId);
+        setManagedPhotographers(managed);
+        managedPhotographerIds = managed.map((p: Photographer) => p.id);
+      }
+
+      // Charger les disponibilités pour l'utilisateur connecté ET tous les photographes à charge
+      if (userId && archivedCourses.length > 0) {
+        // Créer la liste de tous les IDs de photographes (principal + à charge)
+        const allPhotographerIds = [userId, ...managedPhotographerIds];
+
+        // Charger les disponibilités pour chaque photographe
+        const disponibilitesRess = await Promise.all(
+          allPhotographerIds.map(id => fetch(`/api/disponibilites?photographerId=${id}`))
+        );
+
+        // Traiter toutes les disponibilités (photographe principal + à charge)
+        let allDisponibilites: any[] = [];
+        for (const dispoRes of disponibilitesRess) {
+          if (dispoRes.ok) {
+            const disponibilitesData = await dispoRes.json();
+            allDisponibilites = [...allDisponibilites, ...(disponibilitesData.disponibilites || [])];
+          }
+        }
         setDisponibilites(allDisponibilites);
 
         // Calculer les stats des archives pour ce photographe
@@ -409,22 +457,26 @@ export default function PhotographerArchivesPage() {
           {/* En-tête */}
           <div className="sticky top-0 z-20">
             <div
-              className="grid gap-0 bg-gradient-to-r from-gray-100 to-slate-100 dark:from-gray-900 dark:to-slate-900 border-b-2 border-gray-600/30"
-              style={{ gridTemplateColumns: '200px 120px 1fr', minWidth: '100%' }}
+              className="grid gap-0 bg-gradient-to-r from-gray-100 to-slate-100 dark:from-gray-900 dark:to-slate-900 border-b-2 border-gray-600/30 w-full"
+              style={{ gridTemplateColumns: `2fr 1fr ${Array(1 + managedPhotographers.length).fill('2fr').join(' ')}` }}
             >
               <div
-                className="sticky left-0 z-30 p-2 pr-1.5 border-r-2 border-gray-600/40 font-semibold text-sm bg-gradient-to-r from-gray-100 to-slate-100 dark:from-gray-900 dark:to-slate-900"
+                className="sticky left-0 z-30 p-3 pr-2 border-r-2 border-gray-600/40 font-semibold text-sm"
                 style={{ position: 'sticky', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
               >
                 Course
               </div>
-              <div
-                className="sticky z-30 p-2 pr-1.5 border-r-2 border-gray-600/40 font-semibold text-sm bg-gradient-to-r from-gray-100 to-slate-100 dark:from-gray-900 dark:to-slate-900"
-                style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
-              >
+              <div className="p-3 pr-2 border-r-2 border-gray-600/40 font-semibold text-sm text-center">
                 Date
               </div>
-              <div className="p-2 text-center font-semibold text-sm">Statut final</div>
+              <div className="p-3 text-center font-semibold text-sm border-r border-gray-600/40">
+                {currentPhotographer ? `${currentPhotographer.prenom} ${currentPhotographer.nom}` : 'Mon statut'}
+              </div>
+              {managedPhotographers.map(photographer => (
+                <div key={photographer.id} className="p-3 text-center font-semibold text-sm border-r border-gray-600/40">
+                  {photographer.prenom} {photographer.nom}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -440,27 +492,102 @@ export default function PhotographerArchivesPage() {
               sortedMonths.map((monthData) => {
                 const monthKey = `${monthData.year}-${monthData.month}`;
 
+                // Calculer les stats pour chaque photographe
+                const calculatePhotographerMonthStats = (photographerId: string) => {
+                  const validatedCount = monthData.courses.reduce((count, course) => {
+                    const dispo = disponibilites.find(
+                      (d) => d.courseId === course.id && d.photographeId === photographerId
+                    );
+                    if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
+                      return count + 1;
+                    }
+                    return count;
+                  }, 0);
+
+                  const monthlyAmount = monthData.courses.reduce((total, course) => {
+                    const dispo = disponibilites.find(
+                      (d) => d.courseId === course.id && d.photographeId === photographerId
+                    );
+                    if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
+                      const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+                      const courseTarif = dispo.tarifId
+                        ? tarifs.find((t) => t.id === dispo.tarifId)
+                        : courseTarifs[0];
+
+                      if (courseTarif) {
+                        const montant = dispo.statut === 'teamLeader'
+                          ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
+                          : Number(courseTarif.tarifPhotographe);
+                        return total + montant;
+                      }
+                    }
+                    return total;
+                  }, 0);
+
+                  return { validatedCount, monthlyAmount };
+                };
+
+                const myValidatedCount = currentUser ? calculatePhotographerMonthStats(currentUser.id).validatedCount : 0;
+                const myMonthlyAmount = currentUser ? calculatePhotographerMonthStats(currentUser.id).monthlyAmount : 0;
+
+                // Calculer le total de tous les photographes pour ce mois
+                const allPhotographersIds = [
+                  ...(currentUser ? [currentUser.id] : []),
+                  ...managedPhotographers.map(p => p.id)
+                ];
+                const totalMonthAmount = allPhotographersIds.reduce((sum, id) => {
+                  return sum + calculatePhotographerMonthStats(id).monthlyAmount;
+                }, 0);
+
                 return (
                   <div key={monthKey}>
                     {/* Ligne mois */}
                     <div
-                      className="grid gap-0 bg-gray-100 dark:bg-gray-900 border-b-2 border-gray-300 font-semibold"
-                      style={{ gridTemplateColumns: '200px 120px 1fr', minWidth: '100%' }}
+                      className="grid gap-0 bg-orange-100 dark:bg-orange-900 border-b-2 border-orange-300 font-semibold w-full"
+                      style={{ gridTemplateColumns: `2fr 1fr ${Array(1 + managedPhotographers.length).fill('2fr').join(' ')}` }}
                     >
-                      <div className="sticky left-0 z-10 p-3 border-r-2 border-gray-300 bg-gray-100 dark:bg-gray-900">
-                        <div className="text-sm font-bold">
+                      <div className="sticky left-0 z-10 p-3 pr-2 border-r-2 border-orange-300 bg-orange-100 dark:bg-orange-900">
+                        <div className="text-sm md:text-base font-bold">
                           {format(new Date(monthData.year, monthData.month), 'MMMM yyyy', { locale: fr })}
+                          {totalMonthAmount > 0 && (
+                            <div className="text-xs font-bold text-orange-700 dark:text-orange-300 mt-1">
+                              Total: {formatCurrency(totalMonthAmount)}
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <div
-                        className="sticky z-10 p-3 border-r-2 border-gray-300 bg-gray-100 dark:bg-gray-900"
-                        style={{ left: '200px' }}
-                      >
-                        <div className="text-xs">
+                      <div className="p-3 pr-2 border-r-2 border-orange-300 bg-orange-100 dark:bg-orange-900">
+                        <div className="text-xs text-center">
                           {monthData.courses.length} course{monthData.courses.length > 1 ? 's' : ''}
                         </div>
                       </div>
-                      <div className="p-3 flex items-center justify-center text-xs font-semibold">Archivées</div>
+                      {/* Colonne pour le photographe principal */}
+                      <div className="p-3 flex flex-col items-center justify-center text-xs font-semibold border-r border-orange-300">
+                        <div>
+                          {myValidatedCount > 0 ? `${myValidatedCount} validée${myValidatedCount > 1 ? 's' : ''}` : '-'}
+                        </div>
+                        {myMonthlyAmount > 0 && (
+                          <div className="text-gray-700 dark:text-gray-400 mt-0.5 font-bold">
+                            {formatCurrency(myMonthlyAmount)}
+                          </div>
+                        )}
+                      </div>
+                      {/* Colonnes pour les photographes à charge */}
+                      {managedPhotographers.map(photographer => {
+                        const stats = calculatePhotographerMonthStats(photographer.id);
+                        return (
+                          <div key={photographer.id} className="p-3 flex flex-col items-center justify-center text-xs font-semibold border-r border-orange-300">
+                            <div>
+                              {stats.validatedCount > 0 ? `${stats.validatedCount} validée${stats.validatedCount > 1 ? 's' : ''}` : '-'}
+                            </div>
+                            {stats.monthlyAmount > 0 && (
+                              <div className="text-gray-700 dark:text-gray-400 mt-0.5 font-bold">
+                                {formatCurrency(stats.monthlyAmount)}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {/* Courses */}
@@ -473,64 +600,134 @@ export default function PhotographerArchivesPage() {
                       const courseTarif = courseTarifs[0];
 
                       const isValidated = myDispo && (myDispo.statut === 'validated' || myDispo.statut === 'teamLeader');
+                      const isRejected = myDispo && myDispo.statut === 'rejected';
 
-                      const bgColor = courseIdx % 2 === 0 ? 'bg-gray-50 dark:bg-gray-950' : 'bg-slate-50 dark:bg-slate-950';
+                      // Calculer les validations et le coût total pour TOUS les photographes
+                      const allPhotographersIds = [
+                        ...(currentUser ? [currentUser.id] : []),
+                        ...managedPhotographers.map(p => p.id)
+                      ];
+
+                      const allValidatedDispos = disponibilites.filter(d =>
+                        d.courseId === course.id &&
+                        allPhotographersIds.includes(d.photographeId) &&
+                        (d.statut === 'validated' || d.statut === 'teamLeader')
+                      );
+
+                      const totalCourseAmount = allValidatedDispos.reduce((sum, dispo) => {
+                        const tarifForDispo = dispo.tarifId
+                          ? tarifs.find(t => t.id === dispo.tarifId)
+                          : courseTarif;
+
+                        if (tarifForDispo) {
+                          const amount = dispo.statut === 'teamLeader'
+                            ? Number(tarifForDispo.tarifPhotographe) + Number(tarifForDispo.bonusChefEquipe)
+                            : Number(tarifForDispo.tarifPhotographe);
+                          return sum + amount;
+                        }
+                        return sum;
+                      }, 0);
+
+                      const bgColor = courseIdx % 2 === 0 ? 'bg-gray-50 dark:bg-gray-950' : 'bg-gray-50 dark:bg-gray-950';
+                      const rowBgColor = isValidated
+                        ? myDispo.statut === 'teamLeader'
+                          ? 'bg-purple-50 dark:bg-purple-950/30'
+                          : 'bg-green-50 dark:bg-green-950/30'
+                        : bgColor;
 
                       return (
                         <div
                           key={course.id}
-                          className={cn('grid gap-0 border-b border-gray-200/50 opacity-75', bgColor)}
-                          style={{ gridTemplateColumns: '200px 120px 1fr', minWidth: '100%' }}
+                          className={cn(
+                            'grid gap-0 border-b transition-all duration-200 w-full opacity-75',
+                            rowBgColor,
+                            isValidated && myDispo.statut !== 'teamLeader' && 'border-l-4 border-l-green-600',
+                            myDispo?.statut === 'teamLeader' && 'border-l-4 border-l-purple-600',
+                            isRejected && 'opacity-40',
+                            !isValidated && !isRejected && 'border-gray-200/50'
+                          )}
+                          style={{ gridTemplateColumns: `2fr 1fr ${Array(1 + managedPhotographers.length).fill('2fr').join(' ')}` }}
                         >
                           {/* Colonne Course */}
                           <div
-                            className={cn('sticky left-0 z-10 p-2 pr-1.5 border-r-2 border-gray-600/40', bgColor)}
+                            className={cn('sticky left-0 z-10 p-3 pr-2 border-r-2 border-gray-600/40', rowBgColor)}
                             style={{ position: 'sticky', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
                           >
-                            <div className="flex items-center gap-1.5 mb-0.5">
+                            <div className="flex items-center gap-1.5 mb-1">
                               {isValidated && (
-                                <span className="text-sm">{myDispo?.statut === 'teamLeader' ? '👑' : '✓'}</span>
+                                <span className="text-base">{myDispo?.statut === 'teamLeader' ? '👑' : '✓'}</span>
                               )}
-                              <span className="font-semibold text-xs">{course.nom}</span>
-                              <span className="text-[10px]">🟢</span>
+                              <span className="font-semibold text-sm">{course.nom}</span>
+                              <span className="text-xs">🟢</span>
                             </div>
-                            <div className="text-[10px] text-muted-foreground">📍 {course.localisation}</div>
-                            {courseTarif && isValidated && (
-                              <div className="flex items-center gap-1.5 mt-1">
-                                <span className="text-[10px] font-medium text-muted-foreground">
-                                  💰{' '}
-                                  {myDispo?.statut === 'teamLeader'
-                                    ? courseTarif.tarifPhotographe + courseTarif.bonusChefEquipe
-                                    : courseTarif.tarifPhotographe}
-                                  €
+                            <div className="text-xs text-muted-foreground">📍 {course.ville || course.localisation}</div>
+
+                            {/* Afficher tous les photographes validés */}
+                            {allValidatedDispos.length > 0 && (
+                              <div className="mt-1.5 space-y-0.5">
+                                <div className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                  {allValidatedDispos.length} validé{allValidatedDispos.length > 1 ? 's' : ''}
+                                </div>
+                                {totalCourseAmount > 0 && (
+                                  <div className="text-sm font-bold text-green-700 dark:text-green-400">
+                                    💰 Total: {totalCourseAmount}€
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {allValidatedDispos.length === 0 && courseTarif && (
+                              <div className="flex items-center gap-1.5 mt-1.5">
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  💰 {courseTarif.tarifPhotographe}€
                                 </span>
                               </div>
                             )}
                           </div>
 
                           {/* Colonne Date */}
-                          <div
-                            className={cn('sticky z-10 p-2 pr-1.5 flex flex-col border-r-2 border-gray-600/40', bgColor)}
-                            style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
-                          >
-                            <div className="text-xs font-semibold">{format(new Date(course.dateDebut), 'dd/MM/yy', { locale: fr })}</div>
+                          <div className="p-3 pr-2 flex flex-col justify-center border-r-2 border-gray-600/40">
+                            <div className="text-sm font-semibold text-center">{format(new Date(course.dateDebut), 'dd/MM', { locale: fr })}</div>
                             {course.dateFin && course.dateFin !== course.dateDebut && (
-                              <div className="text-[10px] text-muted-foreground">
-                                au {format(new Date(course.dateFin), 'dd/MM/yy', { locale: fr })}
+                              <div className="text-xs text-muted-foreground text-center">
+                                → {format(new Date(course.dateFin), 'dd/MM', { locale: fr })}
                               </div>
                             )}
                           </div>
 
-                          {/* Colonne Statut (non éditable) */}
-                          <div className="p-2 flex flex-col items-center justify-center gap-0.5">
-                            {myDispo ? (
-                              <Badge variant={getStatusColor(myDispo.statut)} className="text-xs">
-                                {getStatusLabel(myDispo.statut)}
-                              </Badge>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">-</span>
+                          {/* Colonne Mon Statut */}
+                          <div className="p-2 flex flex-col items-center justify-center gap-1 border-r border-gray-600/40">
+                            {currentUser && (
+                              <AvailabilityCell
+                                disponibilite={myDispo || null}
+                                course={course}
+                                photographerId={currentUser.id}
+                                onStatusChange={() => {}}
+                                tarifAmount={courseTarif?.tarifPhotographe}
+                                bonusChefEquipe={courseTarif?.bonusChefEquipe}
+                              />
                             )}
                           </div>
+
+                          {/* Colonnes pour les photographes à charge */}
+                          {managedPhotographers.map(photographer => {
+                            const photoDispo = disponibilites.find(
+                              (d) => d.courseId === course.id && d.photographeId === photographer.id
+                            );
+
+                            return (
+                              <div key={photographer.id} className="p-2 flex flex-col items-center justify-center gap-1 border-r border-gray-600/40">
+                                <AvailabilityCell
+                                  disponibilite={photoDispo || null}
+                                  course={course}
+                                  photographerId={photographer.id}
+                                  onStatusChange={() => {}}
+                                  tarifAmount={courseTarif?.tarifPhotographe}
+                                  bonusChefEquipe={courseTarif?.bonusChefEquipe}
+                                />
+                              </div>
+                            );
+                          })}
                         </div>
                       );
                     })}

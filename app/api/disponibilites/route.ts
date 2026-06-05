@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleSheetsService } from '@/lib/google-sheets';
 import { AuthService } from '@/lib/auth-google-sheets';
 import { cookies } from 'next/headers';
+import { cache, CacheKeys, withCache } from '@/lib/cache';
 
 // GET /api/disponibilites - Récupérer les disponibilités d'un photographe
 export async function GET(request: NextRequest) {
@@ -22,36 +23,59 @@ export async function GET(request: NextRequest) {
     const sheetsService = new GoogleSheetsService();
     const { searchParams } = new URL(request.url);
     const courseId = searchParams.get('courseId');
+    const photographerId = searchParams.get('photographerId');
 
     // Si c'est un photographe
     if (user.role === 'photographer') {
-      // Si courseId est fourni, récupérer TOUTES les disponibilités de cette course
-      // (pour pouvoir afficher l'équipe assignée)
+      // Si courseId est fourni, récupérer TOUTES les disponibilités de cette course (avec cache)
       if (courseId) {
-        const allDisponibilites = await sheetsService.getAllDisponibilites();
+        const allDisponibilites = await withCache(
+          CacheKeys.allDisponibilites(),
+          () => sheetsService.getAllDisponibilites(),
+          30000 // 30 secondes
+        );
         const disponibilites = allDisponibilites.filter((d: any) => d.courseId === courseId);
         return NextResponse.json({ disponibilites });
       }
 
-      // Sinon, récupérer seulement les disponibilités du photographe
-      const disponibilites = await sheetsService.getDisponibilitesByPhotographerId(user.id);
+      // Déterminer quel photographe on veut charger
+      let targetPhotographerId = user.id;
 
-      // Récupérer les infos des courses et tarifs pour chaque disponibilité
-      const coursesMap = new Map();
-      const tarifsMap = new Map();
+      // Si un photographerId est fourni et qu'il est différent de l'utilisateur connecté
+      if (photographerId && photographerId !== user.id) {
+        // Vérifier si le photographe connecté est référent de celui-ci
+        const currentPhotographer = await sheetsService.getPhotographerById(user.id);
+        const isReferent = currentPhotographer && (
+          currentPhotographer.chargeOne === photographerId ||
+          currentPhotographer.chargeTwo === photographerId ||
+          currentPhotographer.chargeThree === photographerId ||
+          currentPhotographer.chargeFour === photographerId ||
+          currentPhotographer.chargeFive === photographerId
+        );
 
-      for (const dispo of disponibilites) {
-        if (!coursesMap.has(dispo.courseId)) {
-          const course = await sheetsService.getCourseById(dispo.courseId);
-          if (course) coursesMap.set(dispo.courseId, course);
+        if (!isReferent) {
+          return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
         }
 
-        // Si un tarifId est assigné, récupérer ce tarif spécifique
-        if (dispo.tarifId && !tarifsMap.has(dispo.tarifId)) {
-          const tarif = await sheetsService.getTarifById(dispo.tarifId);
-          if (tarif) tarifsMap.set(dispo.tarifId, tarif);
-        }
+        targetPhotographerId = photographerId;
       }
+
+      // Récupérer les disponibilités du photographe cible (avec cache)
+      const disponibilites = await withCache(
+        CacheKeys.disponibilitesByPhotographer(targetPhotographerId),
+        () => sheetsService.getDisponibilitesByPhotographerId(targetPhotographerId),
+        30000 // 30 secondes
+      );
+
+      // Récupérer TOUTES les courses et tarifs en UNE SEULE FOIS (avec cache)
+      const [allCourses, allTarifs] = await Promise.all([
+        withCache(CacheKeys.allCourses(), () => sheetsService.getAllCourses(), 60000), // 1 minute
+        withCache(CacheKeys.allTarifs(), () => sheetsService.getAllTarifs(), 60000), // 1 minute
+      ]);
+
+      // Créer des maps pour un accès rapide
+      const coursesMap = new Map(allCourses.map((c: any) => [c.id, c]));
+      const tarifsMap = new Map(allTarifs.map((t: any) => [t.id, t]));
 
       // Enrichir les disponibilités avec les infos des courses
       const enrichedDispos = disponibilites.map(dispo => {
@@ -72,13 +96,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ disponibilites: enrichedDispos });
     }
 
-    // Si c'est un admin, récupérer toutes les disponibilités (ou filtrer par courseId)
+    // Si c'est un admin, récupérer toutes les disponibilités (ou filtrer par courseId/photographerId)
     if (user.role === 'admin') {
       let disponibilites = await sheetsService.getAllDisponibilites();
 
       // Filtrer par courseId si fourni
       if (courseId) {
         disponibilites = disponibilites.filter((d: any) => d.courseId === courseId);
+      }
+
+      // Filtrer par photographerId si fourni
+      if (photographerId) {
+        disponibilites = disponibilites.filter((d: any) => d.photographeId === photographerId);
       }
 
       return NextResponse.json({ disponibilites });
@@ -119,12 +148,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Statut invalide' }, { status: 400 });
     }
 
-    // Vérifier que le photographe ne crée une disponibilité que pour lui-même
-    if (user.role === 'photographer' && user.id !== photographeId) {
-      return NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 });
-    }
-
     const sheetsService = new GoogleSheetsService();
+
+    // Vérifier les permissions : le photographe ne peut créer que pour lui-même ou ses photographes à charge
+    if (user.role === 'photographer' && user.id !== photographeId) {
+      // Charger les données du photographe connecté pour vérifier s'il est référent
+      const currentPhotographer = await sheetsService.getPhotographerById(user.id);
+
+      const isReferent = currentPhotographer && (
+        currentPhotographer.chargeOne === photographeId ||
+        currentPhotographer.chargeTwo === photographeId ||
+        currentPhotographer.chargeThree === photographeId ||
+        currentPhotographer.chargeFour === photographeId ||
+        currentPhotographer.chargeFive === photographeId
+      );
+
+      if (!isReferent) {
+        return NextResponse.json({
+          error: 'Vous ne pouvez créer des disponibilités que pour vous-même ou vos photographes à charge'
+        }, { status: 403 });
+      }
+    }
 
     // Générer un ID unique
     const id = `dispo-${courseId}-${photographeId}`;
@@ -152,6 +196,11 @@ export async function POST(request: NextRequest) {
     };
 
     await sheetsService.createDisponibilite(newDisponibilite);
+
+    // Invalider le cache
+    cache.delete(CacheKeys.allDisponibilites());
+    cache.delete(CacheKeys.disponibilitesByPhotographer(photographeId));
+    cache.delete(CacheKeys.disponibilitesByCourse(courseId));
 
     console.log(`✅ Disponibilité créée: ${id} (${statut})`);
 
@@ -192,10 +241,39 @@ export async function PATCH(request: NextRequest) {
 
     const sheetsService = new GoogleSheetsService();
 
-    // Si c'est un photographe, vérifier que la course n'est pas archivée
+    // Si c'est un photographe, vérifier les permissions et contraintes
     if (user.role === 'photographer') {
-      // Extraire le courseId de l'ID de disponibilité (format: dispo-{courseId}-{photographeId})
-      const courseIdFromDispoId = id.split('-')[1];
+      // Extraire le courseId et photographeId de l'ID de disponibilité (format: dispo-{courseId}-{photographeId})
+      const parts = id.split('-');
+      const courseIdFromDispoId = parts.length > 1 ? parts.slice(1, -1).join('-') : null;
+      const photographeIdFromDispoId = parts[parts.length - 1];
+
+      // Vérifier les permissions : soit c'est sa propre dispo, soit il est référent du photographe
+      if (user.id !== photographeIdFromDispoId && user.id !== photographeId) {
+        // Charger les données du photographe connecté pour vérifier s'il est référent
+        const currentPhotographer = await sheetsService.getPhotographerById(user.id);
+
+        const isReferent = currentPhotographer && (
+          currentPhotographer.chargeOne === photographeIdFromDispoId ||
+          currentPhotographer.chargeOne === photographeId ||
+          currentPhotographer.chargeTwo === photographeIdFromDispoId ||
+          currentPhotographer.chargeTwo === photographeId ||
+          currentPhotographer.chargeThree === photographeIdFromDispoId ||
+          currentPhotographer.chargeThree === photographeId ||
+          currentPhotographer.chargeFour === photographeIdFromDispoId ||
+          currentPhotographer.chargeFour === photographeId ||
+          currentPhotographer.chargeFive === photographeIdFromDispoId ||
+          currentPhotographer.chargeFive === photographeId
+        );
+
+        if (!isReferent) {
+          return NextResponse.json({
+            error: 'Vous ne pouvez modifier que vos propres disponibilités ou celles de vos photographes à charge'
+          }, { status: 403 });
+        }
+      }
+
+      // Vérifier que la course n'est pas archivée
       if (courseIdFromDispoId) {
         const course = await sheetsService.getCourseById(courseIdFromDispoId);
         if (course && course.archived === 'oui') {
@@ -203,6 +281,33 @@ export async function PATCH(request: NextRequest) {
             error: 'Vous ne pouvez pas modifier une disponibilité pour une course archivée'
           }, { status: 403 });
         }
+
+        // Vérifier que la course est encore en cours (statutTraitement !== 'done')
+        if (course && course.statutTraitement === 'done') {
+          return NextResponse.json({
+            error: 'Vous ne pouvez pas modifier une disponibilité pour une course finalisée'
+          }, { status: 403 });
+        }
+      }
+
+      // Vérifier que le statut actuel permet la modification (uniquement pending, available, unavailable)
+      // Les photographes ne peuvent pas modifier les statuts validated, teamLeader, rejected
+      try {
+        const existingDispo = await sheetsService.getDisponibiliteById(id);
+        if (existingDispo && !['pending', 'available', 'unavailable'].includes(existingDispo.statut)) {
+          return NextResponse.json({
+            error: 'Vous ne pouvez pas modifier une disponibilité validée, refusée ou avec un rôle de chef d\'équipe assigné'
+          }, { status: 403 });
+        }
+      } catch (error) {
+        // Si la disponibilité n'existe pas encore, on peut continuer
+      }
+
+      // Les photographes ne peuvent changer le statut qu'entre pending, available, unavailable
+      if (!['pending', 'available', 'unavailable'].includes(statut)) {
+        return NextResponse.json({
+          error: 'Vous ne pouvez utiliser que les statuts: en attente, disponible ou indisponible'
+        }, { status: 403 });
       }
     }
 
@@ -225,6 +330,17 @@ export async function PATCH(request: NextRequest) {
     try {
       // Essayer de mettre à jour
       const updatedDisponibilite = await sheetsService.updateDisponibilite(id, updateData);
+
+      // Invalider le cache après modification
+      cache.delete(CacheKeys.allDisponibilites());
+      cache.delete(CacheKeys.disponibilite(id));
+      if (photographeId) {
+        cache.delete(CacheKeys.disponibilitesByPhotographer(photographeId));
+      }
+      if (courseId) {
+        cache.delete(CacheKeys.disponibilitesByCourse(courseId));
+      }
+
       return NextResponse.json({ disponibilite: updatedDisponibilite, success: true });
     } catch (updateError: any) {
       // Si la disponibilité n'existe pas, la créer
@@ -251,6 +367,12 @@ export async function PATCH(request: NextRequest) {
         };
 
         await sheetsService.createDisponibilite(newDisponibilite);
+
+        // Invalider le cache après création
+        cache.delete(CacheKeys.allDisponibilites());
+        cache.delete(CacheKeys.disponibilitesByPhotographer(photographeId));
+        cache.delete(CacheKeys.disponibilitesByCourse(courseId));
+
         return NextResponse.json({ disponibilite: newDisponibilite, success: true, created: true });
       }
 

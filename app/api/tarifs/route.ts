@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleSheetsService } from '@/lib/google-sheets';
 import { AuthService } from '@/lib/auth-google-sheets';
 import { cookies } from 'next/headers';
+import { CacheKeys, withCache } from '@/lib/cache';
 
 // GET /api/tarifs - Liste tous les tarifs ou filtre par courseId
 export async function GET(request: NextRequest) {
@@ -15,7 +16,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ tarifs: tarif ? [tarif] : [] });
     }
 
-    const tarifs = await sheetsService.getAllTarifs();
+    const tarifs = await withCache(
+      CacheKeys.allTarifs(),
+      () => sheetsService.getAllTarifs(),
+      60000 // 1 minute de cache
+    );
     return NextResponse.json({ tarifs });
   } catch (error: any) {
     console.error('Get tarifs error:', error);

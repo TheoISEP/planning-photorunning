@@ -159,6 +159,9 @@ export default function PhotographerRankingPage() {
 
     // Ajouter les admins qui participent aux courses
     admins.forEach(admin => {
+      // Vérifier si c'est un admin non rémunéré (fictif)
+      const isNonRemunere = admin.nonRemunere === 'TRUE' || admin.nonRemunere === true;
+
       let adminTotalEarnings = 0;
       let adminCoursesCount = 0;
       let adminTeamLeaderCount = 0;
@@ -172,8 +175,12 @@ export default function PhotographerRankingPage() {
 
         if (adminDispo && (adminDispo.statut === 'validated' || adminDispo.statut === 'teamLeader')) {
           let amount = Number(courseTarif.tarifPhotographe);
+
+          // Pour les admins non rémunérés, ne pas compter le bonus chef d'équipe
           if (adminDispo.statut === 'teamLeader') {
-            amount += Number(courseTarif.bonusChefEquipe);
+            if (!isNonRemunere) {
+              amount += Number(courseTarif.bonusChefEquipe);
+            }
             adminTeamLeaderCount += 1;
           }
 
@@ -184,9 +191,6 @@ export default function PhotographerRankingPage() {
 
       // Ajouter l'admin s'il a participé à au moins une course
       if (adminCoursesCount > 0) {
-        // Vérifier si c'est un admin non rémunéré (fictif)
-        const isNonRemunere = admin.nonRemunere === 'TRUE' || admin.nonRemunere === true;
-
         earnings[admin.id] = {
           photographerId: admin.id,
           photographerName: `${admin.prenom} ${admin.nom}`,

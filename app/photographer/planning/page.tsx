@@ -523,7 +523,7 @@ export default function PhotographerCalendrierPage() {
           // Utiliser le photographe sélectionné pour la vue mobile
           const activePhotographerId = selectedPhotographerId || currentUser?.id;
 
-          // Calculer le montant total du mois pour les courses validées
+          // Calculer le montant total du mois pour les courses validées (photographe actuel)
           const monthTotal = monthData.courses.reduce((total, course) => {
             if (!activePhotographerId) return total;
             const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === activePhotographerId);
@@ -543,17 +543,49 @@ export default function PhotographerCalendrierPage() {
             return total;
           }, 0);
 
+          // Calculer le total de tous les photographes
+          const allPhotographersIds = [
+            ...(currentUser ? [currentUser.id] : []),
+            ...managedPhotographers.map(p => p.id)
+          ];
+          const allMonthTotal = monthData.courses.reduce((total, course) => {
+            allPhotographersIds.forEach(photographerId => {
+              const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === photographerId);
+              if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
+                const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+                const courseTarif = dispo.tarifId
+                  ? tarifs.find((t) => t.id === dispo.tarifId)
+                  : courseTarifs[0];
+
+                if (courseTarif) {
+                  const amount = dispo.statut === 'teamLeader'
+                    ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
+                    : Number(courseTarif.tarifPhotographe);
+                  total += amount;
+                }
+              }
+            });
+            return total;
+          }, 0);
+
           return (
             <div key={monthKey} className="space-y-2">
               {/* En-tête du mois */}
               <div className="sticky top-0 z-10 bg-gradient-to-r from-orange-100 to-orange-50 dark:from-orange-900 dark:to-orange-950 p-3 rounded-lg border-2 border-orange-300">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-base capitalize">
-                    {format(new Date(monthData.year, monthData.month), 'MMMM yyyy', { locale: fr })}
-                  </h3>
-                  {monthTotal > 0 && (
+                  <div>
+                    <h3 className="font-bold text-base capitalize">
+                      {format(new Date(monthData.year, monthData.month), 'MMMM yyyy', { locale: fr })}
+                    </h3>
+                    {monthTotal > 0 && (
+                      <div className="text-xs text-orange-700 dark:text-orange-300 mt-0.5">
+                        {activePhotographerId === currentUser?.id ? 'Mon total' : currentPhotographer?.prenom}: {monthTotal.toLocaleString('fr-FR')}€
+                      </div>
+                    )}
+                  </div>
+                  {allMonthTotal > 0 && (
                     <span className="font-bold text-sm text-orange-700 dark:text-orange-300">
-                      {monthTotal.toLocaleString('fr-FR')}€
+                      Total: {allMonthTotal.toLocaleString('fr-FR')}€
                     </span>
                   )}
                 </div>
@@ -963,6 +995,8 @@ export default function PhotographerCalendrierPage() {
                               course={course}
                               photographerId={currentUser.id}
                               onStatusChange={handleStatusChange}
+                              tarifAmount={courseTarif?.tarifPhotographe}
+                              bonusChefEquipe={courseTarif?.bonusChefEquipe}
                               tarifDescription={hasMultipleTarifs && myDispo?.tarifId
                                 ? courseTarifs.find((t) => t.id === myDispo.tarifId)?.description || 'Tarif personnalisé'
                                 : undefined

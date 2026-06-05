@@ -1412,7 +1412,7 @@ export default function AdminCalendrierPage() {
                         className={cn(
                           "group grid gap-0 border-b border-gray-200/50 transition-colors",
                           bgColor,
-                          isNewWeekend && "border-t-2 border-t-blue-300/60 dark:border-t-blue-600/60"
+                          isNewWeekend && "border-t-4 border-t-blue-400 dark:border-t-blue-500 shadow-[0_-2px_8px_rgba(59,130,246,0.3)]"
                         )}
                         style={{
                           gridTemplateColumns: `200px 120px repeat(${[...admins, ...photographers].filter((u) => u.actif).length}, 70px)`,

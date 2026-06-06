@@ -147,6 +147,9 @@ export default function PhotographerProfileAdminPage() {
                 Voir les coûts
               </Button>
             </Link>
+            <Link href={`/admin/photographers/${photographerId}/accord`}>
+              <Button variant="outline">Accord de sous-traitance</Button>
+            </Link>
             <Link href={`/admin/photographers/${photographerId}/edit`}>
               <Button variant="outline">Modifier</Button>
             </Link>

@@ -216,10 +216,15 @@ export default function PhotographerProfilePage() {
             </div>
           </div>
           {!editMode ? (
-            <Button onClick={() => setEditMode(true)}>
-              <Edit2 className="h-4 w-4 mr-2" />
-              Modifier
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => window.location.href = '/photographer/profil/accord'}>
+                Accord de sous-traitance
+              </Button>
+              <Button onClick={() => setEditMode(true)}>
+                <Edit2 className="h-4 w-4 mr-2" />
+                Modifier
+              </Button>
+            </div>
           ) : (
             <div className="flex gap-2">
               <Button variant="outline" onClick={handleCancel}>

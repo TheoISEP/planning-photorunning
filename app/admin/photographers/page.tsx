@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, ChevronLeft, ChevronRight, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,7 @@ interface Photographer {
   email: string;
   telephone: string;
   actif: boolean;
+  accord?: string;
 }
 
 export default function PhotographersListPage() {
@@ -176,12 +177,13 @@ export default function PhotographersListPage() {
                 <TableHead>Email</TableHead>
                 <TableHead>Téléphone</TableHead>
                 <TableHead>Statut</TableHead>
+                <TableHead>Accord</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedPhotographers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-gray-500 py-8">
+                  <TableCell colSpan={6} className="text-center text-gray-500 py-8">
                     Aucun photographe trouvé
                   </TableCell>
                 </TableRow>
@@ -214,6 +216,13 @@ export default function PhotographersListPage() {
                           </Badge>
                         )}
                       </button>
+                    </TableCell>
+                    <TableCell>
+                      {photographer.accord === 'TRUE' || photographer.accord === true ? (
+                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-gray-300" />
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

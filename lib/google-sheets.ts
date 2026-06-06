@@ -56,7 +56,7 @@ export class GoogleSheetsService {
   async findPhotographerByEmail(email: string) {
     const response = await this.sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAMES.PHOTOGRAPHES}!A:Z`,
+      range: `${SHEET_NAMES.PHOTOGRAPHES}!A:AZ`,
     });
 
     const rows = response.data.values;
@@ -78,7 +78,7 @@ export class GoogleSheetsService {
   async getPhotographerById(id: string) {
     const response = await this.sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAMES.PHOTOGRAPHES}!A:Z`,
+      range: `${SHEET_NAMES.PHOTOGRAPHES}!A:AZ`,
     });
 
     const rows = response.data.values;
@@ -100,7 +100,7 @@ export class GoogleSheetsService {
   async getAllPhotographers() {
     const response = await this.sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAMES.PHOTOGRAPHES}!A:Z`,
+      range: `${SHEET_NAMES.PHOTOGRAPHES}!A:AZ`,
     });
 
     const rows = response.data.values;
@@ -118,7 +118,7 @@ export class GoogleSheetsService {
 
     await this.sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAMES.PHOTOGRAPHES}!A:Z`,
+      range: `${SHEET_NAMES.PHOTOGRAPHES}!A:AZ`,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [values],
@@ -140,13 +140,13 @@ export class GoogleSheetsService {
     // 3. Fusionner les données
     const updatedData = { ...currentData, ...data, id }; // Toujours garder l'ID
 
-    // 4. Mettre à jour
+    // 4. Mettre à jour - utiliser toutes les colonnes jusqu'à AZ
     const headers = await this.getSheetHeaders(SHEET_NAMES.PHOTOGRAPHES);
     const values = headers.map(header => (updatedData as any)[header] ?? '');
 
     await this.sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAMES.PHOTOGRAPHES}!A${rowIndex}:Z${rowIndex}`,
+      range: `${SHEET_NAMES.PHOTOGRAPHES}!A${rowIndex}:AZ${rowIndex}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [values],
@@ -678,7 +678,7 @@ export class GoogleSheetsService {
   private async getSheetHeaders(sheetName: string): Promise<string[]> {
     const response = await this.sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${sheetName}!A1:Z1`,
+      range: `${sheetName}!A1:AZ1`,  // Étendu jusqu'à AZ pour inclure toutes les colonnes
     });
 
     return response.data.values?.[0] ?? [];

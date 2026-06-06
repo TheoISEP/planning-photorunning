@@ -28,6 +28,8 @@ interface Photographer {
   flyingBlueExpiry?: string;
   sncf?: string;
   sncfExpiry?: string;
+  personUrgency?: string;
+  numberUrgency?: string;
 }
 
 export default function PhotographerProfilePage() {
@@ -645,6 +647,46 @@ export default function PhotographerProfilePage() {
                       </div>
                     ) : (
                       <p className="text-sm text-gray-500">-</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Contact d'urgence */}
+              <div>
+                <Label className="text-base font-semibold">Contact d'urgence</Label>
+                <p className="text-xs text-gray-500 mt-1 mb-4">
+                  Personne à contacter en cas d'urgence
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Nom de la personne</Label>
+                    {editMode ? (
+                      <Input
+                        value={formData.personUrgency || ''}
+                        onChange={(e) =>
+                          setFormData({ ...formData, personUrgency: e.target.value })
+                        }
+                        placeholder="Nom et prénom"
+                      />
+                    ) : (
+                      <p className="text-sm text-gray-900 mt-1">{photographer.personUrgency || '-'}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label>Numéro de téléphone</Label>
+                    {editMode ? (
+                      <Input
+                        value={formData.numberUrgency || ''}
+                        onChange={(e) =>
+                          setFormData({ ...formData, numberUrgency: e.target.value })
+                        }
+                        placeholder="06 12 34 56 78"
+                      />
+                    ) : (
+                      <p className="text-sm text-gray-900 mt-1">{photographer.numberUrgency || '-'}</p>
                     )}
                   </div>
                 </div>

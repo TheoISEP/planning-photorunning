@@ -119,8 +119,8 @@ export default function PhotographerProfileAdminPage() {
   return (
     <div className="h-full overflow-auto">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-start justify-between">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-4 mb-2">
               <Link href="/admin/photographers">
@@ -140,18 +140,18 @@ export default function PhotographerProfileAdminPage() {
             </h1>
             <p className="text-sm text-gray-600 mt-1">Photographe</p>
           </div>
-          <div className="flex gap-2">
-            <Link href={`/admin/photographers/${photographerId}/stats`}>
-              <Button variant="outline">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Link href={`/admin/photographers/${photographerId}/stats`} className="w-full sm:w-auto">
+              <Button variant="outline" className="w-full sm:w-auto">
                 <CreditCard className="h-4 w-4 mr-2" />
                 Voir les coûts
               </Button>
             </Link>
-            <Link href={`/admin/photographers/${photographerId}/accord`}>
-              <Button variant="outline">Accord de sous-traitance</Button>
+            <Link href={`/admin/photographers/${photographerId}/accord`} className="w-full sm:w-auto">
+              <Button variant="outline" className="w-full sm:w-auto">Accord de sous-traitance</Button>
             </Link>
-            <Link href={`/admin/photographers/${photographerId}/edit`}>
-              <Button variant="outline">Modifier</Button>
+            <Link href={`/admin/photographers/${photographerId}/edit`} className="w-full sm:w-auto">
+              <Button variant="outline" className="w-full sm:w-auto">Modifier</Button>
             </Link>
           </div>
         </div>

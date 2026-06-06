@@ -203,7 +203,7 @@ export default function PhotographerProfilePage() {
     <div className="h-full overflow-auto">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
             <Avatar className="h-12 w-12">
               <AvatarFallback className="bg-gray-100 text-gray-600 text-lg">
@@ -216,22 +216,36 @@ export default function PhotographerProfilePage() {
             </div>
           </div>
           {!editMode ? (
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => window.location.href = '/photographer/profil/accord'}>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                onClick={() => window.location.href = '/photographer/profil/accord'}
+                className="w-full sm:w-auto"
+              >
                 Accord de sous-traitance
               </Button>
-              <Button onClick={() => setEditMode(true)}>
+              <Button
+                onClick={() => setEditMode(true)}
+                className="w-full sm:w-auto"
+              >
                 <Edit2 className="h-4 w-4 mr-2" />
                 Modifier
               </Button>
             </div>
           ) : (
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleCancel}>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                onClick={handleCancel}
+                className="w-full sm:w-auto"
+              >
                 <X className="h-4 w-4 mr-2" />
                 Annuler
               </Button>
-              <Button onClick={handleSave}>
+              <Button
+                onClick={handleSave}
+                className="w-full sm:w-auto"
+              >
                 <Save className="h-4 w-4 mr-2" />
                 Enregistrer
               </Button>

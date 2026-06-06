@@ -35,6 +35,7 @@ export default function PhotographerProfilePage() {
   const [editMode, setEditMode] = useState(false);
   const [photographer, setPhotographer] = useState<Photographer | null>(null);
   const [formData, setFormData] = useState<Photographer | null>(null);
+  const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
     fetchProfile();
@@ -112,29 +113,41 @@ export default function PhotographerProfilePage() {
     if (!photographer || !formData) return;
 
     try {
+      const dataToSave: any = {
+        ...formData,
+        cameras: JSON.stringify(formData.cameras || []),
+        objectifs: JSON.stringify(formData.objectifs || []),
+        cartesMemoire: JSON.stringify(formData.cartesMemoire || []),
+        flashs: JSON.stringify(formData.flashs || []),
+      };
+
+      // Ajouter le mot de passe seulement s'il a été modifié
+      if (newPassword.trim()) {
+        dataToSave.password = newPassword;
+      }
+
       const res = await fetch(`/api/photographers/${photographer.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          cameras: JSON.stringify(formData.cameras || []),
-          objectifs: JSON.stringify(formData.objectifs || []),
-          cartesMemoire: JSON.stringify(formData.cartesMemoire || []),
-          flashs: JSON.stringify(formData.flashs || []),
-        }),
+        body: JSON.stringify(dataToSave),
       });
 
       if (res.ok) {
         setPhotographer(formData);
         setEditMode(false);
+        setNewPassword('');
+        alert('Profil mis à jour avec succès !');
+      } else {
+        alert('Erreur lors de la sauvegarde du profil');
       }
     } catch (error) {
-      // Erreur sauvegarde profil
+      alert('Erreur lors de la sauvegarde du profil');
     }
   };
 
   const handleCancel = () => {
     setFormData(photographer);
+    setNewPassword('');
     setEditMode(false);
   };
 
@@ -293,6 +306,21 @@ export default function PhotographerProfilePage() {
                 <p className="text-sm text-gray-600 mt-1">{photographer.email}</p>
                 <p className="text-xs text-gray-500 mt-1">L'email ne peut pas être modifié</p>
               </div>
+
+              {editMode && (
+                <div>
+                  <Label>Nouveau mot de passe</Label>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Laisser vide pour ne pas modifier"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Laissez vide si vous ne souhaitez pas changer votre mot de passe
+                  </p>
+                </div>
+              )}
 
               <div>
                 <Label>Téléphone</Label>

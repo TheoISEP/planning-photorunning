@@ -1,5 +1,6 @@
 'use client';
 
+// Costs management page with monthly software cost tracking
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -19,6 +20,11 @@ interface Course {
   foodPrice?: string;
   comOrga?: string;
   archived?: string;
+}
+
+interface MonthlySoftCost {
+  month: string; // Format: "YYYY-MM"
+  softCost: number;
 }
 
 interface Tarif {
@@ -67,6 +73,9 @@ export default function CostsRecapPage() {
     foodPrice: '',
     comOrga: '',
   });
+  const [monthlySoftCosts, setMonthlySoftCosts] = useState<Record<string, number>>({});
+  const [editingMonth, setEditingMonth] = useState<number | null>(null);
+  const [editingSoftCost, setEditingSoftCost] = useState<string>('');
 
   useEffect(() => {
     fetchData();
@@ -76,24 +85,37 @@ export default function CostsRecapPage() {
     try {
       setLoading(true);
 
-      const [coursesRes, tarifsRes, disponibilitesRes, adminsRes] = await Promise.all([
+      const [coursesRes, tarifsRes, disponibilitesRes, adminsRes, statsRes] = await Promise.all([
         fetch('/api/courses'),
         fetch('/api/tarifs'),
         fetch('/api/disponibilites'),
         fetch('/api/admins'),
+        fetch('/api/admin-stats'),
       ]);
 
-      const [coursesData, tarifsData, disponibilitesData, adminsData] = await Promise.all([
+      const [coursesData, tarifsData, disponibilitesData, adminsData, statsData] = await Promise.all([
         coursesRes.json(),
         tarifsRes.json(),
         disponibilitesRes.json(),
         adminsRes.json(),
+        statsRes.json(),
       ]);
 
       setCourses(coursesData.courses || []);
       setTarifs(tarifsData.tarifs || []);
       setDisponibilites(disponibilitesData.disponibilites || []);
       setAdmins(adminsData.admins || []);
+
+      // Charger les coûts logiciels mensuels
+      const softCosts: Record<string, number> = {};
+      if (statsData.stats) {
+        statsData.stats.forEach((stat: any) => {
+          if (stat.month && stat.softCost) {
+            softCosts[stat.month] = Number(stat.softCost) || 0;
+          }
+        });
+      }
+      setMonthlySoftCosts(softCosts);
     } catch (error) {
       console.error('Erreur chargement données:', error);
     } finally {
@@ -128,6 +150,45 @@ export default function CostsRecapPage() {
       foodPrice: '',
       comOrga: '',
     });
+  };
+
+  const startEditingSoftCost = (monthIndex: number) => {
+    const monthKey = `${selectedYear}-${String(monthIndex + 1).padStart(2, '0')}`;
+    setEditingMonth(monthIndex);
+    setEditingSoftCost(String(monthlySoftCosts[monthKey] || 0));
+  };
+
+  const cancelEditingSoftCost = () => {
+    setEditingMonth(null);
+    setEditingSoftCost('');
+  };
+
+  const saveSoftCost = async (monthIndex: number) => {
+    try {
+      const monthKey = `${selectedYear}-${String(monthIndex + 1).padStart(2, '0')}`;
+
+      const res = await fetch('/api/admin-stats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          month: monthKey,
+          softCost: editingSoftCost,
+        }),
+      });
+
+      if (res.ok) {
+        // Mettre à jour l'état local
+        setMonthlySoftCosts({
+          ...monthlySoftCosts,
+          [monthKey]: Number(editingSoftCost) || 0,
+        });
+        cancelEditingSoftCost();
+      } else {
+        console.error('Erreur sauvegarde coût logiciel');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+    }
   };
 
   const saveCosts = async (courseId: string) => {
@@ -205,15 +266,20 @@ export default function CostsRecapPage() {
   };
 
   // Calculer les totaux pour un mois
-  const calculateMonthTotals = (monthCourses: Course[]) => {
+  const calculateMonthTotals = (monthCourses: Course[], monthIndex: number) => {
     const hotel = monthCourses.reduce((sum, c) => sum + (Number(c.hotelPrice) || 0), 0);
     const transport = monthCourses.reduce((sum, c) => sum + (Number(c.transportPrice) || 0), 0);
     const food = monthCourses.reduce((sum, c) => sum + (Number(c.foodPrice) || 0), 0);
     const comOrga = monthCourses.reduce((sum, c) => sum + (Number(c.comOrga) || 0), 0);
     const photos = monthCourses.reduce((sum, c) => sum + calculatePhotoCost(c.id), 0);
-    const total = hotel + transport + food + comOrga + photos;
 
-    return { hotel, transport, food, comOrga, photos, total };
+    // Récupérer le coût logiciel mensuel
+    const monthKey = `${selectedYear}-${String(monthIndex + 1).padStart(2, '0')}`;
+    const softCost = monthlySoftCosts[monthKey] || 0;
+
+    const total = hotel + transport + food + comOrga + softCost + photos;
+
+    return { hotel, transport, food, comOrga, softCost, photos, total };
   };
 
   // Calculer le total annuel
@@ -222,6 +288,7 @@ export default function CostsRecapPage() {
     let transportTotal = 0;
     let foodTotal = 0;
     let comOrgaTotal = 0;
+    let softCostTotal = 0;
     let photosTotal = 0;
 
     yearCourses.forEach(course => {
@@ -232,13 +299,20 @@ export default function CostsRecapPage() {
       photosTotal += calculatePhotoCost(course.id);
     });
 
+    // Calculer le total des coûts logiciels pour l'année
+    for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
+      const monthKey = `${selectedYear}-${String(monthIndex + 1).padStart(2, '0')}`;
+      softCostTotal += monthlySoftCosts[monthKey] || 0;
+    }
+
     return {
       hotelTotal,
       transportTotal,
       foodTotal,
       comOrgaTotal,
+      softCostTotal,
       photosTotal,
-      grandTotal: hotelTotal + transportTotal + foodTotal + comOrgaTotal + photosTotal,
+      grandTotal: hotelTotal + transportTotal + foodTotal + comOrgaTotal + softCostTotal + photosTotal,
     };
   };
 
@@ -295,7 +369,7 @@ export default function CostsRecapPage() {
       </div>
 
       {/* Totaux annuels */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Hôtels</CardTitle>
@@ -326,6 +400,14 @@ export default function CostsRecapPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(yearTotals.comOrgaTotal)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Logiciel</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(yearTotals.softCostTotal)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -362,6 +444,7 @@ export default function CostsRecapPage() {
                 <th className="text-right p-3 font-semibold">Transport</th>
                 <th className="text-right p-3 font-semibold">Nourriture</th>
                 <th className="text-right p-3 font-semibold">Com. Orga</th>
+                <th className="text-right p-3 font-semibold">Logiciel</th>
                 <th className="text-right p-3 font-semibold">Photographes</th>
                 <th className="text-right p-3 font-semibold bg-gray-100">TOTAL</th>
               </tr>
@@ -369,9 +452,11 @@ export default function CostsRecapPage() {
             <tbody>
               {MONTH_NAMES.map((monthName, monthIndex) => {
                 const monthCourses = coursesByMonth[monthIndex] || [];
-                const totals = calculateMonthTotals(monthCourses);
+                const totals = calculateMonthTotals(monthCourses, monthIndex);
                 const archivedCount = monthCourses.filter(c => c.archived === 'oui').length;
                 const activeCount = monthCourses.length - archivedCount;
+                const isEditingThisMonth = editingMonth === monthIndex;
+                const monthKey = `${selectedYear}-${String(monthIndex + 1).padStart(2, '0')}`;
 
                 return (
                   <tr
@@ -404,6 +489,42 @@ export default function CostsRecapPage() {
                     </td>
                     <td className="p-3 text-right">
                       {totals.comOrga > 0 ? formatCurrency(totals.comOrga) : '-'}
+                    </td>
+                    <td className="p-3 text-right cursor-pointer hover:bg-blue-50" onClick={() => !isEditingThisMonth && startEditingSoftCost(monthIndex)}>
+                      {isEditingThisMonth ? (
+                        <div className="flex items-center gap-1 justify-end">
+                          <input
+                            type="number"
+                            value={editingSoftCost}
+                            onChange={(e) => setEditingSoftCost(e.target.value)}
+                            className="w-20 px-2 py-1 text-right border rounded"
+                            autoFocus
+                          />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              saveSoftCost(monthIndex);
+                            }}
+                            className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              cancelEditingSoftCost();
+                            }}
+                            className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+                          >
+                            ✗
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="inline-flex items-center gap-1">
+                          {totals.softCost > 0 ? formatCurrency(totals.softCost) : '-'}
+                          <span className="text-xs text-gray-400">✎</span>
+                        </span>
+                      )}
                     </td>
                     <td className="p-3 text-right">
                       {totals.photos > 0 ? formatCurrency(totals.photos) : '-'}
@@ -438,6 +559,7 @@ export default function CostsRecapPage() {
                 <td className="p-3 text-right">{formatCurrency(yearTotals.transportTotal)}</td>
                 <td className="p-3 text-right">{formatCurrency(yearTotals.foodTotal)}</td>
                 <td className="p-3 text-right">{formatCurrency(yearTotals.comOrgaTotal)}</td>
+                <td className="p-3 text-right">{formatCurrency(yearTotals.softCostTotal)}</td>
                 <td className="p-3 text-right">{formatCurrency(yearTotals.photosTotal)}</td>
                 <td className="p-3 text-right bg-gray-200">{formatCurrency(yearTotals.grandTotal)}</td>
               </tr>
@@ -454,7 +576,7 @@ export default function CostsRecapPage() {
 
           if (monthCourses.length === 0) return null;
 
-          const totals = calculateMonthTotals(monthCourses);
+          const totals = calculateMonthTotals(monthCourses, monthIndex);
 
           return (
             <Card key={monthIndex}>

@@ -828,4 +828,65 @@ export class GoogleSheetsService {
 
     return null;
   }
+
+  async createAdminStatistics(data: Record<string, any>) {
+    const headers = await this.getSheetHeaders(SHEET_NAMES.STATS_ADMIN);
+    const values = headers.map(header => data[header] ?? '');
+
+    await this.sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_NAMES.STATS_ADMIN}!A:Z`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [values],
+      },
+    });
+
+    return data;
+  }
+
+  async updateAdminStatistics(month: string, data: Record<string, any>) {
+    const response = await this.sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_NAMES.STATS_ADMIN}!A:Z`,
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) throw new Error('Feuille vide');
+
+    const headers = rows[0];
+    const monthIndex = headers.indexOf('month');
+    const dataRows = rows.slice(1);
+
+    // Trouver la ligne correspondant au mois
+    let rowIndex = -1;
+    for (let i = 0; i < dataRows.length; i++) {
+      if (dataRows[i][monthIndex] === month) {
+        rowIndex = i + 2; // +2 car index 0 = header, et on commence à 1
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      throw new Error('Mois non trouvé');
+    }
+
+    // Récupérer les données actuelles
+    const currentData = this.rowToObject(headers, dataRows[rowIndex - 2]);
+    const updatedData = { ...currentData, ...data, month };
+
+    // Mettre à jour
+    const values = headers.map(header => (updatedData as any)[header] ?? '');
+
+    await this.sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_NAMES.STATS_ADMIN}!A${rowIndex}:Z${rowIndex}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [values],
+      },
+    });
+
+    return updatedData;
+  }
 }

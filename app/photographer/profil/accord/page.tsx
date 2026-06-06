@@ -119,7 +119,7 @@ export default function PhotographerAccordPage() {
       if (res.ok) {
         const data = await res.json();
         setPhotographer(data.photographer);
-        const isSigned = data.photographer.accord === 'TRUE' || data.photographer.accord === true;
+        const isSigned = data.photographer.accord === 'TRUE';
         setSigned(isSigned);
       }
     } catch (error) {

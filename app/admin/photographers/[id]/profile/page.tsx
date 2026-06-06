@@ -144,7 +144,7 @@ export default function PhotographerProfileAdminPage() {
             <Link href={`/admin/photographers/${photographerId}/stats`} className="w-full sm:w-auto">
               <Button variant="outline" className="w-full sm:w-auto">
                 <CreditCard className="h-4 w-4 mr-2" />
-                Voir les coûts
+                Chiffre d'affaires
               </Button>
             </Link>
             <Link href={`/admin/photographers/${photographerId}/accord`} className="w-full sm:w-auto">

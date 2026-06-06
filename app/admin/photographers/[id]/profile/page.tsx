@@ -40,9 +40,14 @@ export default function PhotographerProfileAdminPage() {
 
   const [loading, setLoading] = useState(true);
   const [photographer, setPhotographer] = useState<Photographer | null>(null);
+  const [yearlyStats, setYearlyStats] = useState({
+    nombreCourses: 0,
+    montantTotal: 0,
+  });
 
   useEffect(() => {
     fetchPhotographer();
+    fetchStats();
   }, [photographerId]);
 
   const fetchPhotographer = async () => {
@@ -57,6 +62,40 @@ export default function PhotographerProfileAdminPage() {
       console.error('Erreur chargement photographe:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch(`/api/photographers/${photographerId}/stats`);
+      if (!res.ok) return;
+
+      const data = await res.json();
+      const statistics = data.statistics || [];
+
+      const currentYear = new Date().getFullYear();
+
+      // Filtrer les stats de l'année en cours et calculer le total
+      const yearStats = statistics.filter(
+        (stat: any) => parseInt(stat.annee) === currentYear
+      );
+
+      const totalCourses = yearStats.reduce(
+        (sum: number, stat: any) => sum + parseInt(stat.nombreCourses || '0'),
+        0
+      );
+
+      const totalCA = yearStats.reduce(
+        (sum: number, stat: any) => sum + parseFloat(stat.montantTotal || '0'),
+        0
+      );
+
+      setYearlyStats({
+        nombreCourses: totalCourses,
+        montantTotal: totalCA,
+      });
+    } catch (error) {
+      console.error('Erreur chargement statistiques:', error);
     }
   };
 
@@ -391,15 +430,24 @@ export default function PhotographerProfileAdminPage() {
           {/* Statistiques */}
           <Card>
             <CardHeader>
-              <CardTitle>Statistiques</CardTitle>
-              <CardDescription>Activité du photographe</CardDescription>
+              <CardTitle>Statistiques {new Date().getFullYear()}</CardTitle>
+              <CardDescription>Activité de l'année en cours</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm text-gray-600">
-              <p>Courses validées : 0</p>
-              <p>CA total : 0 €</p>
-              <p className="text-xs italic text-gray-500">
-                Les statistiques seront calculées à partir des disponibilités
-              </p>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Courses validées / chef</span>
+                <span className="text-lg font-semibold text-gray-900">{yearlyStats.nombreCourses}</span>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">CA total</span>
+                <span className="text-lg font-semibold text-gray-900">
+                  {yearlyStats.montantTotal.toLocaleString('fr-FR', {
+                    style: 'currency',
+                    currency: 'EUR',
+                  })}
+                </span>
+              </div>
             </CardContent>
           </Card>
         </div>

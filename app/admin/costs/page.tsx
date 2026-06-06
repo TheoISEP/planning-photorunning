@@ -55,6 +55,18 @@ export default function CostsRecapPage() {
   const [disponibilites, setDisponibilites] = useState<Disponibilite[]>([]);
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [editingCourse, setEditingCourse] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<{
+    hotelPrice: string;
+    transportPrice: string;
+    foodPrice: string;
+    comOrga: string;
+  }>({
+    hotelPrice: '',
+    transportPrice: '',
+    foodPrice: '',
+    comOrga: '',
+  });
 
   useEffect(() => {
     fetchData();
@@ -96,6 +108,55 @@ export default function CostsRecapPage() {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const startEditing = (course: Course) => {
+    setEditingCourse(course.id);
+    setEditValues({
+      hotelPrice: course.hotelPrice || '0',
+      transportPrice: course.transportPrice || '0',
+      foodPrice: course.foodPrice || '0',
+      comOrga: course.comOrga || '0',
+    });
+  };
+
+  const cancelEditing = () => {
+    setEditingCourse(null);
+    setEditValues({
+      hotelPrice: '',
+      transportPrice: '',
+      foodPrice: '',
+      comOrga: '',
+    });
+  };
+
+  const saveCosts = async (courseId: string) => {
+    try {
+      const res = await fetch(`/api/courses/${courseId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hotelPrice: editValues.hotelPrice,
+          transportPrice: editValues.transportPrice,
+          foodPrice: editValues.foodPrice,
+          comOrga: editValues.comOrga,
+        }),
+      });
+
+      if (res.ok) {
+        // Mettre à jour l'état local
+        setCourses(courses.map(c =>
+          c.id === courseId
+            ? { ...c, ...editValues }
+            : c
+        ));
+        cancelEditing();
+      } else {
+        console.error('Erreur sauvegarde coûts');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+    }
   };
 
   // Filtrer les courses pour l'année sélectionnée (y compris archivées)
@@ -414,15 +475,17 @@ export default function CostsRecapPage() {
                         <th className="text-right p-2 font-semibold">Com. Orga</th>
                         <th className="text-right p-2 font-semibold">Photographes</th>
                         <th className="text-right p-2 font-semibold bg-gray-50">TOTAL</th>
+                        <th className="text-center p-2 font-semibold">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {monthCourses.map(course => {
                         const photoCost = calculatePhotoCost(course.id);
-                        const hotelPrice = Number(course.hotelPrice) || 0;
-                        const transportPrice = Number(course.transportPrice) || 0;
-                        const foodPrice = Number(course.foodPrice) || 0;
-                        const comOrga = Number(course.comOrga) || 0;
+                        const isEditing = editingCourse === course.id;
+                        const hotelPrice = Number(isEditing ? editValues.hotelPrice : course.hotelPrice) || 0;
+                        const transportPrice = Number(isEditing ? editValues.transportPrice : course.transportPrice) || 0;
+                        const foodPrice = Number(isEditing ? editValues.foodPrice : course.foodPrice) || 0;
+                        const comOrga = Number(isEditing ? editValues.comOrga : course.comOrga) || 0;
                         const totalCost = hotelPrice + transportPrice + foodPrice + comOrga + photoCost;
 
                         return (
@@ -432,12 +495,81 @@ export default function CostsRecapPage() {
                             <td className="p-2 text-muted-foreground">
                               {format(new Date(course.dateDebut), 'dd/MM/yyyy')}
                             </td>
-                            <td className="p-2 text-right">{formatCurrency(hotelPrice)}</td>
-                            <td className="p-2 text-right">{formatCurrency(transportPrice)}</td>
-                            <td className="p-2 text-right">{formatCurrency(foodPrice)}</td>
-                            <td className="p-2 text-right">{formatCurrency(comOrga)}</td>
+                            <td className="p-2 text-right">
+                              {isEditing ? (
+                                <input
+                                  type="number"
+                                  value={editValues.hotelPrice}
+                                  onChange={(e) => setEditValues({ ...editValues, hotelPrice: e.target.value })}
+                                  className="w-20 px-2 py-1 text-right border rounded"
+                                />
+                              ) : (
+                                formatCurrency(hotelPrice)
+                              )}
+                            </td>
+                            <td className="p-2 text-right">
+                              {isEditing ? (
+                                <input
+                                  type="number"
+                                  value={editValues.transportPrice}
+                                  onChange={(e) => setEditValues({ ...editValues, transportPrice: e.target.value })}
+                                  className="w-20 px-2 py-1 text-right border rounded"
+                                />
+                              ) : (
+                                formatCurrency(transportPrice)
+                              )}
+                            </td>
+                            <td className="p-2 text-right">
+                              {isEditing ? (
+                                <input
+                                  type="number"
+                                  value={editValues.foodPrice}
+                                  onChange={(e) => setEditValues({ ...editValues, foodPrice: e.target.value })}
+                                  className="w-20 px-2 py-1 text-right border rounded"
+                                />
+                              ) : (
+                                formatCurrency(foodPrice)
+                              )}
+                            </td>
+                            <td className="p-2 text-right">
+                              {isEditing ? (
+                                <input
+                                  type="number"
+                                  value={editValues.comOrga}
+                                  onChange={(e) => setEditValues({ ...editValues, comOrga: e.target.value })}
+                                  className="w-20 px-2 py-1 text-right border rounded"
+                                />
+                              ) : (
+                                formatCurrency(comOrga)
+                              )}
+                            </td>
                             <td className="p-2 text-right">{formatCurrency(photoCost)}</td>
                             <td className="p-2 text-right font-bold bg-gray-50">{formatCurrency(totalCost)}</td>
+                            <td className="p-2 text-center">
+                              {isEditing ? (
+                                <div className="flex gap-1 justify-center">
+                                  <button
+                                    onClick={() => saveCosts(course.id)}
+                                    className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+                                  >
+                                    Sauv.
+                                  </button>
+                                  <button
+                                    onClick={cancelEditing}
+                                    className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+                                  >
+                                    Annuler
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => startEditing(course)}
+                                  className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                                >
+                                  Éditer
+                                </button>
+                              )}
+                            </td>
                           </tr>
                         );
                       })}
@@ -450,6 +582,7 @@ export default function CostsRecapPage() {
                         <td className="p-2 text-right">{formatCurrency(totals.comOrga)}</td>
                         <td className="p-2 text-right">{formatCurrency(totals.photos)}</td>
                         <td className="p-2 text-right bg-gray-200">{formatCurrency(totals.total)}</td>
+                        <td className="p-2"></td>
                       </tr>
                     </tbody>
                   </table>

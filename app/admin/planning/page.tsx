@@ -858,8 +858,20 @@ export default function AdminCalendrierPage() {
 
   // Filtrage par statut uniquement
   const filteredCourses = courses.filter((course) => {
-    // Exclure les courses archivées
-    if (course.archived === 'oui') return false;
+    // Pour les courses archivées, inclure seulement celles du mois actuel
+    if (course.archived === 'oui') {
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      const courseDate = new Date(course.dateDebut);
+      const courseMonth = courseDate.getMonth();
+      const courseYear = courseDate.getFullYear();
+
+      // Garder uniquement si c'est le mois en cours
+      if (courseYear !== currentYear || courseMonth !== currentMonth) {
+        return false;
+      }
+    }
 
     // Filtre par statut
     if (statutFilter === 'all') return true;
@@ -1071,11 +1083,20 @@ export default function AdminCalendrierPage() {
                 </div>
 
                 {/* Cartes des courses */}
-                {monthData.courses.map((course) => (
-                  <div
-                    key={course.id}
-                    className="bg-white dark:bg-gray-950 p-3 rounded-lg border-2 shadow-sm"
-                  >
+                {monthData.courses.map((course) => {
+                  // Vérifier si la course est passée
+                  const now = new Date();
+                  const courseEndDate = new Date(course.dateFin);
+                  const isPastCourse = courseEndDate < now;
+
+                  return (
+                    <div
+                      key={course.id}
+                      className={cn(
+                        "bg-white dark:bg-gray-950 p-3 rounded-lg border-2 shadow-sm",
+                        isPastCourse && "opacity-40"
+                      )}
+                    >
                     <div className="space-y-2">
                       {/* Titre et icônes */}
                       <div className="flex items-start justify-between gap-2">
@@ -1151,7 +1172,8 @@ export default function AdminCalendrierPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             );
           })}

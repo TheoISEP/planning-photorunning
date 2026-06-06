@@ -201,8 +201,21 @@ export default function PhotographerCalendrierPage() {
       if (coursesRes.ok) {
         const coursesData = await coursesRes.json();
         const allCourses = coursesData.courses || [];
-        // Filtrer les courses non archivées
-        activeCourses = allCourses.filter((c: Course) => c.archived !== 'oui');
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        // Filtrer : courses non archivées OU archivées du mois en cours
+        activeCourses = allCourses.filter((c: Course) => {
+          if (c.archived !== 'oui') return true; // Garder les non archivées
+
+          // Pour les archivées, vérifier si c'est le mois en cours
+          const courseDate = new Date(c.dateDebut);
+          const courseMonth = courseDate.getMonth();
+          const courseYear = courseDate.getFullYear();
+
+          return courseYear === currentYear && courseMonth === currentMonth;
+        });
         setCourses(activeCourses);
       }
 
@@ -651,12 +664,18 @@ export default function PhotographerCalendrierPage() {
                 // Afficher le sélecteur si : pas encore de dispo OU statut modifiable (et pas rejeté, pas validé, pas chef)
                 const shouldShowSelector = !isValidatedOrLeader && !isRejected;
 
+                // Vérifier si la course est passée
+                const now = new Date();
+                const courseEndDate = new Date(course.dateFin);
+                const isPastCourse = courseEndDate < now;
+
                 return (
                   <div
                     key={course.id}
                     className={cn(
                       'p-3 rounded-lg border-2 transition-all',
-                      config.bg
+                      config.bg,
+                      isPastCourse && 'opacity-40'
                     )}
                   >
                     <div className="space-y-2">
@@ -826,6 +845,13 @@ export default function PhotographerCalendrierPage() {
                 return sum + calculatePhotographerMonthStats(id).monthlyAmount;
               }, 0);
 
+              // Calculer le nombre de courses visibles (non rejected)
+              const visibleCoursesCount = monthData.courses.filter((course) => {
+                if (!currentUser) return true;
+                const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id);
+                return !dispo || dispo.statut !== 'rejected';
+              }).length;
+
               return (
                 <div key={monthKey}>
                   {/* Ligne mois */}
@@ -845,7 +871,7 @@ export default function PhotographerCalendrierPage() {
                     </div>
                     <div className="p-3 pr-2 border-r-2 border-orange-300 bg-orange-100 dark:bg-orange-900">
                       <div className="text-xs text-center">
-                        {monthData.courses.length} course{monthData.courses.length > 1 ? 's' : ''}
+                        {visibleCoursesCount} course{visibleCoursesCount > 1 ? 's' : ''}
                       </div>
                     </div>
                     {/* Colonne pour le photographe principal */}
@@ -938,6 +964,11 @@ export default function PhotographerCalendrierPage() {
                     const prevWeekend = prevCourse ? getWeekendKey(new Date(prevCourse.dateDebut)) : null;
                     const isNewWeekend = prevWeekend && currentWeekend !== prevWeekend;
 
+                    // Vérifier si la course est passée
+                    const now = new Date();
+                    const courseEndDate = new Date(course.dateFin);
+                    const isPastCourse = courseEndDate < now;
+
                     return (
                       <React.Fragment key={course.id}>
                         {/* Séparateur de week-end */}
@@ -955,7 +986,8 @@ export default function PhotographerCalendrierPage() {
                             isValidated && myDispo.statut !== 'teamLeader' && 'border-l-4 border-l-green-600 hover:bg-green-100 shadow-sm',
                             myDispo?.statut === 'teamLeader' && 'border-l-4 border-l-purple-600 hover:bg-purple-100',
                             isRejected && 'opacity-40 hover:opacity-60 border-gray-200/50',
-                            !isValidated && !isRejected && 'border-gray-200/50 hover:bg-gray-100'
+                            !isValidated && !isRejected && 'border-gray-200/50 hover:bg-gray-100',
+                            isPastCourse && 'opacity-40'
                           )}
                           style={{ gridTemplateColumns: `2fr 1fr ${Array(1 + managedPhotographers.length).fill('2fr').join(' ')}` }}
                         >

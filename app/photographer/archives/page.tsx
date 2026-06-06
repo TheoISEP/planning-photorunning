@@ -59,6 +59,7 @@ export default function PhotographerArchivesPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [allCourses, setAllCourses] = useState<Course[]>([]); // Toutes les courses (pour calculs du mois actuel)
   const [tarifs, setTarifs] = useState<Tarif[]>([]);
   const [disponibilites, setDisponibilites] = useState<Disponibilite[]>([]);
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
@@ -91,12 +92,14 @@ export default function PhotographerArchivesPage() {
 
       // Traiter les courses
       let archivedCourses: Course[] = [];
+      let allCoursesData: Course[] = [];
       if (coursesRes.ok) {
         const coursesData = await coursesRes.json();
-        const allCourses = coursesData.courses || [];
+        allCoursesData = coursesData.courses || [];
         // Filtrer SEULEMENT les courses archivées
-        archivedCourses = allCourses.filter((c: Course) => c.archived === 'oui');
+        archivedCourses = allCoursesData.filter((c: Course) => c.archived === 'oui');
         setCourses(archivedCourses);
+        setAllCourses(allCoursesData);
       }
 
       // Traiter les tarifs
@@ -309,8 +312,22 @@ export default function PhotographerArchivesPage() {
           // Utiliser le photographe sélectionné pour la vue mobile
           const activePhotographerId = selectedPhotographerId || currentUser?.id;
 
+          // Déterminer si c'est le mois actuel
+          const now = new Date();
+          const currentMonth = now.getMonth();
+          const currentYear = now.getFullYear();
+          const isCurrentMonth = monthData.year === currentYear && monthData.month === currentMonth;
+
+          // Pour le mois actuel, inclure aussi les courses non archivées
+          const coursesToCalculate = isCurrentMonth
+            ? allCourses.filter(c => {
+                const courseDate = new Date(c.dateDebut);
+                return courseDate.getMonth() === currentMonth && courseDate.getFullYear() === currentYear;
+              })
+            : monthData.courses;
+
           // Calculer le montant total du mois pour les courses validées (photographe actuel)
-          const monthTotal = monthData.courses.reduce((total, course) => {
+          const monthTotal = coursesToCalculate.reduce((total, course) => {
             if (!activePhotographerId) return total;
             const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === activePhotographerId);
             if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
@@ -334,7 +351,7 @@ export default function PhotographerArchivesPage() {
             ...(currentUser ? [currentUser.id] : []),
             ...managedPhotographers.map(p => p.id)
           ];
-          const allMonthTotal = monthData.courses.reduce((total, course) => {
+          const allMonthTotal = coursesToCalculate.reduce((total, course) => {
             allPhotographersIds.forEach(photographerId => {
               const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === photographerId);
               if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
@@ -511,9 +528,23 @@ export default function PhotographerArchivesPage() {
                 .map((monthData) => {
                 const monthKey = `${monthData.year}-${monthData.month}`;
 
+                // Déterminer si c'est le mois actuel
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+                const isCurrentMonth = monthData.year === currentYear && monthData.month === currentMonth;
+
+                // Pour le mois actuel, inclure aussi les courses non archivées
+                const coursesToCalculate = isCurrentMonth
+                  ? allCourses.filter(c => {
+                      const courseDate = new Date(c.dateDebut);
+                      return courseDate.getMonth() === currentMonth && courseDate.getFullYear() === currentYear;
+                    })
+                  : monthData.courses;
+
                 // Calculer les stats pour chaque photographe
                 const calculatePhotographerMonthStats = (photographerId: string) => {
-                  const validatedCount = monthData.courses.reduce((count, course) => {
+                  const validatedCount = coursesToCalculate.reduce((count, course) => {
                     const dispo = disponibilites.find(
                       (d) => d.courseId === course.id && d.photographeId === photographerId
                     );
@@ -523,7 +554,7 @@ export default function PhotographerArchivesPage() {
                     return count;
                   }, 0);
 
-                  const monthlyAmount = monthData.courses.reduce((total, course) => {
+                  const monthlyAmount = coursesToCalculate.reduce((total, course) => {
                     const dispo = disponibilites.find(
                       (d) => d.courseId === course.id && d.photographeId === photographerId
                     );

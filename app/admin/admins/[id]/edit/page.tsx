@@ -665,7 +665,7 @@ export default function EditAdminPage() {
                 <Label htmlFor="nonRemunere">Non rémunéré</Label>
               </div>
               <p className="text-xs text-muted-foreground pl-6">
-                Cocher cette case si cet admin ne doit pas être comptabilisé dans les coûts, même s'il est validé ou chef d'équipe sur des courses
+                Cocher cette case si cet admin ne doit pas être comptabilisé dans les coûts, même s'il est validé ou référent sur des courses
               </p>
             </div>
           </CardContent>

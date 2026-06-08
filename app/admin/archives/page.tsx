@@ -85,7 +85,7 @@ const getStatusLabel = (status: string) => {
     available: 'Dispo',
     unavailable: 'Pas dispo',
     validated: 'Validé',
-    teamLeader: 'Chef',
+    teamLeader: 'Ref',
     rejected: 'Refusé',
   };
   return labels[status] || status;
@@ -1429,7 +1429,7 @@ export default function AdminCalendrierPage() {
                             <SelectItem value="teamLeader">
                               <div className="flex items-center gap-2">
                                 <div className="h-2 w-2 rounded-full bg-purple-500" />
-                                <span className="text-xs">Chef</span>
+                                <span className="text-xs">Ref</span>
                               </div>
                             </SelectItem>
                             <SelectItem value="rejected">
@@ -1519,7 +1519,7 @@ export default function AdminCalendrierPage() {
                             <SelectItem value="teamLeader">
                               <div className="flex items-center gap-2">
                                 <div className="h-2 w-2 rounded-full bg-purple-500" />
-                                <span className="text-xs">Chef</span>
+                                <span className="text-xs">Ref</span>
                               </div>
                             </SelectItem>
                             <SelectItem value="rejected">

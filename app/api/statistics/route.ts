@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       // Récupérer toutes les disponibilités du photographe
       const disponibilites = await sheetsService.getDisponibilitesByPhotographerId(user.id);
 
-      // Filtrer les disponibilités validées ou chef d'équipe pour le mois en cours
+      // Filtrer les disponibilités validées ou référent pour le mois en cours
       const now = new Date();
       const currentYear = now.getFullYear();
       const currentMonth = now.getMonth(); // 0-11

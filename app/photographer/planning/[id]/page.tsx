@@ -346,7 +346,7 @@ export default function PhotographerCourseDetailPage() {
                                 {member.statut === 'teamLeader' ? (
                                   <span className="flex items-center gap-1">
                                     <Star className="h-3 w-3 text-purple-500" />
-                                    Chef d'équipe
+                                    Référent
                                   </span>
                                 ) : (
                                   'Photographe'
@@ -457,7 +457,7 @@ export default function PhotographerCourseDetailPage() {
                 {disponibilite?.statut === 'teamLeader' && (
                   <div className="bg-purple-50 border border-purple-200 rounded-md p-3">
                     <p className="text-sm text-purple-800 font-medium">
-                      👑 Vous êtes chef d'équipe
+                      👑 Vous êtes référent
                     </p>
                   </div>
                 )}

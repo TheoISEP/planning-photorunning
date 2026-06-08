@@ -211,7 +211,7 @@ export default function PhotographerStatsPage() {
         </div>
         <p className="text-sm text-muted-foreground mt-1">
           {user?.isNonPaidAdmin
-            ? "Montants affichés : tarif de base uniquement (pas de bonus chef d'équipe)"
+            ? "Montants affichés : tarif de base uniquement (pas de bonus référent)"
             : "Récapitulatif des prestations et revenus"}
         </p>
       </div>
@@ -334,7 +334,7 @@ export default function PhotographerStatsPage() {
                         </div>
                         <div className="flex items-center justify-between mt-1">
                           <Badge variant={course.statut === 'teamLeader' ? 'default' : 'outline'} className="text-[10px] h-5">
-                            {course.statut === 'teamLeader' ? '👑 Chef' : '✓ Validé'}
+                            {course.statut === 'teamLeader' ? '👑 Ref' : '✓ Validé'}
                           </Badge>
                           <span className="font-semibold text-gray-700">{formatCurrency(course.montant)}</span>
                         </div>

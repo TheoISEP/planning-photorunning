@@ -38,7 +38,7 @@ const statusLabels: Record<NonNullable<StatusBadgeVariant>, string> = {
 	available: "Disponible",
 	unavailable: "Pas dispo",
 	validated: "Validé",
-	teamLeader: "Chef d'équipe",
+	teamLeader: "Référent",
 	rejected: "Refusé",
 	inProgress: "En cours",
 	done: "Fait",

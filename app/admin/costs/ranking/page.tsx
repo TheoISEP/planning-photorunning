@@ -176,7 +176,7 @@ export default function PhotographerRankingPage() {
         if (adminDispo && (adminDispo.statut === 'validated' || adminDispo.statut === 'teamLeader')) {
           let amount = Number(courseTarif.tarifPhotographe);
 
-          // Pour les admins non rémunérés, ne pas compter le bonus chef d'équipe
+          // Pour les admins non rémunérés, ne pas compter le bonus référent
           if (adminDispo.statut === 'teamLeader') {
             if (!isNonRemunere) {
               amount += Number(courseTarif.bonusChefEquipe);
@@ -319,7 +319,7 @@ export default function PhotographerRankingPage() {
                     <th className="text-center p-3 font-semibold w-20">Rang</th>
                     <th className="text-left p-3 font-semibold">Photographe</th>
                     <th className="text-center p-3 font-semibold">Courses</th>
-                    <th className="text-center p-3 font-semibold">Chef d&apos;équipe</th>
+                    <th className="text-center p-3 font-semibold">Référent</th>
                     <th className="text-right p-3 font-semibold bg-gray-100">Total gagné</th>
                   </tr>
                 </thead>

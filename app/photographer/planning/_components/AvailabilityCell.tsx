@@ -38,7 +38,7 @@ export function AvailabilityCell({
       available: 'Dispo',
       unavailable: 'Pas dispo',
       validated: 'Validé',
-      teamLeader: 'Chef',
+      teamLeader: 'Ref',
       rejected: 'Refusé',
     };
     return labels[status] || status;

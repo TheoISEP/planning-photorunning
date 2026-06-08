@@ -317,7 +317,7 @@ export default function AdminCalendarPage() {
       available: 'Dispo',
       unavailable: 'Pas dispo',
       validated: 'Validé',
-      teamLeader: 'Chef',
+      teamLeader: 'Ref',
       rejected: 'Refusé',
     };
     return labels[status] || status;
@@ -475,7 +475,7 @@ export default function AdminCalendarPage() {
 
                 const statusConfig = {
                   validated: { bg: 'bg-green-50 border-green-300', text: 'text-green-700', label: '✓ Validé' },
-                  teamLeader: { bg: 'bg-purple-50 border-purple-300', text: 'text-purple-700', label: '★ Chef d\'équipe' },
+                  teamLeader: { bg: 'bg-purple-50 border-purple-300', text: 'text-purple-700', label: '★ Référent' },
                   pending: { bg: 'bg-yellow-50 border-yellow-300', text: 'text-yellow-700', label: '⏳ En attente' },
                   available: { bg: 'bg-blue-50 border-blue-300', text: 'text-blue-700', label: '✓ Disponible' },
                   unavailable: { bg: 'bg-gray-50 border-gray-300', text: 'text-gray-600', label: '✗ Indisponible' },
@@ -526,7 +526,7 @@ export default function AdminCalendarPage() {
                               (dispo?.statut === 'validated' || dispo?.statut === 'teamLeader') ? "text-foreground" : "text-muted-foreground"
                             )}>
                               {dispo?.statut === 'teamLeader'
-                                ? `${Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)}€ (chef)`
+                                ? `${Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)}€ (ref)`
                                 : `${courseTarif.tarifPhotographe}€`}
                             </span>
                           </div>

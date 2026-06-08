@@ -36,7 +36,7 @@ const formSchema = z.object({
 	endDate: z.date({ message: "La date de fin est requise" }),
 	endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Format invalide (HH:MM)"),
 	photographerPrice: z.string().min(1, "Le tarif photographe est requis"),
-	teamLeaderBonus: z.string().min(1, "Le bonus chef d'équipe est requis"),
+	teamLeaderBonus: z.string().min(1, "Le bonus référent est requis"),
 	expectedRunners: z.string().optional(),
 	expectedPhotographers: z.string().optional(),
 	hotelNotes: z.string().optional(),
@@ -414,7 +414,7 @@ export default function NewCalendrierEventPage() {
 								name="teamLeaderBonus"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Bonus chef d&apos;équipe *</FormLabel>
+										<FormLabel>Bonus référent *</FormLabel>
 										<FormControl>
 											<div className="relative">
 												<Input type="number" placeholder="250" {...field} className="pr-8" />
@@ -422,7 +422,7 @@ export default function NewCalendrierEventPage() {
 											</div>
 										</FormControl>
 										<FormDescription>
-											Montant additionnel pour le chef d&apos;équipe (pré-rempli avec la valeur par défaut)
+											Montant additionnel pour le référent (pré-rempli avec la valeur par défaut)
 										</FormDescription>
 										<FormMessage />
 									</FormItem>

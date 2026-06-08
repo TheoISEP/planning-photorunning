@@ -187,7 +187,7 @@ export default function PhotographerArchivesPage() {
       available: 'Dispo',
       unavailable: 'Pas dispo',
       validated: 'Validé',
-      teamLeader: 'Chef',
+      teamLeader: 'Ref',
       rejected: 'Refusé',
     };
     return labels[status] || status;
@@ -439,7 +439,7 @@ export default function PhotographerArchivesPage() {
                         </p>
                       </div>
                       <Badge variant="secondary" className="text-xs ml-2">
-                        {isTeamLeader ? 'Chef' : 'Validé'}
+                        {isTeamLeader ? 'Ref' : 'Validé'}
                       </Badge>
                     </div>
 
@@ -454,7 +454,7 @@ export default function PhotographerArchivesPage() {
                           <span className="font-medium">💶</span>
                           <span className="font-semibold text-foreground">
                             {isTeamLeader
-                              ? `${Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)}€ (chef)`
+                              ? `${Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)}€ (ref)`
                               : `${courseTarif.tarifPhotographe}€`}
                           </span>
                         </div>

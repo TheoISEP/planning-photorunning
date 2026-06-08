@@ -471,10 +471,10 @@ export default function AdminCalendrierEventDetailPage() {
 							<div className="flex items-start gap-3">
 								<Star className="h-5 w-5 text-purple-500 shrink-0 mt-0.5" />
 								<div className="flex-1">
-									<div className="font-medium">Rémunération chef d&apos;équipe</div>
+									<div className="font-medium">Rémunération référent</div>
 									<div className="text-sm text-muted-foreground space-y-1">
 										<div>Tarif de base: {tarif?.tarifPhotographe}€</div>
-										<div>Bonus chef d&apos;équipe: +{tarif?.bonusChefEquipe}€</div>
+										<div>Bonus référent: +{tarif?.bonusChefEquipe}€</div>
 										<div className="font-medium text-foreground">
 											Total: {tarif ? Number(tarif.tarifPhotographe) + Number(tarif.bonusChefEquipe) : 0}€
 										</div>
@@ -496,7 +496,7 @@ export default function AdminCalendrierEventDetailPage() {
 								<span className="font-medium">{validatedCount}</span>
 							</div>
 							<div className="flex justify-between items-center text-sm">
-								<span className="text-muted-foreground">Chefs d&apos;équipe</span>
+								<span className="text-muted-foreground">Référents</span>
 								<span className="font-medium">{teamLeaderCount}</span>
 							</div>
 							<Separator />
@@ -581,7 +581,7 @@ export default function AdminCalendrierEventDetailPage() {
 														{isTeamLeader ? (
 															<span className="flex items-center gap-1">
 																<Star className="h-3 w-3 text-purple-500" />
-																Chef d'équipe
+																Référent
 															</span>
 														) : (
 															'Photographe'
@@ -649,7 +649,7 @@ export default function AdminCalendrierEventDetailPage() {
 										Refuser automatiquement les photographes non validés
 									</Label>
 									<p className="text-xs text-muted-foreground mt-2">
-										Tous les photographes avec les statuts "En attente", "Disponible" ou "Pas dispo" seront automatiquement passés en "Refusé". Seuls les photographes "Validé" et "Chef d&apos;équipe" seront conservés.
+										Tous les photographes avec les statuts "En attente", "Disponible" ou "Pas dispo" seront automatiquement passés en "Refusé". Seuls les photographes "Validé" et "Référent" seront conservés.
 									</p>
 								</div>
 							</div>

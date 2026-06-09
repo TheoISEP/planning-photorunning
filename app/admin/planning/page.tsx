@@ -327,6 +327,9 @@ export default function AdminCalendrierPage() {
       // Calculer les données enrichies pour chaque course
       const coursesWithData = allCourses.map((course: Course) => {
         const courseTarifs = allTarifs.filter((t: Tarif) => t.courseId === course.id);
+        if (courseTarifs.length > 1) {
+          console.log(`[fetchData] Course ${course.nom} a ${courseTarifs.length} tarifs`);
+        }
         const tarif = courseTarifs[0]; // Premier tarif par défaut pour affichage
         const dispos = finalDisponibilites.filter((d: Disponibilite) => d.courseId === course.id);
 
@@ -978,6 +981,32 @@ export default function AdminCalendrierPage() {
     );
   });
 
+  // Exploser les courses avec plusieurs tarifs en plusieurs lignes
+  Object.values(coursesByMonth).forEach(monthData => {
+    const expandedCourses: CourseWithData[] = [];
+
+    monthData.courses.forEach(course => {
+      console.log(`Course ${course.nom}: ${course.tarifs?.length || 0} tarifs`);
+      if (course.tarifs && course.tarifs.length > 1) {
+        console.log(`  -> Explosion en ${course.tarifs.length} lignes`);
+        // Course avec plusieurs tarifs -> créer une ligne par tarif
+        course.tarifs.forEach((tarif, index) => {
+          expandedCourses.push({
+            ...course,
+            tarif, // Utiliser ce tarif spécifique
+            tarifIndex: index, // Ajouter un index pour différencier
+          } as any);
+        });
+      } else {
+        // Course avec un seul tarif -> garder telle quelle
+        expandedCourses.push(course);
+      }
+    });
+
+    console.log(`Avant: ${monthData.courses.length} courses, Après: ${expandedCourses.length} lignes`);
+    monthData.courses = expandedCourses;
+  });
+
   // Trier par année et mois (ordre chronologique : plus proche en premier)
   const sortedMonths = Object.values(coursesByMonth).sort((a, b) => {
     if (a.year !== b.year) return a.year - b.year;
@@ -1484,26 +1513,36 @@ export default function AdminCalendrierPage() {
                       : null;
                     const isNewWeekend = previousWeekend && currentWeekend !== previousWeekend;
 
+                    // Déterminer si on affiche la colonne info (seulement pour le premier tarif)
+                    const isFirstTarif = (course as any).tarifIndex === undefined || (course as any).tarifIndex === 0;
+                    const isSecondTarif = (course as any).tarifIndex === 1;
+                    const hasTwoTarifs = course.tarifs && course.tarifs.length > 1;
+
                     return (
                       <div
-                        key={course.id}
+                        key={(course as any).tarifIndex !== undefined ? `${course.id}-tarif-${(course as any).tarifIndex}` : course.id}
                         className={cn(
-                          "group grid gap-0 border-b border-gray-200/50 transition-colors",
+                          "group grid gap-0 transition-colors",
+                          !isSecondTarif && "border-b border-gray-200/50",
                           bgColor,
-                          isNewWeekend && "border-t-4 border-t-blue-400 dark:border-t-blue-500 shadow-[0_-2px_8px_rgba(59,130,246,0.3)]"
+                          isNewWeekend && isFirstTarif && "border-t-4 border-t-blue-400 dark:border-t-blue-500 shadow-[0_-2px_8px_rgba(59,130,246,0.3)]"
                         )}
                         style={{
                           gridTemplateColumns: `200px 120px repeat(${[...admins, ...photographers].filter((u) => u.actif).length}, 70px)`,
                           minWidth: 'max-content'
                         }}
                       >
-                        {/* Colonne infos course - STICKY */}
+                        {/* Colonne infos course - STICKY avec rowspan pour double tarif */}
                         <div
                           className={cn(
                             "sticky left-0 z-10 p-2 pr-1.5 border-r-2 border-gray-400/40 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors",
-                            bgColor
+                            bgColor,
+                            isSecondTarif && "opacity-0 pointer-events-none"
                           )}
-                          style={{ position: 'sticky', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
+                          style={{
+                            position: 'sticky',
+                            boxShadow: isFirstTarif ? '2px 0 5px rgba(0,0,0,0.1)' : 'none',
+                          }}
                         >
                           {/* Ligne 1: Titre + Statut */}
                           <div className="flex items-center justify-between gap-1 mb-0.5">
@@ -1513,6 +1552,11 @@ export default function AdminCalendrierPage() {
                                 className="font-semibold hover:underline text-xs hover:text-primary transition-colors"
                               >
                                 {course.nom}
+                                {(course as any).tarifIndex !== undefined && (
+                                  <span className="ml-1 text-[10px] bg-blue-100 text-blue-700 px-1 rounded">
+                                    Tarif {(course as any).tarifIndex + 1}
+                                  </span>
+                                )}
                               </Link>
                               {course.statutTraitement === 'done' ? (
                                 <span className="text-[10px]">🟢</span>
@@ -1624,9 +1668,20 @@ export default function AdminCalendrierPage() {
                             "sticky z-10 p-2 pr-1.5 flex flex-col justify-start items-start gap-0.5 border-r-2 border-green-600/40 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors",
                             bgColor
                           )}
-                          style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
+                          style={{ position: 'sticky', left: isFirstTarif ? '200px' : '0px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
                         >
                           {(() => {
+                            // Si c'est la deuxième ligne d'un double tarif, afficher l'indicateur de tarif
+                            if (isSecondTarif) {
+                              return (
+                                <div className="flex items-center justify-center w-full h-full">
+                                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-semibold">
+                                    Tarif 2
+                                  </span>
+                                </div>
+                              );
+                            }
+
                             const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) &&
                                                 course.tarifs && course.tarifs.length > 1;
                             const dateDebut = new Date(course.dateDebut);
@@ -1636,13 +1691,18 @@ export default function AdminCalendrierPage() {
                             const nbJours = Math.round((dateFinNormalized.getTime() - dateDebutNormalized.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
                             if (hasTwoTarifs) {
-                              // Affichage avec une seule date (pas de duplication)
+                              // Affichage avec "Tarif 1" et la date
                               return (
-                                <div className="flex flex-col gap-0.5 w-full border-t border-gray-300 pt-1">
+                                <div className="flex flex-col gap-0.5 w-full">
+                                  <div className="flex items-center justify-center mb-1">
+                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold">
+                                      Tarif 1
+                                    </span>
+                                  </div>
                                   <div className="text-xs font-semibold text-gray-700 flex items-center gap-1">
                                     {format(dateDebut, "dd/MM/yy", { locale: fr })}
                                     {nbJours > 1 && (
-                                      <span className="text-[9px] bg-blue-100 text-blue-800 px-1 rounded">
+                                      <span className="text-[9px] bg-purple-100 text-purple-800 px-1 rounded">
                                         {nbJours}j
                                       </span>
                                     )}

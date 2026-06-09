@@ -1552,9 +1552,11 @@ export default function AdminCalendrierPage() {
                                 className="font-semibold hover:underline text-xs hover:text-primary transition-colors"
                               >
                                 {course.nom}
-                                {(course as any).tarifIndex !== undefined && (
+                                {(course as any).tarifIndex !== undefined && course.tarif && (
                                   <span className="ml-1 text-[10px] bg-blue-100 text-blue-700 px-1 rounded">
-                                    Tarif {(course as any).tarifIndex + 1}
+                                    {(course as any).tarifIndex === 0
+                                      ? (course.tarif.firstTarifName || 'Tarif 1')
+                                      : (course.tarif.secondTarifName || 'Tarif 2')}
                                   </span>
                                 )}
                               </Link>
@@ -1665,10 +1667,10 @@ export default function AdminCalendrierPage() {
                         {/* Colonne Date - STICKY - Split si deux tarifs */}
                         <div
                           className={cn(
-                            "sticky z-10 p-2 pr-1.5 flex flex-col justify-start items-start gap-0.5 border-r-2 border-green-600/40 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors",
+                            "sticky z-20 p-2 pr-1.5 flex flex-col justify-start items-start gap-0.5 border-r-2 border-green-600/40 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors",
                             bgColor
                           )}
-                          style={{ position: 'sticky', left: isFirstTarif ? '200px' : '0px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
+                          style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
                         >
                           {(() => {
                             // Si c'est la deuxième ligne d'un double tarif, afficher l'indicateur de tarif
@@ -1676,7 +1678,7 @@ export default function AdminCalendrierPage() {
                               return (
                                 <div className="flex items-center justify-center w-full h-full">
                                   <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-semibold">
-                                    Tarif 2
+                                    {course.tarif?.secondTarifName || 'Tarif 2'}
                                   </span>
                                 </div>
                               );
@@ -1691,12 +1693,12 @@ export default function AdminCalendrierPage() {
                             const nbJours = Math.round((dateFinNormalized.getTime() - dateDebutNormalized.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
                             if (hasTwoTarifs) {
-                              // Affichage avec "Tarif 1" et la date
+                              // Affichage avec le nom du premier tarif et la date
                               return (
                                 <div className="flex flex-col gap-0.5 w-full">
                                   <div className="flex items-center justify-center mb-1">
                                     <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold">
-                                      Tarif 1
+                                      {course.tarifs?.[0]?.firstTarifName || 'Tarif 1'}
                                     </span>
                                   </div>
                                   <div className="text-xs font-semibold text-gray-700 flex items-center gap-1">

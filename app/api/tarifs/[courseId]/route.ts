@@ -38,6 +38,8 @@ export async function PATCH(
     const updatedTarif = await sheetsService.updateTarif(existingTarif.id, {
       tarifPhotographe: data.tarifPhotographe.toString(),
       bonusChefEquipe: data.bonusChefEquipe.toString(),
+      firstTarifName: data.firstTarifName || '',
+      secondTarifName: data.secondTarifName || '',
       dateModification: new Date().toISOString(),
     });
 

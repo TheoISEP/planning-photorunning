@@ -37,6 +37,7 @@ interface Course {
   archivedBy?: string;
   hotelValid?: string | boolean;
   transportValid?: string | boolean;
+  twoPrices?: string | boolean;
 }
 
 interface Photographer {
@@ -62,6 +63,8 @@ interface Tarif {
   bonusChefEquipe: number;
   description?: string;
   nombreJours?: string;
+  firstTarifName?: string;
+  secondTarifName?: string;
 }
 
 interface Disponibilite {
@@ -653,8 +656,60 @@ export default function AdminCalendrierPage() {
         coutDetails: { tarifBase, bonus },
       });
 
-      // Récupérer la disponibilité pour extraire le photographeId
-      const dispo = updatedDisponibilites.find(d => d.id === disponibiliteId);
+      // Récupérer la disponibilité pour extraire le photographeId et tarifId
+      let dispo = updatedDisponibilites.find(d => d.id === disponibiliteId);
+
+      // Si la dispo n'existe pas encore, extraire les infos de l'ID temporaire
+      let tarifId: string | undefined;
+      if (!dispo && disponibiliteId.startsWith('dispo-')) {
+        // Format: dispo-courseId-photoId-tarifId
+        // Attention: courseId, photoId et tarifId peuvent contenir des tirets !
+        // Exemple: dispo-course-123-admin-456-tarif-789
+        // On doit trouver le courseId et photographeId depuis la course actuelle
+
+        // Trouver la course correspondante
+        const course = courses.find(c => c.id === courseId);
+        if (course) {
+          // Extraire le photographeId et tarifId en fonction de la structure de l'ID
+          // Format attendu: dispo-{courseId}-{photographeId}-{tarifId}
+          // où chaque partie peut contenir des tirets
+
+          // On enlève le préfixe "dispo-"
+          const idWithoutPrefix = disponibiliteId.substring(6); // Enlever "dispo-"
+
+          // On cherche les photographes de la course
+          const coursePhotographers = [...admins, ...photographers];
+          let foundPhotoId = '';
+          let foundTarifId = '';
+
+          // Essayer de matcher avec les IDs connus
+          for (const photo of coursePhotographers) {
+            if (idWithoutPrefix.startsWith(courseId + '-' + photo.id)) {
+              foundPhotoId = photo.id;
+              // Le reste après courseId-photoId est le tarifId
+              const afterPhotoId = idWithoutPrefix.substring((courseId + '-' + photo.id).length);
+              if (afterPhotoId.startsWith('-')) {
+                foundTarifId = afterPhotoId.substring(1); // Enlever le tiret du début
+              }
+              break;
+            }
+          }
+
+          if (foundPhotoId) {
+            tarifId = foundTarifId || undefined;
+            dispo = {
+              id: disponibiliteId,
+              courseId: courseId,
+              photographeId: foundPhotoId,
+              statut: newStatus as Disponibilite['statut'],
+              tarifId: tarifId
+            };
+          }
+        }
+      } else if (dispo) {
+        tarifId = dispo.tarifId;
+      }
+
       if (!dispo) {
         // Disponibilité non trouvée
         return;
@@ -669,6 +724,7 @@ export default function AdminCalendrierPage() {
           statut: newStatus,
           courseId: dispo.courseId,
           photographeId: dispo.photographeId,
+          tarifId: tarifId, // Inclure le tarifId pour les courses avec deux tarifs
           dateModification: new Date().toISOString(),
         }),
       });
@@ -1430,7 +1486,7 @@ export default function AdminCalendrierPage() {
 
                     return (
                       <div
-                        key={course.id}
+                        key={course.tarifIndex !== undefined ? `${course.id}-tarif-${course.tarifIndex}` : course.id}
                         className={cn(
                           "group grid gap-0 border-b border-gray-200/50 transition-colors",
                           bgColor,
@@ -1451,99 +1507,155 @@ export default function AdminCalendrierPage() {
                         >
                           {/* Ligne 1: Titre + Statut */}
                           <div className="flex items-center justify-between gap-1 mb-0.5">
-                              <div className="flex items-center gap-1.5 flex-1">
-                                <Link
-                                  href={`/admin/planning/${course.id}`}
-                                  className="font-semibold hover:underline text-xs hover:text-primary transition-colors"
-                                >
-                                  {course.nom}
-                                </Link>
-                                {course.statutTraitement === 'done' ? (
-                                  <span className="text-[10px]">🟢</span>
-                                ) : (
-                                  <span className="text-[10px]">🟠</span>
-                                )}
-                                {/* Badges Hotel et Transport */}
-                                <div className="flex items-center gap-0.5">
-                                  <button
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      toggleValidation(course.id, 'hotelValid');
-                                    }}
-                                    className={`text-[9px] font-bold px-1 py-0.5 rounded border cursor-pointer transition-colors ${course.hotelValid === 'TRUE' || course.hotelValid === true ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'}`}
-                                    title={course.hotelValid === 'TRUE' || course.hotelValid === true ? 'Hôtel validé - Cliquer pour invalider' : 'Hôtel non validé - Cliquer pour valider'}
-                                  >
-                                    H
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      toggleValidation(course.id, 'transportValid');
-                                    }}
-                                    className={`text-[9px] font-bold px-1 py-0.5 rounded border cursor-pointer transition-colors ${course.transportValid === 'TRUE' || course.transportValid === true ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'}`}
-                                    title={course.transportValid === 'TRUE' || course.transportValid === true ? 'Transport validé - Cliquer pour invalider' : 'Transport non validé - Cliquer pour valider'}
-                                  >
-                                    T
-                                  </button>
-                                </div>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleArchiveCourse(course.id)}
-                                className="text-[10px] h-4 px-1 text-muted-foreground/50 hover:text-orange-600 hover:bg-orange-50"
-                                title="Archiver la course"
+                            <div className="flex items-center gap-1.5 flex-1">
+                              <Link
+                                href={`/admin/planning/${course.id}`}
+                                className="font-semibold hover:underline text-xs hover:text-primary transition-colors"
                               >
-                                <Archive className="h-2.5 w-2.5" />
-                              </Button>
-                            </div>
-                              
-                            {/* Ligne 2: Localisation + Coureurs */}
-                            <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground mb-0.5">
-                              <div className="flex items-center gap-0.5">
-                                📍 {course.localisation}
-                              </div>
-                              {course.coureursAttendus && (
-                                <div className="text-[9px] text-muted-foreground/60">
-                                  👥 {course.coureursAttendus.toLocaleString()}
-                                </div>
+                                {course.nom}
+                              </Link>
+                              {course.statutTraitement === 'done' ? (
+                                <span className="text-[10px]">🟢</span>
+                              ) : (
+                                <span className="text-[10px]">🟠</span>
                               )}
-                            </div>
-                              
-                            {/* Ligne 3: Stats + Prix */}
-                            <div className="flex items-center gap-1.5">
-                              <div className="flex items-center justify-center h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold shadow-sm">
-                                {validatedCount}
+                              {/* Badges Hotel et Transport */}
+                              <div className="flex items-center gap-0.5">
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    toggleValidation(course.id, 'hotelValid');
+                                  }}
+                                  className={`text-[9px] font-bold px-1 py-0.5 rounded border cursor-pointer transition-colors ${course.hotelValid === 'TRUE' || course.hotelValid === true ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'}`}
+                                  title={course.hotelValid === 'TRUE' || course.hotelValid === true ? 'Hôtel validé - Cliquer pour invalider' : 'Hôtel non validé - Cliquer pour valider'}
+                                >
+                                  H
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    toggleValidation(course.id, 'transportValid');
+                                  }}
+                                  className={`text-[9px] font-bold px-1 py-0.5 rounded border cursor-pointer transition-colors ${course.transportValid === 'TRUE' || course.transportValid === true ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'}`}
+                                  title={course.transportValid === 'TRUE' || course.transportValid === true ? 'Transport validé - Cliquer pour invalider' : 'Transport non validé - Cliquer pour valider'}
+                                >
+                                  T
+                                </button>
                               </div>
-                              <span className="text-[9px] text-muted-foreground">
-                                {availableCount}-{course.numberAttended || 0}
-                              </span>
-                              <span className="text-[10px] font-medium text-muted-foreground">
-                                💰 {course.tarif ? course.tarif.tarifPhotographe : 0}€
-                              </span>
                             </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleArchiveCourse(course.id)}
+                              className="text-[10px] h-4 px-1 text-muted-foreground/50 hover:text-orange-600 hover:bg-orange-50"
+                              title="Archiver la course"
+                            >
+                              <Archive className="h-2.5 w-2.5" />
+                            </Button>
                           </div>
 
-                          {/* Colonne Date - STICKY */}
-                          <div
-                            className={cn(
-                              "sticky z-10 p-2 pr-1.5 flex flex-col justify-start items-start gap-0.5 border-r-2 border-green-600/40 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors",
-                              bgColor
+                          {/* Ligne 2: Localisation + Coureurs */}
+                          <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground mb-0.5">
+                            <div className="flex items-center gap-0.5">
+                              📍 {course.localisation}
+                            </div>
+                            {course.coureursAttendus && (
+                              <div className="text-[9px] text-muted-foreground/60">
+                                👥 {course.coureursAttendus.toLocaleString()}
+                              </div>
                             )}
-                            style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
-                          >
-                            {(() => {
-                              const dateDebut = new Date(course.dateDebut);
-                              const dateFin = new Date(course.dateFin);
+                          </div>
 
-                              // Normaliser les dates à minuit pour comparer seulement les jours
-                              const dateDebutNormalized = new Date(dateDebut.getFullYear(), dateDebut.getMonth(), dateDebut.getDate());
-                              const dateFinNormalized = new Date(dateFin.getFullYear(), dateFin.getMonth(), dateFin.getDate());
+                          {/* Ligne 3: Stats + Prix - Split si deux tarifs */}
+                          {(() => {
+                            const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) &&
+                                                course.tarifs && course.tarifs.length > 1;
 
-                              const nbJours = Math.round((dateFinNormalized.getTime() - dateDebutNormalized.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                            if (hasTwoTarifs && course.tarifs) {
+                              // Affichage avec deux tarifs (split vertical)
+                              return (
+                                <div className="flex flex-col gap-1 border-t border-gray-300 pt-1">
+                                  {course.tarifs.map((tarif, idx) => (
+                                    <div key={tarif.id} className="flex items-center gap-1.5">
+                                      <div className="flex items-center justify-center h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold shadow-sm">
+                                        {validatedCount}
+                                      </div>
+                                      <span className="text-[9px] text-muted-foreground">
+                                        {availableCount}-{course.numberAttended || 0}
+                                      </span>
+                                      <div className="flex flex-col text-[9px] font-medium">
+                                        <span className="text-blue-700 font-semibold">
+                                          {idx === 0
+                                            ? (tarif.firstTarifName || 'Tarif 1')
+                                            : (tarif.secondTarifName || 'Tarif 2')}
+                                        </span>
+                                        <span className="text-muted-foreground">
+                                          💰 {tarif.tarifPhotographe}€
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            } else {
+                              // Affichage normal avec un seul tarif
+                              return (
+                                <div className="flex items-center gap-1.5">
+                                  <div className="flex items-center justify-center h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold shadow-sm">
+                                    {validatedCount}
+                                  </div>
+                                  <span className="text-[9px] text-muted-foreground">
+                                    {availableCount}-{course.numberAttended || 0}
+                                  </span>
+                                  <span className="text-[10px] font-medium text-muted-foreground">
+                                    💰 {course.tarif ? course.tarif.tarifPhotographe : 0}€
+                                  </span>
+                                </div>
+                              );
+                            }
+                          })()}
+                        </div>
 
+                        {/* Colonne Date - STICKY - Split si deux tarifs */}
+                        <div
+                          className={cn(
+                            "sticky z-10 p-2 pr-1.5 flex flex-col justify-start items-start gap-0.5 border-r-2 border-green-600/40 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors",
+                            bgColor
+                          )}
+                          style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
+                        >
+                          {(() => {
+                            const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) &&
+                                                course.tarifs && course.tarifs.length > 1;
+                            const dateDebut = new Date(course.dateDebut);
+                            const dateFin = new Date(course.dateFin);
+                            const dateDebutNormalized = new Date(dateDebut.getFullYear(), dateDebut.getMonth(), dateDebut.getDate());
+                            const dateFinNormalized = new Date(dateFin.getFullYear(), dateFin.getMonth(), dateFin.getDate());
+                            const nbJours = Math.round((dateFinNormalized.getTime() - dateDebutNormalized.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+                            if (hasTwoTarifs) {
+                              // Affichage avec une seule date (pas de duplication)
+                              return (
+                                <div className="flex flex-col gap-0.5 w-full border-t border-gray-300 pt-1">
+                                  <div className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                                    {format(dateDebut, "dd/MM/yy", { locale: fr })}
+                                    {nbJours > 1 && (
+                                      <span className="text-[9px] bg-blue-100 text-blue-800 px-1 rounded">
+                                        {nbJours}j
+                                      </span>
+                                    )}
+                                  </div>
+                                  {nbJours > 1 && (
+                                    <div className="text-xs text-gray-700">
+                                      au {format(dateFin, "dd/MM/yy", { locale: fr })}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            } else {
+                              // Affichage normal
                               return (
                                 <>
                                   <div className="text-xs font-semibold text-gray-700 flex items-center gap-1">
@@ -1561,15 +1673,91 @@ export default function AdminCalendrierPage() {
                                   )}
                                 </>
                               );
-                            })()}
-                          </div>
+                            }
+                          })()}
+                        </div>
 
-                          {/* Colonnes admins */}
-                          {admins.filter((a) => a.actif).map(admin => {
+                        {/* Colonnes admins */}
+                        {admins.filter((a) => a.actif).map(admin => {
+                          const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) &&
+                                              course.tarifs && course.tarifs.length > 1;
+
+                          if (hasTwoTarifs && course.tarifs) {
+                            // Affichage avec deux sélecteurs (un par tarif)
+                            return (
+                              <div key={admin.id} className="px-2 pb-2 pt-14 flex flex-col items-start justify-start gap-1 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors border-t border-gray-300">
+                                {course.tarifs.map((tarif, idx) => {
+                                  // Trouver ou créer la disponibilité pour ce tarif
+                                  const dispo = course.disponibilites.find(
+                                    (d) => d.photographeId === admin.id && d.tarifId === tarif.id
+                                  ) || {
+                                    id: `dispo-${course.id}-${admin.id}-${tarif.id}`,
+                                    photographeId: admin.id,
+                                    courseId: course.id,
+                                    statut: 'pending' as const,
+                                    tarifId: tarif.id
+                                  };
+
+                                  return (
+                                    <div key={tarif.id} className="w-full">
+                                      <Select
+                                        value={dispo.statut}
+                                        onValueChange={(value) => handleStatusChange(dispo.id, value, course.id)}
+                                      >
+                                        <SelectTrigger className={`h-7 text-[9px] w-full border transition-all focus:border-gray-600 px-0.5 font-medium ${getStatusColorClass(dispo.statut)}`}>
+                                          <SelectValue>
+                                            {getStatusLabel(dispo.statut)}
+                                          </SelectValue>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="pending">
+                                            <div className="flex items-center gap-2">
+                                              <div className="h-2 w-2 rounded-full bg-yellow-500" />
+                                              <span className="text-xs">Attente</span>
+                                            </div>
+                                          </SelectItem>
+                                          <SelectItem value="available">
+                                            <div className="flex items-center gap-2">
+                                              <div className="h-2 w-2 rounded-full bg-blue-500" />
+                                              <span className="text-xs">Dispo</span>
+                                            </div>
+                                          </SelectItem>
+                                          <SelectItem value="unavailable">
+                                            <div className="flex items-center gap-2">
+                                              <div className="h-2 w-2 rounded-full bg-gray-400" />
+                                              <span className="text-xs">Pas dispo</span>
+                                            </div>
+                                          </SelectItem>
+                                          <SelectItem value="validated">
+                                            <div className="flex items-center gap-2">
+                                              <div className="h-2 w-2 rounded-full bg-green-500" />
+                                              <span className="text-xs">Validé</span>
+                                            </div>
+                                          </SelectItem>
+                                          <SelectItem value="teamLeader">
+                                            <div className="flex items-center gap-2">
+                                              <div className="h-2 w-2 rounded-full bg-purple-500" />
+                                              <span className="text-xs">Ref</span>
+                                            </div>
+                                          </SelectItem>
+                                          <SelectItem value="rejected">
+                                            <div className="flex items-center gap-2">
+                                              <div className="h-2 w-2 rounded-full bg-red-500" />
+                                              <span className="text-xs">Refusé</span>
+                                            </div>
+                                          </SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          } else {
+                            // Affichage normal avec un seul sélecteur
                             const dispo = course.disponibilites.find((d) => d.photographeId === admin.id);
-                            if (!dispo) return <div key={admin.id} className="flex items-center justify-center p-2 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors">-</div>;
 
-                            const hasMultipleTarifs = course.tarifs && course.tarifs.length > 1;
+                            if (!dispo) return <div key={admin.id} className="flex items-center justify-center p-2 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors">-</div>;
 
                             return (
                               <div key={admin.id} className="p-2 flex flex-col items-start justify-start gap-0.5 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors">
@@ -1621,44 +1809,92 @@ export default function AdminCalendrierPage() {
                                     </SelectItem>
                                   </SelectContent>
                                 </Select>
-
-                                {/* Select tarif - seulement si plusieurs tarifs disponibles */}
-                                {hasMultipleTarifs && (
-                                  <Select
-                                    value={dispo.tarifId || ''}
-                                    onValueChange={(value) => handleTarifChange(dispo.id, value, course.id)}
-                                  >
-                                    <SelectTrigger className="h-6 text-[8px] w-full border border-gray-300 bg-white hover:bg-gray-50 px-0.5">
-                                      <SelectValue placeholder="Tarif">
-                                        {dispo.tarifId
-                                          ? course.tarifs?.find(t => t.id === dispo.tarifId)?.description || 'Tarif'
-                                          : 'Choisir tarif'}
-                                      </SelectValue>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {course.tarifs?.map(tarif => (
-                                        <SelectItem key={tarif.id} value={tarif.id}>
-                                          <div className="flex flex-col text-[10px]">
-                                            <span className="font-medium">{tarif.description || 'Sans nom'}</span>
-                                            <span className="text-[9px] text-muted-foreground">
-                                              {tarif.tarifPhotographe}€ {tarif.nombreJours ? `(${tarif.nombreJours}j)` : ''}
-                                            </span>
-                                          </div>
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                )}
                               </div>
                             );
-                          })}
+                          }
+                        })}
 
-                          {/* Colonnes photographes */}
-                          {photographers.filter((p) => p.actif).map(photographer => {
+                        {/* Colonnes photographes */}
+                        {photographers.filter((p) => p.actif).map(photographer => {
+                          const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) &&
+                                              course.tarifs && course.tarifs.length > 1;
+
+                          if (hasTwoTarifs && course.tarifs) {
+                            // Affichage avec deux sélecteurs (un par tarif)
+                            return (
+                              <div key={photographer.id} className={`px-2 pb-2 pt-14 flex flex-col items-start justify-start gap-1 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors border-t border-gray-300 ${getRegionBackgroundColor(photographer.region)}`}>
+                                {course.tarifs.map((tarif, idx) => {
+                                  // Trouver ou créer la disponibilité pour ce tarif
+                                  const dispo = course.disponibilites.find(
+                                    (d) => d.photographeId === photographer.id && d.tarifId === tarif.id
+                                  ) || {
+                                    id: `dispo-${course.id}-${photographer.id}-${tarif.id}`,
+                                    photographeId: photographer.id,
+                                    courseId: course.id,
+                                    statut: 'pending' as const,
+                                    tarifId: tarif.id
+                                  };
+
+                                  return (
+                                    <div key={tarif.id} className="w-full">
+                                      <Select
+                                        value={dispo.statut}
+                                        onValueChange={(value) => handleStatusChange(dispo.id, value, course.id)}
+                                      >
+                                        <SelectTrigger className={`h-7 text-[9px] w-full border transition-all focus:border-gray-600 px-0.5 font-medium ${getStatusColorClass(dispo.statut)}`}>
+                                          <SelectValue>
+                                            {getStatusLabel(dispo.statut)}
+                                          </SelectValue>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="pending">
+                                            <div className="flex items-center gap-2">
+                                              <div className="h-2 w-2 rounded-full bg-yellow-500" />
+                                              <span className="text-xs">Attente</span>
+                                            </div>
+                                          </SelectItem>
+                                          <SelectItem value="available">
+                                            <div className="flex items-center gap-2">
+                                              <div className="h-2 w-2 rounded-full bg-blue-500" />
+                                              <span className="text-xs">Dispo</span>
+                                            </div>
+                                          </SelectItem>
+                                          <SelectItem value="unavailable">
+                                            <div className="flex items-center gap-2">
+                                              <div className="h-2 w-2 rounded-full bg-gray-400" />
+                                              <span className="text-xs">Pas dispo</span>
+                                            </div>
+                                          </SelectItem>
+                                          <SelectItem value="validated">
+                                            <div className="flex items-center gap-2">
+                                              <div className="h-2 w-2 rounded-full bg-green-500" />
+                                              <span className="text-xs">Validé</span>
+                                            </div>
+                                          </SelectItem>
+                                          <SelectItem value="teamLeader">
+                                            <div className="flex items-center gap-2">
+                                              <div className="h-2 w-2 rounded-full bg-purple-500" />
+                                              <span className="text-xs">Ref</span>
+                                            </div>
+                                          </SelectItem>
+                                          <SelectItem value="rejected">
+                                            <div className="flex items-center gap-2">
+                                              <div className="h-2 w-2 rounded-full bg-red-500" />
+                                              <span className="text-xs">Refusé</span>
+                                            </div>
+                                          </SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          } else {
+                            // Affichage normal avec un seul sélecteur
                             const dispo = course.disponibilites.find((d) => d.photographeId === photographer.id);
-                            if (!dispo) return <div key={photographer.id} className={`flex items-center justify-center p-2 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors ${getRegionBackgroundColor(photographer.region)}`}>-</div>;
 
-                            const hasMultipleTarifs = course.tarifs && course.tarifs.length > 1;
+                            if (!dispo) return <div key={photographer.id} className={`flex items-center justify-center p-2 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors ${getRegionBackgroundColor(photographer.region)}`}>-</div>;
 
                             return (
                               <div key={photographer.id} className={`p-2 flex flex-col items-start justify-start gap-0.5 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors ${getRegionBackgroundColor(photographer.region)}`}>
@@ -1710,43 +1946,16 @@ export default function AdminCalendrierPage() {
                                     </SelectItem>
                                   </SelectContent>
                                 </Select>
-
-                                {/* Select tarif - seulement si plusieurs tarifs disponibles */}
-                                {hasMultipleTarifs && (
-                                  <Select
-                                    value={dispo.tarifId || ''}
-                                    onValueChange={(value) => handleTarifChange(dispo.id, value, course.id)}
-                                  >
-                                    <SelectTrigger className="h-6 text-[8px] w-full border border-gray-300 bg-white hover:bg-gray-50 px-0.5">
-                                      <SelectValue placeholder="Tarif">
-                                        {dispo.tarifId
-                                          ? course.tarifs?.find(t => t.id === dispo.tarifId)?.description || 'Tarif'
-                                          : 'Choisir tarif'}
-                                      </SelectValue>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {course.tarifs?.map(tarif => (
-                                        <SelectItem key={tarif.id} value={tarif.id}>
-                                          <div className="flex flex-col text-[10px]">
-                                            <span className="font-medium">{tarif.description || 'Sans nom'}</span>
-                                            <span className="text-[9px] text-muted-foreground">
-                                              {tarif.tarifPhotographe}€ {tarif.nombreJours ? `(${tarif.nombreJours}j)` : ''}
-                                            </span>
-                                          </div>
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                )}
                               </div>
                             );
-                          })}
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
+                          }
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

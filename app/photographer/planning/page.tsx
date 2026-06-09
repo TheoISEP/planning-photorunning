@@ -23,6 +23,7 @@ interface Course {
   statutTraitement: 'inProgress' | 'done';
   coureursAttendus?: number;
   archived?: string;
+  twoPrices?: string | boolean;
 }
 
 interface Tarif {
@@ -31,6 +32,8 @@ interface Tarif {
   tarifPhotographe: number;
   bonusChefEquipe: number;
   description?: string;
+  firstTarifName?: string;
+  secondTarifName?: string;
 }
 
 interface Disponibilite {
@@ -379,6 +382,29 @@ export default function PhotographerCalendrierPage() {
       const existingDispo = disponibilites.find(d => d.id === disponibiliteId);
       const isNewDispo = !existingDispo || disponibiliteId.startsWith('dispo-');
 
+      // Extraire le tarifId de l'ID temporaire si présent
+      // Format: dispo-{courseId}-{photographeId}-{tarifId}
+      // Attention: courseId, photoId et tarifId peuvent contenir des tirets !
+      let tarifId: string | undefined;
+      if (disponibiliteId.startsWith('dispo-')) {
+        // On enlève le préfixe "dispo-"
+        const idWithoutPrefix = disponibiliteId.substring(6);
+
+        // Le reste après courseId-photographeId est le tarifId
+        // On construit la partie courseId-photographeId
+        const expectedPrefix = courseId + '-' + photographerId;
+
+        if (idWithoutPrefix.startsWith(expectedPrefix)) {
+          // Le reste est le tarifId (après le tiret)
+          const afterPhotoId = idWithoutPrefix.substring(expectedPrefix.length);
+          if (afterPhotoId.startsWith('-')) {
+            tarifId = afterPhotoId.substring(1); // Enlever le tiret du début
+          }
+        }
+      } else if (existingDispo) {
+        tarifId = existingDispo.tarifId;
+      }
+
       // Mise à jour optimiste
       if (isNewDispo) {
         // Créer une nouvelle disponibilité temporaire
@@ -390,6 +416,7 @@ export default function PhotographerCalendrierPage() {
             photographeId: photographerId,
             courseId: courseId,
             statut: newStatus as Disponibilite['statut'],
+            tarifId: tarifId,
           }
         ]);
       } else {
@@ -408,6 +435,7 @@ export default function PhotographerCalendrierPage() {
           statut: newStatus,
           courseId,
           photographeId: photographerId,
+          tarifId: tarifId, // Inclure le tarifId pour les courses avec deux tarifs
           dateModification: new Date().toISOString(),
         }),
       });
@@ -643,6 +671,7 @@ export default function PhotographerCalendrierPage() {
                   : null;
 
                 const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+                const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) && courseTarifs.length > 1;
                 const courseTarif = dispo?.tarifId
                   ? tarifs.find((t) => t.id === dispo.tarifId)
                   : courseTarifs[0];
@@ -701,18 +730,39 @@ export default function PhotographerCalendrierPage() {
                           <span className="font-medium">📅</span>
                           <span>{format(new Date(course.dateDebut), 'dd/MM/yyyy', { locale: fr })}</span>
                         </div>
-                        {courseTarif && (
-                          <div className="flex items-center gap-1">
-                            <span className="font-medium">💶</span>
-                            <span className={cn(
-                              "font-semibold",
-                              (dispo?.statut === 'validated' || dispo?.statut === 'teamLeader') ? "text-foreground" : "text-muted-foreground"
-                            )}>
-                              {dispo?.statut === 'teamLeader'
-                                ? `${Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)}€ (ref)`
-                                : `${courseTarif.tarifPhotographe}€`}
-                            </span>
+
+                        {/* Affichage des tarifs */}
+                        {hasTwoTarifs ? (
+                          // Si deux tarifs, afficher les deux avec séparateur
+                          <div className="border-t border-gray-300 pt-2 mt-2">
+                            {courseTarifs.map((tarif, idx) => (
+                              <div key={tarif.id} className="flex items-center gap-1 mb-1">
+                                <span className="font-medium">💶</span>
+                                <span className="font-semibold text-blue-700">
+                                  {idx === 0
+                                    ? (tarif.firstTarifName || 'Tarif 1')
+                                    : (tarif.secondTarifName || 'Tarif 2')}
+                                  {' - '}
+                                  {tarif.tarifPhotographe}€
+                                </span>
+                              </div>
+                            ))}
                           </div>
+                        ) : (
+                          // Si un seul tarif, affichage normal
+                          courseTarif && (
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium">💶</span>
+                              <span className={cn(
+                                "font-semibold",
+                                (dispo?.statut === 'validated' || dispo?.statut === 'teamLeader') ? "text-foreground" : "text-muted-foreground"
+                              )}>
+                                {dispo?.statut === 'teamLeader'
+                                  ? `${Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)}€ (ref)`
+                                  : `${courseTarif.tarifPhotographe}€`}
+                              </span>
+                            </div>
+                          )
                         )}
                       </div>
 
@@ -735,25 +785,65 @@ export default function PhotographerCalendrierPage() {
 
                       {/* Sélecteur de disponibilité pour pending, available, unavailable */}
                       {shouldShowSelector && activePhotographerId && (
-                        <div className="w-full">
-                          <Select
-                            value={dispo?.statut || 'pending'}
-                            onValueChange={(value) => handleStatusChange(dispo?.id || `dispo-${course.id}-${activePhotographerId}`, value, course.id, activePhotographerId)}
-                          >
-                            <SelectTrigger className="w-full h-9 text-xs">
-                              <SelectValue>
-                                {(!dispo || dispo.statut === 'pending') && '⏳ En attente'}
-                                {dispo?.statut === 'available' && '✓ Disponible'}
-                                {dispo?.statut === 'unavailable' && '✗ Indisponible'}
-                              </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pending">⏳ En attente</SelectItem>
-                              <SelectItem value="available">✓ Disponible</SelectItem>
-                              <SelectItem value="unavailable">✗ Indisponible</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        hasTwoTarifs ? (
+                          // Si deux tarifs, afficher deux sélecteurs
+                          <div className="w-full space-y-2 border-t border-gray-300 pt-2">
+                            {courseTarifs.map((tarif, idx) => {
+                              // Trouver la disponibilité pour ce tarif spécifique
+                              const tarifDispo = disponibilites.find(
+                                (d) => d.courseId === course.id && d.photographeId === activePhotographerId && d.tarifId === tarif.id
+                              );
+
+                              return (
+                                <div key={tarif.id} className="w-full">
+                                  <Select
+                                    value={tarifDispo?.statut || 'pending'}
+                                    onValueChange={(value) => handleStatusChange(
+                                      tarifDispo?.id || `dispo-${course.id}-${activePhotographerId}-${tarif.id}`,
+                                      value,
+                                      course.id,
+                                      activePhotographerId
+                                    )}
+                                  >
+                                    <SelectTrigger className="w-full h-9 text-xs">
+                                      <SelectValue>
+                                        {(!tarifDispo || tarifDispo.statut === 'pending') && '⏳ En attente'}
+                                        {tarifDispo?.statut === 'available' && '✓ Disponible'}
+                                        {tarifDispo?.statut === 'unavailable' && '✗ Indisponible'}
+                                      </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="pending">⏳ En attente</SelectItem>
+                                      <SelectItem value="available">✓ Disponible</SelectItem>
+                                      <SelectItem value="unavailable">✗ Indisponible</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          // Si un seul tarif, affichage normal
+                          <div className="w-full">
+                            <Select
+                              value={dispo?.statut || 'pending'}
+                              onValueChange={(value) => handleStatusChange(dispo?.id || `dispo-${course.id}-${activePhotographerId}`, value, course.id, activePhotographerId)}
+                            >
+                              <SelectTrigger className="w-full h-9 text-xs">
+                                <SelectValue>
+                                  {(!dispo || dispo.statut === 'pending') && '⏳ En attente'}
+                                  {dispo?.statut === 'available' && '✓ Disponible'}
+                                  {dispo?.statut === 'unavailable' && '✗ Indisponible'}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pending">⏳ En attente</SelectItem>
+                                <SelectItem value="available">✓ Disponible</SelectItem>
+                                <SelectItem value="unavailable">✗ Indisponible</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )
                       )}
                     </div>
                   </div>
@@ -921,6 +1011,7 @@ export default function PhotographerCalendrierPage() {
                     const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
                     const courseTarif = courseTarifs[0];
                     const hasMultipleTarifs = courseTarifs.length > 1;
+                    const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) && courseTarifs.length > 1;
 
                     const isValidated = myDispo && (myDispo.statut === 'validated' || myDispo.statut === 'teamLeader');
                     const isRejected = myDispo && myDispo.statut === 'rejected';
@@ -1028,12 +1119,33 @@ export default function PhotographerCalendrierPage() {
                             </div>
                           )}
 
-                          {allValidatedDispos.length === 0 && courseTarif && (
-                            <div className="flex items-center gap-1.5 mt-1.5">
-                              <span className="text-xs font-medium text-muted-foreground">
-                                💰 {courseTarif.tarifPhotographe}€
-                              </span>
-                            </div>
+                          {allValidatedDispos.length === 0 && (
+                            hasTwoTarifs ? (
+                              // Si deux tarifs, afficher les deux avec séparateur
+                              <div className="border-t border-gray-300 pt-1 mt-1.5">
+                                {courseTarifs.map((tarif, idx) => (
+                                  <div key={tarif.id} className="flex items-center gap-1 mb-0.5">
+                                    <span className="text-xs font-medium text-blue-700">
+                                      {idx === 0
+                                        ? (tarif.firstTarifName || 'Tarif 1')
+                                        : (tarif.secondTarifName || 'Tarif 2')}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      💰 {tarif.tarifPhotographe}€
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              // Si un seul tarif
+                              courseTarif && (
+                                <div className="flex items-center gap-1.5 mt-1.5">
+                                  <span className="text-xs font-medium text-muted-foreground">
+                                    💰 {courseTarif.tarifPhotographe}€
+                                  </span>
+                                </div>
+                              )
+                            )
                           )}
                         </div>
 
@@ -1048,20 +1160,53 @@ export default function PhotographerCalendrierPage() {
                         </div>
 
                         {/* Colonne Mon Statut */}
-                        <div className="p-2 flex flex-col items-center justify-center gap-1 border-r border-gray-600/40">
+                        <div className={cn(
+                          "flex flex-col items-center justify-center gap-1 border-r border-gray-600/40",
+                          hasTwoTarifs ? "px-2 pb-2 pt-14" : "p-2"
+                        )}>
                           {currentUser && (
-                            <AvailabilityCell
-                              disponibilite={myDispo || null}
-                              course={course}
-                              photographerId={currentUser.id}
-                              onStatusChange={handleStatusChange}
-                              tarifAmount={courseTarif?.tarifPhotographe}
-                              bonusChefEquipe={courseTarif?.bonusChefEquipe}
-                              tarifDescription={hasMultipleTarifs && myDispo?.tarifId
-                                ? courseTarifs.find((t) => t.id === myDispo.tarifId)?.description || 'Tarif personnalisé'
-                                : undefined
-                              }
-                            />
+                            hasTwoTarifs ? (
+                              // Si deux tarifs, afficher deux sélecteurs
+                              courseTarifs.map((tarif) => {
+                                const tarifDispo = disponibilites.find(
+                                  (d) => d.courseId === course.id && d.photographeId === currentUser.id && d.tarifId === tarif.id
+                                );
+                                // Créer une dispo temporaire avec le tarifId si elle n'existe pas
+                                const dispoWithTarif = tarifDispo || {
+                                  id: `dispo-${course.id}-${currentUser.id}-${tarif.id}`,
+                                  photographeId: currentUser.id,
+                                  courseId: course.id,
+                                  statut: 'pending' as const,
+                                  tarifId: tarif.id
+                                };
+                                return (
+                                  <div key={tarif.id} className="w-full">
+                                    <AvailabilityCell
+                                      disponibilite={dispoWithTarif}
+                                      course={course}
+                                      photographerId={currentUser.id}
+                                      onStatusChange={handleStatusChange}
+                                      tarifAmount={tarif.tarifPhotographe}
+                                      bonusChefEquipe={tarif.bonusChefEquipe}
+                                    />
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              // Si un seul tarif
+                              <AvailabilityCell
+                                disponibilite={myDispo || null}
+                                course={course}
+                                photographerId={currentUser.id}
+                                onStatusChange={handleStatusChange}
+                                tarifAmount={courseTarif?.tarifPhotographe}
+                                bonusChefEquipe={courseTarif?.bonusChefEquipe}
+                                tarifDescription={hasMultipleTarifs && myDispo?.tarifId
+                                  ? courseTarifs.find((t) => t.id === myDispo.tarifId)?.description || 'Tarif personnalisé'
+                                  : undefined
+                                }
+                              />
+                            )
                           )}
                         </div>
 
@@ -1072,15 +1217,48 @@ export default function PhotographerCalendrierPage() {
                           );
 
                           return (
-                            <div key={photographer.id} className="p-2 flex flex-col items-center justify-center gap-1 border-r border-gray-600/40">
-                              <AvailabilityCell
-                                disponibilite={photoDispo || null}
-                                course={course}
-                                photographerId={photographer.id}
-                                onStatusChange={handleStatusChange}
-                                tarifAmount={courseTarif?.tarifPhotographe}
-                                bonusChefEquipe={courseTarif?.bonusChefEquipe}
-                              />
+                            <div key={photographer.id} className={cn(
+                              "flex flex-col items-center justify-center gap-1 border-r border-gray-600/40",
+                              hasTwoTarifs ? "px-2 pb-2 pt-14" : "p-2"
+                            )}>
+                              {hasTwoTarifs ? (
+                                // Si deux tarifs, afficher deux sélecteurs
+                                courseTarifs.map((tarif) => {
+                                  const tarifDispo = disponibilites.find(
+                                    (d) => d.courseId === course.id && d.photographeId === photographer.id && d.tarifId === tarif.id
+                                  );
+                                  // Créer une dispo temporaire avec le tarifId si elle n'existe pas
+                                  const dispoWithTarif = tarifDispo || {
+                                    id: `dispo-${course.id}-${photographer.id}-${tarif.id}`,
+                                    photographeId: photographer.id,
+                                    courseId: course.id,
+                                    statut: 'pending' as const,
+                                    tarifId: tarif.id
+                                  };
+                                  return (
+                                    <div key={tarif.id} className="w-full">
+                                      <AvailabilityCell
+                                        disponibilite={dispoWithTarif}
+                                        course={course}
+                                        photographerId={photographer.id}
+                                        onStatusChange={handleStatusChange}
+                                        tarifAmount={tarif.tarifPhotographe}
+                                        bonusChefEquipe={tarif.bonusChefEquipe}
+                                      />
+                                    </div>
+                                  );
+                                })
+                              ) : (
+                                // Si un seul tarif
+                                <AvailabilityCell
+                                  disponibilite={photoDispo || null}
+                                  course={course}
+                                  photographerId={photographer.id}
+                                  onStatusChange={handleStatusChange}
+                                  tarifAmount={courseTarif?.tarifPhotographe}
+                                  bonusChefEquipe={courseTarif?.bonusChefEquipe}
+                                />
+                              )}
                             </div>
                           );
                         })}

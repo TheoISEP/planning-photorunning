@@ -12,8 +12,8 @@ export async function GET(request: NextRequest) {
     const courseId = searchParams.get('courseId');
 
     if (courseId) {
-      const tarif = await sheetsService.getTarifByCourseId(courseId);
-      return NextResponse.json({ tarifs: tarif ? [tarif] : [] });
+      const tarifs = await sheetsService.getTarifsByCourseId(courseId);
+      return NextResponse.json({ tarifs: tarifs || [] });
     }
 
     const tarifs = await withCache(
@@ -58,6 +58,8 @@ export async function POST(request: NextRequest) {
       courseId: data.courseId,
       tarifPhotographe: data.tarifPhotographe.toString(),
       bonusChefEquipe: data.bonusChefEquipe.toString(),
+      firstTarifName: data.firstTarifName || '',
+      secondTarifName: data.secondTarifName || '',
       dateCreation: data.dateCreation || new Date().toISOString(),
       dateModification: new Date().toISOString(),
     };
@@ -68,5 +70,47 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Create tarif error:', error);
     return NextResponse.json({ error: 'Erreur lors de la création du tarif' }, { status: 500 });
+  }
+}
+
+// PATCH /api/tarifs - Mettre à jour un tarif par ID
+export async function PATCH(request: NextRequest) {
+  try {
+    // Vérifier l'authentification et le rôle
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth-token')?.value;
+    if (!token) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+
+    const authService = new AuthService();
+    const user = authService.verifyToken(token);
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
+    const data = await request.json();
+
+    if (!data.id) {
+      return NextResponse.json({ error: 'ID du tarif requis' }, { status: 400 });
+    }
+
+    const sheetsService = new GoogleSheetsService();
+
+    const updateData: any = {
+      dateModification: new Date().toISOString(),
+    };
+
+    if (data.tarifPhotographe !== undefined) updateData.tarifPhotographe = data.tarifPhotographe.toString();
+    if (data.bonusChefEquipe !== undefined) updateData.bonusChefEquipe = data.bonusChefEquipe.toString();
+    if (data.firstTarifName !== undefined) updateData.firstTarifName = data.firstTarifName;
+    if (data.secondTarifName !== undefined) updateData.secondTarifName = data.secondTarifName;
+
+    const updatedTarif = await sheetsService.updateTarif(data.id, updateData);
+
+    return NextResponse.json({ tarif: updatedTarif, success: true });
+  } catch (error: any) {
+    console.error('Update tarif error:', error);
+    return NextResponse.json({ error: 'Erreur lors de la mise à jour du tarif' }, { status: 500 });
   }
 }

@@ -35,8 +35,12 @@ const formSchema = z.object({
 	startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Format invalide (HH:MM)"),
 	endDate: z.date({ message: "La date de fin est requise" }),
 	endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Format invalide (HH:MM)"),
+	isForfait: z.boolean().optional(),
 	photographerPrice: z.string().min(1, "Le tarif photographe est requis"),
 	teamLeaderBonus: z.string().min(1, "Le bonus référent est requis"),
+	firstTarifName: z.string().optional(),
+	secondTarifPrice: z.string().optional(),
+	secondTarifName: z.string().optional(),
 	expectedRunners: z.string().optional(),
 	expectedPhotographers: z.string().optional(),
 	hotelNotes: z.string().optional(),
@@ -63,8 +67,12 @@ export default function NewCalendrierEventPage() {
 			location: "",
 			startTime: "09:00",
 			endTime: "18:00",
+			isForfait: false,
 			photographerPrice: "350",
 			teamLeaderBonus: "100",
+			firstTarifName: "",
+			secondTarifPrice: "",
+			secondTarifName: "",
 			expectedRunners: "",
 			expectedPhotographers: "",
 			hotelNotes: "",
@@ -116,17 +124,37 @@ export default function NewCalendrierEventPage() {
 			transportPrice: values.transportPrice || '',
 			foodPrice: values.foodPrice || '',
 			comOrga: values.comOrga || '',
+			twoPrices: values.isForfait ? 'TRUE' : 'FALSE',
 		};
 
-		// Créer le tarif
-		const tarifData = {
-			id: `tarif-${courseId}`,
+		// Créer les tarifs
+		const tarifsToCreate = [];
+
+		// Premier tarif (toujours créé)
+		const firstTarifData = {
+			id: `tarif-${courseId}-1`,
 			courseId: courseId,
 			tarifPhotographe: parseFloat(values.photographerPrice),
 			bonusChefEquipe: parseFloat(values.teamLeaderBonus),
+			firstTarifName: values.isForfait ? (values.firstTarifName || 'Tarif 1') : '',
 			dateCreation: new Date().toISOString(),
 			dateModification: new Date().toISOString(),
 		};
+		tarifsToCreate.push(firstTarifData);
+
+		// Deuxième tarif (seulement si forfait)
+		if (values.isForfait && values.secondTarifPrice) {
+			const secondTarifData = {
+				id: `tarif-${courseId}-2`,
+				courseId: courseId,
+				tarifPhotographe: parseFloat(values.secondTarifPrice),
+				bonusChefEquipe: parseFloat(values.teamLeaderBonus),
+				secondTarifName: values.secondTarifName || 'Tarif 2',
+				dateCreation: new Date().toISOString(),
+				dateModification: new Date().toISOString(),
+			};
+			tarifsToCreate.push(secondTarifData);
+		}
 
 		// Afficher le toast immédiatement
 		toast.success('Course créée avec succès');
@@ -135,25 +163,32 @@ export default function NewCalendrierEventPage() {
 		window.location.href = '/admin/planning';
 
 		// Créer en arrière-plan (ne bloque pas la navigation)
+		const tarifPromises = tarifsToCreate.map(tarifData =>
+			fetch('/api/tarifs', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(tarifData),
+			})
+		);
+
 		Promise.all([
 			fetch('/api/courses', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(courseData),
 			}),
-			fetch('/api/tarifs', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(tarifData),
-			})
-		]).then(([courseRes, tarifRes]) => {
+			...tarifPromises
+		]).then((responses) => {
+			const [courseRes, ...tarifRess] = responses;
 			if (!courseRes.ok) {
 				console.error('Erreur création course en arrière-plan');
 			}
-			if (!tarifRes.ok) {
-				console.error('Erreur création tarif en arrière-plan');
-			}
-			console.log('✅ Course et tarif créés avec succès en arrière-plan');
+			tarifRess.forEach((tarifRes, index) => {
+				if (!tarifRes.ok) {
+					console.error(`Erreur création tarif ${index + 1} en arrière-plan`);
+				}
+			});
+			console.log('✅ Course et tarifs créés avec succès en arrière-plan');
 		}).catch(error => {
 			console.error('❌ Erreur création en arrière-plan:', error);
 		});
@@ -391,24 +426,115 @@ export default function NewCalendrierEventPage() {
 							<CardDescription>Rémunération des photographes</CardDescription>
 						</CardHeader>
 						<CardContent className="space-y-4">
+							{/* Checkbox Forfait */}
 							<FormField
 								control={form.control}
-								name="photographerPrice"
+								name="isForfait"
 								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Tarif photographe *</FormLabel>
+									<FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
 										<FormControl>
-											<div className="relative">
-												<Input type="number" placeholder="450" {...field} className="pr-8" />
-												<span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
-											</div>
+											<Checkbox
+												checked={field.value}
+												onCheckedChange={field.onChange}
+											/>
 										</FormControl>
-										<FormDescription>Montant à payer au photographe standard</FormDescription>
-										<FormMessage />
+										<div className="space-y-1 leading-none">
+											<FormLabel>Forfait avec deux tarifs différents</FormLabel>
+											<FormDescription>
+												Cochez cette case si vous souhaitez proposer deux tarifs différents pour cette course
+											</FormDescription>
+										</div>
 									</FormItem>
 								)}
 							/>
 
+							{/* Premier tarif */}
+							<div className="space-y-4 rounded-md border p-4">
+								<div className="font-medium text-sm">
+									{form.watch('isForfait') ? 'Premier tarif' : 'Tarif photographe'}
+								</div>
+
+								{form.watch('isForfait') && (
+									<FormField
+										control={form.control}
+										name="firstTarifName"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Nom du premier tarif *</FormLabel>
+												<FormControl>
+													<Input placeholder="Ex: Tarif Standard" {...field} />
+												</FormControl>
+												<FormDescription>
+													Ce nom sera affiché dans le planning pour identifier ce tarif
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
+
+								<FormField
+									control={form.control}
+									name="photographerPrice"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Montant *</FormLabel>
+											<FormControl>
+												<div className="relative">
+													<Input type="number" placeholder="450" {...field} className="pr-8" />
+													<span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+												</div>
+											</FormControl>
+											<FormDescription>Montant à payer au photographe</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+
+							{/* Deuxième tarif (si forfait) */}
+							{form.watch('isForfait') && (
+								<div className="space-y-4 rounded-md border p-4 bg-blue-50/50">
+									<div className="font-medium text-sm">Deuxième tarif</div>
+
+									<FormField
+										control={form.control}
+										name="secondTarifName"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Nom du deuxième tarif *</FormLabel>
+												<FormControl>
+													<Input placeholder="Ex: Tarif Premium" {...field} />
+												</FormControl>
+												<FormDescription>
+													Ce nom sera affiché dans le planning pour identifier ce tarif
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={form.control}
+										name="secondTarifPrice"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Montant *</FormLabel>
+												<FormControl>
+													<div className="relative">
+														<Input type="number" placeholder="550" {...field} className="pr-8" />
+														<span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+													</div>
+												</FormControl>
+												<FormDescription>Montant du deuxième tarif</FormDescription>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							)}
+
+							{/* Bonus référent */}
 							<FormField
 								control={form.control}
 								name="teamLeaderBonus"
@@ -422,7 +548,7 @@ export default function NewCalendrierEventPage() {
 											</div>
 										</FormControl>
 										<FormDescription>
-											Montant additionnel pour le référent (pré-rempli avec la valeur par défaut)
+											Montant additionnel pour le référent (appliqué aux deux tarifs si forfait)
 										</FormDescription>
 										<FormMessage />
 									</FormItem>

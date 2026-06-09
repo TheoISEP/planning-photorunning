@@ -64,7 +64,11 @@ export function AvailabilityCell({
 
   // Si pas de disponibilité, créer une disponibilité temporaire en "pending"
   const currentStatut = disponibilite?.statut || 'pending';
-  const disponibiliteId = disponibilite?.id || `dispo-${course.id}-${photographerId}`;
+  // Inclure le tarifId dans l'ID temporaire si présent
+  const disponibiliteId = disponibilite?.id ||
+    (disponibilite?.tarifId
+      ? `dispo-${course.id}-${photographerId}-${disponibilite.tarifId}`
+      : `dispo-${course.id}-${photographerId}`);
 
   // Si le photographe peut modifier
   if (canModify) {

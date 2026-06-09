@@ -243,10 +243,20 @@ export async function PATCH(request: NextRequest) {
 
     // Si c'est un photographe, vérifier les permissions et contraintes
     if (user.role === 'photographer') {
-      // Extraire le courseId et photographeId de l'ID de disponibilité (format: dispo-{courseId}-{photographeId})
+      // Extraire le courseId et photographeId de l'ID de disponibilité
+      // Formats possibles:
+      // - dispo-{courseId}-{photographeId}
+      // - dispo-{courseId}-{photographeId}-{tarifId}
       const parts = id.split('-');
-      const courseIdFromDispoId = parts.length > 1 ? parts.slice(1, -1).join('-') : null;
-      const photographeIdFromDispoId = parts[parts.length - 1];
+      let courseIdFromDispoId = null;
+      let photographeIdFromDispoId = null;
+
+      if (parts.length >= 3) {
+        // Si on a au moins 3 parties (dispo, courseId, photographeId)
+        courseIdFromDispoId = parts[1];
+        photographeIdFromDispoId = parts[2];
+        // Si il y a 4 parties, le 4ème est le tarifId (on l'ignore pour les permissions)
+      }
 
       // Vérifier les permissions : soit c'est sa propre dispo, soit il est référent du photographe
       if (user.id !== photographeIdFromDispoId && user.id !== photographeId) {
@@ -317,19 +327,23 @@ export async function PATCH(request: NextRequest) {
       dateModification: new Date().toISOString(),
     };
 
-    // Seul l'admin peut ajouter une note ou assigner un tarif
+    // Permettre à tout le monde de passer le tarifId (important pour les courses avec deux tarifs)
+    if (tarifId !== undefined) {
+      updateData.tarifId = tarifId;
+    }
+
+    // Seul l'admin peut ajouter une note
     if (user.role === 'admin') {
       if (noteAdmin !== undefined) {
         updateData.noteAdmin = noteAdmin;
-      }
-      if (tarifId !== undefined) {
-        updateData.tarifId = tarifId;
       }
     }
 
     try {
       // Essayer de mettre à jour
+      console.log(`📝 Tentative de mise à jour de la disponibilité: ${id}`, updateData);
       const updatedDisponibilite = await sheetsService.updateDisponibilite(id, updateData);
+      console.log(`✅ Disponibilité mise à jour avec succès:`, updatedDisponibilite);
 
       // Invalider le cache après modification
       cache.delete(CacheKeys.allDisponibilites());
@@ -354,9 +368,19 @@ export async function PATCH(request: NextRequest) {
           }, { status: 400 });
         }
 
+        // Créer un ID cohérent avec le tarifId si présent
+        let finalId = id;
+        if (tarifId && !id.endsWith(`-${tarifId}`)) {
+          // Si l'ID ne contient pas déjà le tarifId à la fin, on le reconstruit
+          finalId = `dispo-${courseId}-${photographeId}-${tarifId}`;
+        } else if (!tarifId && id.split('-').length === 4) {
+          // Si pas de tarifId mais l'ID en a un, on le reconstruit sans
+          finalId = `dispo-${courseId}-${photographeId}`;
+        }
+
         // Créer la disponibilité
         const newDisponibilite = {
-          id,
+          id: finalId,
           courseId,
           photographeId,
           statut,
@@ -366,7 +390,9 @@ export async function PATCH(request: NextRequest) {
           tarifId: tarifId || '',
         };
 
+        console.log(`➕ Création de nouvelle disponibilité:`, newDisponibilite);
         await sheetsService.createDisponibilite(newDisponibilite);
+        console.log(`✅ Disponibilité créée avec succès`);
 
         // Invalider le cache après création
         cache.delete(CacheKeys.allDisponibilites());

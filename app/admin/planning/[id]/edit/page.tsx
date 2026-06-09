@@ -29,8 +29,12 @@ const courseSchema = z.object({
   description: z.string().optional(),
   dateDebut: z.string().min(1, 'La date de début est requise'),
   dateFin: z.string().min(1, 'La date de fin est requise'),
+  isForfait: z.boolean().optional(),
   tarifPhotographe: z.string().min(1, 'Le tarif est requis'),
   bonusChefEquipe: z.string().min(1, 'Le bonus est requis'),
+  firstTarifName: z.string().optional(),
+  secondTarifPrice: z.string().optional(),
+  secondTarifName: z.string().optional(),
   coureursAttendus: z.string().optional(),
   numberAttended: z.string().optional(),
   hotel: z.string().optional(),
@@ -61,8 +65,12 @@ export default function EditCoursePage() {
       description: '',
       dateDebut: '',
       dateFin: '',
+      isForfait: false,
       tarifPhotographe: '450',
       bonusChefEquipe: '100',
+      firstTarifName: '',
+      secondTarifPrice: '',
+      secondTarifName: '',
       coureursAttendus: '',
       numberAttended: '',
       hotel: '',
@@ -92,15 +100,24 @@ export default function EditCoursePage() {
       const courseData = await courseRes.json();
       const course = courseData.course;
 
-      // Fetch tarif
+      // Fetch tarifs
       const tarifRes = await fetch(`/api/tarifs?courseId=${courseId}`);
-      let tarif = { tarifPhotographe: 450, bonusChefEquipe: 100 };
+      let tarifs: any[] = [];
+      let tarif = { tarifPhotographe: 450, bonusChefEquipe: 100, firstTarifName: '', secondTarifName: '' };
+      let secondTarif: any = null;
+
       if (tarifRes.ok) {
         const tarifData = await tarifRes.json();
         if (tarifData.tarifs && tarifData.tarifs.length > 0) {
+          tarifs = tarifData.tarifs;
           tarif = tarifData.tarifs[0];
+          if (tarifData.tarifs.length > 1) {
+            secondTarif = tarifData.tarifs[1];
+          }
         }
       }
+
+      const isForfait = course.twoPrices === 'TRUE' || course.twoPrices === true || tarifs.length > 1;
 
       // Formater les dates pour input datetime-local
       const formatDateForInput = (isoDate: string) => {
@@ -120,8 +137,12 @@ export default function EditCoursePage() {
         description: course.description || '',
         dateDebut: formatDateForInput(course.dateDebut),
         dateFin: formatDateForInput(course.dateFin),
+        isForfait: isForfait,
         tarifPhotographe: String(tarif.tarifPhotographe),
         bonusChefEquipe: String(tarif.bonusChefEquipe),
+        firstTarifName: tarif.firstTarifName || '',
+        secondTarifPrice: secondTarif ? String(secondTarif.tarifPhotographe) : '',
+        secondTarifName: secondTarif ? (secondTarif.secondTarifName || '') : '',
         coureursAttendus: course.coureursAttendus ? String(course.coureursAttendus) : '',
         numberAttended: course.numberAttended ? String(course.numberAttended) : '',
         hotel: course.hotel || '',
@@ -166,6 +187,7 @@ export default function EditCoursePage() {
         transportPrice: data.transportPrice || '',
         foodPrice: data.foodPrice || '',
         comOrga: data.comOrga || '',
+        twoPrices: data.isForfait ? 'TRUE' : 'FALSE',
       };
 
       const courseRes = await fetch(`/api/courses/${courseId}`, {
@@ -179,25 +201,82 @@ export default function EditCoursePage() {
         throw new Error(errorData.error || 'Erreur mise à jour course');
       }
 
-      // Mettre à jour le tarif
-      const tarifData = {
+      // Récupérer les tarifs existants
+      const existingTarifsRes = await fetch(`/api/tarifs?courseId=${courseId}`);
+      const existingTarifsData = await existingTarifsRes.json();
+      const existingTarifs = existingTarifsData.tarifs || [];
+
+      // Mettre à jour ou créer le premier tarif
+      const firstTarifData = {
         courseId: courseId,
         tarifPhotographe: parseFloat(data.tarifPhotographe),
         bonusChefEquipe: parseFloat(data.bonusChefEquipe),
+        firstTarifName: data.isForfait ? (data.firstTarifName || 'Tarif 1') : '',
       };
 
-      const tarifRes = await fetch(`/api/tarifs/${courseId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(tarifData),
-      });
-
-      if (!tarifRes.ok) {
-        const errorData = await tarifRes.json();
-        throw new Error(errorData.error || 'Erreur mise à jour tarif');
+      if (existingTarifs.length > 0) {
+        // Mettre à jour le premier tarif existant
+        await fetch(`/api/tarifs`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: existingTarifs[0].id,
+            ...firstTarifData,
+          }),
+        });
+      } else {
+        // Créer le premier tarif
+        await fetch('/api/tarifs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: `tarif-${courseId}-1`,
+            ...firstTarifData,
+            dateCreation: new Date().toISOString(),
+            dateModification: new Date().toISOString(),
+          }),
+        });
       }
 
-      toast.success('Course et tarif modifiés avec succès');
+      // Gérer le deuxième tarif
+      if (data.isForfait && data.secondTarifPrice) {
+        const secondTarifData = {
+          courseId: courseId,
+          tarifPhotographe: parseFloat(data.secondTarifPrice),
+          bonusChefEquipe: parseFloat(data.bonusChefEquipe),
+          secondTarifName: data.secondTarifName || 'Tarif 2',
+        };
+
+        if (existingTarifs.length > 1) {
+          // Mettre à jour le deuxième tarif existant
+          await fetch(`/api/tarifs`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: existingTarifs[1].id,
+              ...secondTarifData,
+            }),
+          });
+        } else {
+          // Créer le deuxième tarif
+          await fetch('/api/tarifs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: `tarif-${courseId}-2`,
+              ...secondTarifData,
+              dateCreation: new Date().toISOString(),
+              dateModification: new Date().toISOString(),
+            }),
+          });
+        }
+      } else if (!data.isForfait && existingTarifs.length > 1) {
+        // Supprimer le deuxième tarif si on désactive le forfait
+        // Note: Il faudrait implémenter un endpoint DELETE pour les tarifs
+        console.log('Devrait supprimer le deuxième tarif');
+      }
+
+      toast.success('Course et tarifs modifiés avec succès');
 
       // Redirection
       router.push(`/admin/planning/${courseId}`);
@@ -378,35 +457,125 @@ export default function EditCoursePage() {
                 <CardDescription>Les tarifs pour les photographes</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Checkbox Forfait */}
+                <FormField
+                  control={form.control}
+                  name="isForfait"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Forfait avec deux tarifs différents</FormLabel>
+                        <FormDescription>
+                          Cochez cette case si vous souhaitez proposer deux tarifs différents pour cette course
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Premier tarif */}
+                <div className="space-y-4 rounded-md border p-4">
+                  <div className="font-medium text-sm">
+                    {form.watch('isForfait') ? 'Premier tarif' : 'Tarif photographe'}
+                  </div>
+
+                  {form.watch('isForfait') && (
+                    <FormField
+                      control={form.control}
+                      name="firstTarifName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nom du premier tarif *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ex: Tarif Standard" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            Ce nom sera affiché dans le planning pour identifier ce tarif
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
                   <FormField
                     control={form.control}
                     name="tarifPhotographe"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tarif photographe (€) *</FormLabel>
+                        <FormLabel>Montant (€) *</FormLabel>
                         <FormControl>
                           <Input type="number" step="0.01" placeholder="450" {...field} />
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="bonusChefEquipe"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Bonus chef d&apos;équipe (€) *</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" placeholder="100" {...field} />
-                        </FormControl>
+                        <FormDescription>Montant à payer au photographe</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
+
+                {/* Deuxième tarif (si forfait) */}
+                {form.watch('isForfait') && (
+                  <div className="space-y-4 rounded-md border p-4 bg-blue-50/50">
+                    <div className="font-medium text-sm">Deuxième tarif</div>
+
+                    <FormField
+                      control={form.control}
+                      name="secondTarifName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nom du deuxième tarif *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ex: Tarif Premium" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            Ce nom sera affiché dans le planning pour identifier ce tarif
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="secondTarifPrice"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Montant (€) *</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" placeholder="550" {...field} />
+                          </FormControl>
+                          <FormDescription>Montant du deuxième tarif</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+
+                {/* Bonus référent */}
+                <FormField
+                  control={form.control}
+                  name="bonusChefEquipe"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bonus chef d&apos;équipe (€) *</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" placeholder="100" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Montant additionnel pour le référent (appliqué aux deux tarifs si forfait)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
 

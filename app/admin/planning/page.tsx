@@ -1486,7 +1486,7 @@ export default function AdminCalendrierPage() {
 
                     return (
                       <div
-                        key={course.tarifIndex !== undefined ? `${course.id}-tarif-${course.tarifIndex}` : course.id}
+                        key={course.id}
                         className={cn(
                           "group grid gap-0 border-b border-gray-200/50 transition-colors",
                           bgColor,

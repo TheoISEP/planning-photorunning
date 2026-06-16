@@ -504,6 +504,123 @@ export default function AdminCalendrierPage() {
     fetchData();
   }, [fetchData]);
 
+  // Fonction pour rafraîchir uniquement les disponibilités sans recharger toute la page
+  const refreshDisponibilites = async () => {
+    try {
+      const disponibilitesRes = await fetch('/api/disponibilites');
+      if (disponibilitesRes.ok) {
+        const disponibilitesData = await disponibilitesRes.json();
+        const newDisponibilites = disponibilitesData.disponibilites || [];
+        setDisponibilites(newDisponibilites);
+
+        // Recalculer les courses avec les nouvelles dispos (même logique que handleStatusChange)
+        const coursesWithData = courses.map((course) => {
+          const dispos = newDisponibilites.filter((d: any) => d.courseId === course.id);
+
+          const photographesValides = dispos.filter((d: any) => {
+            if (d.statut !== 'validated' && d.statut !== 'teamLeader') return false;
+            const user = admins.find((a) => a.id === d.photographeId);
+            const isNonRemunere = user && (user.rem === 'non' || user.rem === 'non');
+            return !isNonRemunere;
+          }).length;
+
+          const photographesDisponibles = dispos.filter(
+            (d: any) => d.statut === 'available' || d.statut === 'validated' || d.statut === 'teamLeader'
+          ).length;
+
+          let coutTotal = 0;
+          dispos.forEach((d: any) => {
+            if (d.statut === 'validated' || d.statut === 'teamLeader') {
+              const user = admins.find((a) => a.id === d.photographeId);
+              const isNonRemunere = user && (user.rem === 'non' || user.rem === 'non');
+              if (isNonRemunere) return;
+
+              const tarifDispo = d.tarifId
+                ? tarifs.find((t: any) => t.id === d.tarifId)
+                : course.tarif;
+
+              if (tarifDispo) {
+                const tarifPhoto = Number(tarifDispo.tarifPhotographe) || 0;
+                const bonusChef = Number(tarifDispo.bonusChefEquipe) || 0;
+                const montant = d.statut === 'teamLeader' ? tarifPhoto + bonusChef : tarifPhoto;
+                coutTotal += montant;
+              }
+            }
+          });
+
+          return { ...course, disponibilites: dispos, photographesValides, photographesDisponibles, coutTotal };
+        });
+
+        setCourses(coursesWithData);
+
+        // Recalculer les stats
+        const activeCourses = coursesWithData.filter((c) => c.archived !== 'oui');
+        const totalPrestations = activeCourses.reduce((sum, c) => sum + c.photographesValides, 0);
+        const coutTotal = activeCourses.reduce((sum, c) => sum + c.coutTotal, 0);
+
+        const coursesDetails = activeCourses.map((c) => ({
+          nom: c.nom,
+          ville: c.ville,
+          validated: c.photographesValides,
+        }));
+
+        const activeCourseIds = new Set(activeCourses.map(c => c.id));
+        const activeDisponibilites = newDisponibilites.filter((d: any) => activeCourseIds.has(d.courseId));
+
+        const photographersMap = new Map();
+        [...admins, ...photographers].forEach((user: any) => {
+          photographersMap.set(user.id, { nom: user.nom, prenom: user.prenom, prestations: 0 });
+        });
+
+        activeDisponibilites.forEach((dispo: any) => {
+          if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
+            const photographer = photographersMap.get(dispo.photographeId);
+            if (photographer) photographer.prestations++;
+          }
+        });
+
+        const photographersDetails = Array.from(photographersMap.values())
+          .filter((p: any) => p.prestations > 0)
+          .sort((a: any, b: any) => b.prestations - a.prestations);
+
+        const validatedCount = activeDisponibilites.filter((d: any) => d.statut === 'validated').length;
+        const teamLeadersCount = activeDisponibilites.filter((d: any) => d.statut === 'teamLeader').length;
+
+        let tarifBase = 0;
+        let bonus = 0;
+        activeCourses.forEach((course) => {
+          course.disponibilites.forEach((d: any) => {
+            if (d.statut === 'validated' || d.statut === 'teamLeader') {
+              const user = admins.find((a) => a.id === d.photographeId);
+              const isNonRemunere = user && (user.rem === 'non' || user.rem === 'non');
+              if (isNonRemunere) return;
+
+              const tarifDispo = d.tarifId ? tarifs.find((t: any) => t.id === d.tarifId) : course.tarif;
+              if (tarifDispo) {
+                tarifBase += Number(tarifDispo.tarifPhotographe) || 0;
+                if (d.statut === 'teamLeader') bonus += Number(tarifDispo.bonusChefEquipe) || 0;
+              }
+            }
+          });
+        });
+
+        setStats({
+          totalCourses: activeCourses.length,
+          coursesDetails,
+          totalPhotographers: stats.totalPhotographers,
+          photographersDetails,
+          totalPrestations,
+          prestationsDetails: { validated: validatedCount, teamLeaders: teamLeadersCount },
+          coutTotal,
+          coutDetails: { tarifBase, bonus },
+        });
+
+        console.log(`✅ Disponibilités et stats rafraîchies: ${newDisponibilites.length} disponibilités`);
+      }
+    } catch (error) {
+      console.error('❌ Erreur refresh disponibilités:', error);
+    }
+  };
 
   const handleStatusChange = async (
     disponibiliteId: string,
@@ -511,153 +628,13 @@ export default function AdminCalendrierPage() {
     courseId: string
   ) => {
     try {
-      // Mise à jour optimiste immédiate
+      // Mise à jour optimiste SIMPLE - juste changer le statut visuellement
       const updatedDisponibilites = disponibilites.map((d) =>
         d.id === disponibiliteId
           ? { ...d, statut: newStatus as Disponibilite['statut'] }
           : d
       );
       setDisponibilites(updatedDisponibilites);
-
-      // Recalculer immédiatement les courses avec les nouvelles dispos
-      const coursesWithData = courses.map((course) => {
-        const dispos = updatedDisponibilites.filter((d) => d.courseId === course.id);
-
-        const photographesValides = dispos.filter((d) => {
-          if (d.statut !== 'validated' && d.statut !== 'teamLeader') return false;
-
-          // Exclure les admins non rémunérés
-          const user = admins.find((a) => a.id === d.photographeId);
-          const isNonRemunere = user && (user.rem === 'non' || user.rem === 'non');
-
-          return !isNonRemunere;
-        }).length;
-
-        const photographesDisponibles = dispos.filter(
-          (d) => d.statut === 'available' || d.statut === 'validated' || d.statut === 'teamLeader'
-        ).length;
-
-        // Calculer le coût total en utilisant les tarifs assignés
-        let coutTotal = 0;
-        dispos.forEach((d) => {
-          if (d.statut === 'validated' || d.statut === 'teamLeader') {
-            // Vérifier si c'est un admin non rémunéré
-            const user = admins.find((a) => a.id === d.photographeId);
-            const isNonRemunere = user && (user.rem === 'non' || user.rem === 'non');
-
-            // Ne pas compter les admins non rémunérés
-            if (isNonRemunere) return;
-
-            const tarifDispo = d.tarifId
-              ? tarifs.find((t: Tarif) => t.id === d.tarifId)
-              : course.tarif;
-
-            if (tarifDispo) {
-              const tarifPhoto = Number(tarifDispo.tarifPhotographe) || 0;
-              const bonusChef = Number(tarifDispo.bonusChefEquipe) || 0;
-              const montant = d.statut === 'teamLeader'
-                ? tarifPhoto + bonusChef
-                : tarifPhoto;
-              coutTotal += montant;
-            }
-          }
-        });
-
-        return {
-          ...course,
-          disponibilites: dispos,
-          photographesValides,
-          photographesDisponibles,
-          coutTotal,
-        };
-      });
-
-      setCourses(coursesWithData);
-
-      // Filtrer les courses non archivées pour les statistiques
-      const activeCourses = coursesWithData.filter((c) => c.archived !== 'oui');
-
-      // Recalculer les stats avec détails (uniquement courses actives)
-      const totalPrestations = activeCourses.reduce((sum, c) => sum + c.photographesValides, 0);
-      const coutTotal = activeCourses.reduce((sum, c) => sum + c.coutTotal, 0);
-
-      // Recalculer les détails (uniquement courses actives)
-      const coursesDetails = activeCourses.map((c) => ({
-        nom: c.nom,
-        ville: c.ville,
-        validated: c.photographesValides,
-      }));
-
-      // Obtenir les IDs des courses actives
-      const activeCourseIds = new Set(activeCourses.map(c => c.id));
-
-      // Filtrer les disponibilités pour ne garder que celles des courses actives
-      const activeDisponibilites = updatedDisponibilites.filter(
-        (d: Disponibilite) => activeCourseIds.has(d.courseId)
-      );
-
-      const photographersMap = new Map<string, { nom: string; prenom: string; prestations: number }>();
-      [...admins, ...photographers].forEach((user: any) => {
-        photographersMap.set(user.id, {
-          nom: user.nom,
-          prenom: user.prenom,
-          prestations: 0,
-        });
-      });
-
-      activeDisponibilites.forEach((dispo: Disponibilite) => {
-        if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
-          const photographer = photographersMap.get(dispo.photographeId);
-          if (photographer) {
-            photographer.prestations++;
-          }
-        }
-      });
-
-      const photographersDetails = Array.from(photographersMap.values())
-        .filter(p => p.prestations > 0)
-        .sort((a, b) => b.prestations - a.prestations);
-
-      const validatedCount = activeDisponibilites.filter((d: Disponibilite) => d.statut === 'validated').length;
-      const teamLeadersCount = activeDisponibilites.filter((d: Disponibilite) => d.statut === 'teamLeader').length;
-
-      let tarifBase = 0;
-      let bonus = 0;
-      activeCourses.forEach((course) => {
-        course.disponibilites.forEach((d: Disponibilite) => {
-          if (d.statut === 'validated' || d.statut === 'teamLeader') {
-            // Vérifier si c'est un admin non rémunéré
-            const user = admins.find((a) => a.id === d.photographeId);
-            const isNonRemunere = user && (user.rem === 'non' || user.rem === 'non');
-
-            // Ne pas compter les admins non rémunérés
-            if (isNonRemunere) return;
-
-            // Utiliser le tarif assigné au photographe, ou le tarif par défaut de la course
-            const tarifDispo = d.tarifId
-              ? tarifs.find((t: Tarif) => t.id === d.tarifId)
-              : course.tarif;
-
-            if (tarifDispo) {
-              tarifBase += Number(tarifDispo.tarifPhotographe) || 0;
-              if (d.statut === 'teamLeader') {
-                bonus += Number(tarifDispo.bonusChefEquipe) || 0;
-              }
-            }
-          }
-        });
-      });
-
-      setStats({
-        totalCourses: activeCourses.length,
-        coursesDetails,
-        totalPhotographers: stats.totalPhotographers, // Préserver la valeur existante
-        photographersDetails,
-        totalPrestations,
-        prestationsDetails: { validated: validatedCount, teamLeaders: teamLeadersCount },
-        coutTotal,
-        coutDetails: { tarifBase, bonus },
-      });
 
       // Récupérer la disponibilité pour extraire le photographeId et tarifId
       let dispo = updatedDisponibilites.find(d => d.id === disponibiliteId);
@@ -681,7 +658,9 @@ export default function AdminCalendrierPage() {
           const idWithoutPrefix = disponibiliteId.substring(6); // Enlever "dispo-"
 
           // On cherche les photographes de la course
-          const coursePhotographers = [...admins, ...photographers];
+          // IMPORTANT: Trier par longueur d'ID décroissante pour matcher les plus longs en premier
+          // (photographe-0225 avant photographe-022)
+          const coursePhotographers = [...admins, ...photographers].sort((a, b) => b.id.length - a.id.length);
           let foundPhotoId = '';
           let foundTarifId = '';
 
@@ -733,12 +712,16 @@ export default function AdminCalendrierPage() {
       });
 
       if (!res.ok) {
-        // Erreur API, rollback
-        fetchData();
+        // Erreur API, rollback - rafraîchir seulement les disponibilités
+        await refreshDisponibilites();
+      } else {
+        // Succès - rafraîchir seulement les disponibilités
+        await refreshDisponibilites();
       }
     } catch (error) {
-      // Erreur mise à jour statut
-      fetchData();
+      // Erreur mise à jour statut - rafraîchir seulement les disponibilités
+      console.error('❌ Erreur lors de la mise à jour:', error);
+      await refreshDisponibilites();
     }
   };
 
@@ -979,32 +962,6 @@ export default function AdminCalendrierPage() {
     monthData.courses.sort((a, b) =>
       new Date(a.dateDebut).getTime() - new Date(b.dateDebut).getTime()
     );
-  });
-
-  // Exploser les courses avec plusieurs tarifs en plusieurs lignes
-  Object.values(coursesByMonth).forEach(monthData => {
-    const expandedCourses: CourseWithData[] = [];
-
-    monthData.courses.forEach(course => {
-      console.log(`Course ${course.nom}: ${course.tarifs?.length || 0} tarifs`);
-      if (course.tarifs && course.tarifs.length > 1) {
-        console.log(`  -> Explosion en ${course.tarifs.length} lignes`);
-        // Course avec plusieurs tarifs -> créer une ligne par tarif
-        course.tarifs.forEach((tarif, index) => {
-          expandedCourses.push({
-            ...course,
-            tarif, // Utiliser ce tarif spécifique
-            tarifIndex: index, // Ajouter un index pour différencier
-          } as any);
-        });
-      } else {
-        // Course avec un seul tarif -> garder telle quelle
-        expandedCourses.push(course);
-      }
-    });
-
-    console.log(`Avant: ${monthData.courses.length} courses, Après: ${expandedCourses.length} lignes`);
-    monthData.courses = expandedCourses;
   });
 
   // Trier par année et mois (ordre chronologique : plus proche en premier)
@@ -1506,42 +1463,42 @@ export default function AdminCalendrierPage() {
                       ? "bg-gray-50 dark:bg-gray-950"
                       : "bg-gray-100 dark:bg-gray-900";
 
+                    // Vérifier si la course est passée
+                    const now = new Date();
+                    const courseEndDate = new Date(course.dateFin);
+                    const isPastCourse = courseEndDate < now;
+
                     // Vérifier si c'est le début d'un nouveau week-end
                     const currentWeekend = getWeekendKey(course.dateDebut);
                     const previousWeekend = courseIdx > 0
                       ? getWeekendKey(monthData.courses[courseIdx - 1].dateDebut)
                       : null;
                     const isNewWeekend = previousWeekend && currentWeekend !== previousWeekend;
-
-                    // Déterminer si on affiche la colonne info (seulement pour le premier tarif)
-                    const isFirstTarif = (course as any).tarifIndex === undefined || (course as any).tarifIndex === 0;
-                    const isSecondTarif = (course as any).tarifIndex === 1;
                     const hasTwoTarifs = course.tarifs && course.tarifs.length > 1;
 
                     return (
                       <div
-                        key={(course as any).tarifIndex !== undefined ? `${course.id}-tarif-${(course as any).tarifIndex}` : course.id}
+                        key={course.id}
                         className={cn(
-                          "group grid gap-0 transition-colors",
-                          !isSecondTarif && "border-b border-gray-200/50",
+                          "group grid gap-0 transition-colors relative border-b border-gray-200/50",
                           bgColor,
-                          isNewWeekend && isFirstTarif && "border-t-4 border-t-blue-400 dark:border-t-blue-500 shadow-[0_-2px_8px_rgba(59,130,246,0.3)]"
+                          isNewWeekend && "border-t-4 border-t-blue-400 dark:border-t-blue-500 shadow-[0_-2px_8px_rgba(59,130,246,0.3)]",
+                          isPastCourse && "opacity-40"
                         )}
                         style={{
                           gridTemplateColumns: `200px 120px repeat(${[...admins, ...photographers].filter((u) => u.actif).length}, 70px)`,
                           minWidth: 'max-content'
                         }}
                       >
-                        {/* Colonne infos course - STICKY avec rowspan pour double tarif */}
+                        {/* Colonne infos course - STICKY */}
                         <div
                           className={cn(
-                            "sticky left-0 z-10 p-2 pr-1.5 border-r-2 border-gray-400/40 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors",
-                            bgColor,
-                            isSecondTarif && "opacity-0 pointer-events-none"
+                            "sticky left-0 z-30 p-2 pr-1.5 border-r-2 border-gray-400/40 transition-colors group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30",
+                            bgColor
                           )}
                           style={{
                             position: 'sticky',
-                            boxShadow: isFirstTarif ? '2px 0 5px rgba(0,0,0,0.1)' : 'none',
+                            boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
                           }}
                         >
                           {/* Ligne 1: Titre + Statut */}
@@ -1552,13 +1509,6 @@ export default function AdminCalendrierPage() {
                                 className="font-semibold hover:underline text-xs hover:text-primary transition-colors"
                               >
                                 {course.nom}
-                                {(course as any).tarifIndex !== undefined && course.tarif && (
-                                  <span className="ml-1 text-[10px] bg-blue-100 text-blue-700 px-1 rounded">
-                                    {(course as any).tarifIndex === 0
-                                      ? (course.tarif.firstTarifName || 'Tarif 1')
-                                      : (course.tarif.secondTarifName || 'Tarif 2')}
-                                  </span>
-                                )}
                               </Link>
                               {course.statutTraitement === 'done' ? (
                                 <span className="text-[10px]">🟢</span>
@@ -1623,26 +1573,36 @@ export default function AdminCalendrierPage() {
                               // Affichage avec deux tarifs (split vertical)
                               return (
                                 <div className="flex flex-col gap-1 border-t border-gray-300 pt-1">
-                                  {course.tarifs.map((tarif, idx) => (
-                                    <div key={tarif.id} className="flex items-center gap-1.5">
-                                      <div className="flex items-center justify-center h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold shadow-sm">
-                                        {validatedCount}
-                                      </div>
-                                      <span className="text-[9px] text-muted-foreground">
-                                        {availableCount}-{course.numberAttended || 0}
-                                      </span>
-                                      <div className="flex flex-col text-[9px] font-medium">
-                                        <span className="text-blue-700 font-semibold">
-                                          {idx === 0
-                                            ? (tarif.firstTarifName || 'Tarif 1')
-                                            : (tarif.secondTarifName || 'Tarif 2')}
+                                  {course.tarifs.map((tarif, idx) => {
+                                    // Calculer les stats spécifiques pour ce tarif
+                                    const tarifValidatedCount = course.disponibilites.filter(
+                                      d => d.tarifId === tarif.id && (d.statut === 'validated' || d.statut === 'teamLeader')
+                                    ).length;
+                                    const tarifAvailableCount = course.disponibilites.filter(
+                                      d => d.tarifId === tarif.id && d.statut === 'available'
+                                    ).length;
+
+                                    return (
+                                      <div key={tarif.id} className="flex items-center gap-1.5">
+                                        <div className="flex items-center justify-center h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold shadow-sm">
+                                          {tarifValidatedCount}
+                                        </div>
+                                        <span className="text-[9px] text-muted-foreground">
+                                          {tarifAvailableCount}-{course.numberAttended || 0}
                                         </span>
-                                        <span className="text-muted-foreground">
-                                          💰 {tarif.tarifPhotographe}€
-                                        </span>
+                                        <div className="flex flex-col text-[9px] font-medium">
+                                          <span className="text-blue-700 font-semibold">
+                                            {idx === 0
+                                              ? (tarif.firstTarifName || 'Tarif 1')
+                                              : (tarif.secondTarifName || 'Tarif 2')}
+                                          </span>
+                                          <span className="text-muted-foreground">
+                                            💰 {tarif.tarifPhotographe}€
+                                          </span>
+                                        </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               );
                             } else {
@@ -1664,78 +1624,38 @@ export default function AdminCalendrierPage() {
                           })()}
                         </div>
 
-                        {/* Colonne Date - STICKY - Split si deux tarifs */}
+                        {/* Colonne Date - STICKY */}
                         <div
                           className={cn(
-                            "sticky z-20 p-2 pr-1.5 flex flex-col justify-start items-start gap-0.5 border-r-2 border-green-600/40 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors",
+                            "sticky z-30 p-2 pr-1.5 flex flex-col justify-start items-start gap-0.5 border-r-2 border-green-600/40 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors",
                             bgColor
                           )}
                           style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
                         >
                           {(() => {
-                            // Si c'est la deuxième ligne d'un double tarif, afficher l'indicateur de tarif
-                            if (isSecondTarif) {
-                              return (
-                                <div className="flex items-center justify-center w-full h-full">
-                                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-semibold">
-                                    {course.tarif?.secondTarifName || 'Tarif 2'}
-                                  </span>
-                                </div>
-                              );
-                            }
-
-                            const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) &&
-                                                course.tarifs && course.tarifs.length > 1;
                             const dateDebut = new Date(course.dateDebut);
                             const dateFin = new Date(course.dateFin);
                             const dateDebutNormalized = new Date(dateDebut.getFullYear(), dateDebut.getMonth(), dateDebut.getDate());
                             const dateFinNormalized = new Date(dateFin.getFullYear(), dateFin.getMonth(), dateFin.getDate());
                             const nbJours = Math.round((dateFinNormalized.getTime() - dateDebutNormalized.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-                            if (hasTwoTarifs) {
-                              // Affichage avec le nom du premier tarif et la date
-                              return (
-                                <div className="flex flex-col gap-0.5 w-full">
-                                  <div className="flex items-center justify-center mb-1">
-                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold">
-                                      {course.tarifs?.[0]?.firstTarifName || 'Tarif 1'}
-                                    </span>
-                                  </div>
-                                  <div className="text-xs font-semibold text-gray-700 flex items-center gap-1">
-                                    {format(dateDebut, "dd/MM/yy", { locale: fr })}
-                                    {nbJours > 1 && (
-                                      <span className="text-[9px] bg-purple-100 text-purple-800 px-1 rounded">
-                                        {nbJours}j
-                                      </span>
-                                    )}
-                                  </div>
+                            return (
+                              <>
+                                <div className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                                  {format(dateDebut, "dd/MM/yy", { locale: fr })}
                                   {nbJours > 1 && (
-                                    <div className="text-xs text-gray-700">
-                                      au {format(dateFin, "dd/MM/yy", { locale: fr })}
-                                    </div>
+                                    <span className="text-[9px] bg-blue-100 text-blue-800 px-1 rounded">
+                                      {nbJours}j
+                                    </span>
                                   )}
                                 </div>
-                              );
-                            } else {
-                              // Affichage normal
-                              return (
-                                <>
-                                  <div className="text-xs font-semibold text-gray-700 flex items-center gap-1">
-                                    {format(dateDebut, "dd/MM/yy", { locale: fr })}
-                                    {nbJours > 1 && (
-                                      <span className="text-[9px] bg-blue-100 text-blue-800 px-1 rounded">
-                                        {nbJours}j
-                                      </span>
-                                    )}
+                                {nbJours > 1 && (
+                                  <div className="text-xs text-gray-700">
+                                    au {format(dateFin, "dd/MM/yy", { locale: fr })}
                                   </div>
-                                  {nbJours > 1 && (
-                                    <div className="text-xs text-gray-700">
-                                      au {format(dateFin, "dd/MM/yy", { locale: fr })}
-                                    </div>
-                                  )}
-                                </>
-                              );
-                            }
+                                )}
+                              </>
+                            );
                           })()}
                         </div>
 

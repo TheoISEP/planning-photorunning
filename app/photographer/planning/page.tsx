@@ -119,6 +119,7 @@ export default function PhotographerCalendrierPage() {
   const [disponibilites, setDisponibilites] = useState<Disponibilite[]>([]);
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [updatingCells, setUpdatingCells] = useState<Set<string>>(new Set()); // Track cells being updated
 
   // Photographe connecté avec ses données complètes
   const [currentPhotographer, setCurrentPhotographer] = useState<Photographer | null>(null);
@@ -349,13 +350,30 @@ export default function PhotographerCalendrierPage() {
   const refreshDisponibilites = async () => {
     if (!currentUser) return;
     try {
-      const disponibilitesRes = await fetch('/api/disponibilites');
-      if (disponibilitesRes.ok) {
-        const disponibilitesData = await disponibilitesRes.json();
-        setDisponibilites(disponibilitesData.disponibilites || []);
+      // Créer la liste de tous les IDs de photographes (principal + à charge)
+      const managedIds = managedPhotographers.map(p => p.id);
+      const allPhotographerIds = [currentUser.id, ...managedIds];
+
+      // Charger les disponibilités pour TOUS les photographes (principal + à charge)
+      const disponibilitesPromises = allPhotographerIds.map(id =>
+        fetch(`/api/disponibilites?photographerId=${id}`)
+      );
+
+      const disponibilitesResults = await Promise.all(disponibilitesPromises);
+
+      // Fusionner toutes les disponibilités
+      const allDisponibilites: Disponibilite[] = [];
+      for (const res of disponibilitesResults) {
+        if (res.ok) {
+          const data = await res.json();
+          allDisponibilites.push(...(data.disponibilites || []));
+        }
       }
+
+      setDisponibilites(allDisponibilites);
+      console.log(`🔄 Disponibilités rafraîchies: ${allDisponibilites.length} au total pour ${allPhotographerIds.length} photographe(s)`);
     } catch (error) {
-      console.error('Erreur refresh disponibilités:', error);
+      console.error('❌ Erreur refresh disponibilités:', error);
     }
   };
 
@@ -377,7 +395,19 @@ export default function PhotographerCalendrierPage() {
       return;
     }
 
+    // Créer une clé unique pour tracker cette cellule
+    const cellKey = `${courseId}-${photographerId}`;
+
+    // Empêcher les doubles clics
+    if (updatingCells.has(cellKey)) {
+      console.log('⏳ Mise à jour déjà en cours pour cette cellule');
+      return;
+    }
+
     try {
+      // Marquer la cellule comme en cours de mise à jour
+      setUpdatingCells(prev => new Set(prev).add(cellKey));
+
       // Vérifier si la disponibilité existe déjà
       const existingDispo = disponibilites.find(d => d.id === disponibiliteId);
       const isNewDispo = !existingDispo || disponibiliteId.startsWith('dispo-');
@@ -405,52 +435,67 @@ export default function PhotographerCalendrierPage() {
         tarifId = existingDispo.tarifId;
       }
 
-      // Mise à jour optimiste
-      if (isNewDispo) {
-        // Créer une nouvelle disponibilité temporaire
-        const tempId = `temp-${Date.now()}`;
-        setDisponibilites((prev) => [
-          ...prev,
-          {
-            id: tempId,
+      // PAS de mise à jour optimiste - on attend la réponse du serveur
+      // pour éviter les problèmes de rollback visuel pendant les retries
+
+      // Appel API avec timeout augmenté pour les retries (60 secondes au lieu de 2 minutes par défaut)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 secondes
+
+      try {
+        const res = await fetch('/api/disponibilites', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: disponibiliteId,
+            statut: newStatus,
+            courseId,
             photographeId: photographerId,
-            courseId: courseId,
-            statut: newStatus as Disponibilite['statut'],
-            tarifId: tarifId,
-          }
-        ]);
-      } else {
-        // Mettre à jour la disponibilité existante
-        setDisponibilites((prev) =>
-          prev.map((d) => (d.id === disponibiliteId ? { ...d, statut: newStatus as Disponibilite['statut'] } : d))
-        );
-      }
+            tarifId: tarifId, // Inclure le tarifId pour les courses avec deux tarifs
+            dateModification: new Date().toISOString(),
+          }),
+          signal: controller.signal,
+        });
 
-      // Appel API
-      const res = await fetch('/api/disponibilites', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: disponibiliteId,
-          statut: newStatus,
-          courseId,
-          photographeId: photographerId,
-          tarifId: tarifId, // Inclure le tarifId pour les courses avec deux tarifs
-          dateModification: new Date().toISOString(),
-        }),
-      });
+        clearTimeout(timeoutId);
 
-      if (!res.ok) {
-        // Rollback en cas d'erreur
-        refreshDisponibilites();
-      } else {
-        // Rafraîchir pour obtenir le vrai ID du serveur
-        if (isNewDispo) {
-          refreshDisponibilites();
+        if (!res.ok) {
+          // Erreur serveur - afficher le message
+          const errorText = await res.text();
+          console.error('❌ Erreur lors de la mise à jour:', errorText);
+          // Rafraîchir pour voir l'état réel
+          await refreshDisponibilites();
+        } else {
+          // Succès - rafraîchir pour obtenir l'état à jour du serveur
+          console.log('✅ Disponibilité mise à jour avec succès');
+          await refreshDisponibilites();
         }
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          console.error('⏱️ Timeout: la requête a pris trop de temps (>60s)');
+        } else {
+          console.error('🌐 Erreur réseau:', fetchError);
+        }
+        // Rafraîchir dans tous les cas pour voir l'état réel
+        await refreshDisponibilites();
+      } finally {
+        // Retirer la cellule de l'état de chargement
+        setUpdatingCells(prev => {
+          const next = new Set(prev);
+          next.delete(cellKey);
+          return next;
+        });
       }
     } catch (error) {
-      refreshDisponibilites();
+      console.error('❌ Erreur inattendue:', error);
+      // Retirer la cellule de l'état de chargement
+      setUpdatingCells(prev => {
+        const next = new Set(prev);
+        next.delete(cellKey);
+        return next;
+      });
+      await refreshDisponibilites();
     }
   };
 
@@ -591,32 +636,10 @@ export default function PhotographerCalendrierPage() {
           // Calculer le montant total du mois pour les courses validées (photographe actuel)
           const monthTotal = monthData.courses.reduce((total, course) => {
             if (!activePhotographerId) return total;
-            const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === activePhotographerId);
-            if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
-              const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
-              const courseTarif = dispo.tarifId
-                ? tarifs.find((t) => t.id === dispo.tarifId)
-                : courseTarifs[0];
-
-              if (courseTarif) {
-                const amount = dispo.statut === 'teamLeader'
-                  ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
-                  : Number(courseTarif.tarifPhotographe);
-                return total + amount;
-              }
-            }
-            return total;
-          }, 0);
-
-          // Calculer le total de tous les photographes
-          const allPhotographersIds = [
-            ...(currentUser ? [currentUser.id] : []),
-            ...managedPhotographers.map(p => p.id)
-          ];
-          const allMonthTotal = monthData.courses.reduce((total, course) => {
-            allPhotographersIds.forEach(photographerId => {
-              const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === photographerId);
-              if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
+            // Utiliser filter au lieu de find pour gérer les doubles tarifs
+            const dispos = disponibilites.filter((d) => d.courseId === course.id && d.photographeId === activePhotographerId);
+            dispos.forEach(dispo => {
+              if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
                 const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
                 const courseTarif = dispo.tarifId
                   ? tarifs.find((t) => t.id === dispo.tarifId)
@@ -629,6 +652,34 @@ export default function PhotographerCalendrierPage() {
                   total += amount;
                 }
               }
+            });
+            return total;
+          }, 0);
+
+          // Calculer le total de tous les photographes
+          const allPhotographersIds = [
+            ...(currentUser ? [currentUser.id] : []),
+            ...managedPhotographers.map(p => p.id)
+          ];
+          const allMonthTotal = monthData.courses.reduce((total, course) => {
+            allPhotographersIds.forEach(photographerId => {
+              // Utiliser filter au lieu de find pour gérer les doubles tarifs
+              const dispos = disponibilites.filter((d) => d.courseId === course.id && d.photographeId === photographerId);
+              dispos.forEach(dispo => {
+                if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
+                  const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+                  const courseTarif = dispo.tarifId
+                    ? tarifs.find((t) => t.id === dispo.tarifId)
+                    : courseTarifs[0];
+
+                  if (courseTarif) {
+                    const amount = dispo.statut === 'teamLeader'
+                      ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
+                      : Number(courseTarif.tarifPhotographe);
+                    total += amount;
+                  }
+                }
+              });
             });
             return total;
           }, 0);
@@ -890,33 +941,36 @@ export default function PhotographerCalendrierPage() {
 
               // Fonction pour calculer les stats d'un photographe pour un mois
               const calculatePhotographerMonthStats = (photographerId: string) => {
+                // Pour les doubles tarifs, compter chaque validation séparément
                 const validatedCount = monthData.courses.reduce((count, course) => {
-                  const dispo = disponibilites.find(
+                  // Utiliser filter au lieu de find pour gérer les doubles tarifs
+                  const dispos = disponibilites.filter(
                     (d) => d.courseId === course.id && d.photographeId === photographerId
                   );
-                  if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
-                    return count + 1;
-                  }
-                  return count;
+                  const validated = dispos.filter(d => d.statut === 'validated' || d.statut === 'teamLeader');
+                  return count + validated.length;
                 }, 0);
 
                 const monthlyAmount = monthData.courses.reduce((total, course) => {
-                  const dispo = disponibilites.find(
+                  // Utiliser filter au lieu de find pour gérer les doubles tarifs
+                  const dispos = disponibilites.filter(
                     (d) => d.courseId === course.id && d.photographeId === photographerId
                   );
-                  if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
-                    const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
-                    const courseTarif = dispo.tarifId
-                      ? tarifs.find((t) => t.id === dispo.tarifId)
-                      : courseTarifs[0];
+                  dispos.forEach(dispo => {
+                    if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
+                      const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+                      const courseTarif = dispo.tarifId
+                        ? tarifs.find((t) => t.id === dispo.tarifId)
+                        : courseTarifs[0];
 
-                    if (courseTarif) {
-                      const montant = dispo.statut === 'teamLeader'
-                        ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
-                        : Number(courseTarif.tarifPhotographe);
-                      return total + montant;
+                      if (courseTarif) {
+                        const montant = dispo.statut === 'teamLeader'
+                          ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
+                          : Number(courseTarif.tarifPhotographe);
+                        total += montant;
+                      }
                     }
-                  }
+                  });
                   return total;
                 }, 0);
 
@@ -1188,6 +1242,7 @@ export default function PhotographerCalendrierPage() {
                                       onStatusChange={handleStatusChange}
                                       tarifAmount={tarif.tarifPhotographe}
                                       bonusChefEquipe={tarif.bonusChefEquipe}
+                                      isUpdating={updatingCells.has(`${course.id}-${currentUser.id}`)}
                                     />
                                   </div>
                                 );
@@ -1205,6 +1260,7 @@ export default function PhotographerCalendrierPage() {
                                   ? courseTarifs.find((t) => t.id === myDispo.tarifId)?.description || 'Tarif personnalisé'
                                   : undefined
                                 }
+                                isUpdating={updatingCells.has(`${course.id}-${currentUser.id}`)}
                               />
                             )
                           )}
@@ -1244,6 +1300,7 @@ export default function PhotographerCalendrierPage() {
                                         onStatusChange={handleStatusChange}
                                         tarifAmount={tarif.tarifPhotographe}
                                         bonusChefEquipe={tarif.bonusChefEquipe}
+                                        isUpdating={updatingCells.has(`${course.id}-${photographer.id}`)}
                                       />
                                     </div>
                                   );
@@ -1257,6 +1314,7 @@ export default function PhotographerCalendrierPage() {
                                   onStatusChange={handleStatusChange}
                                   tarifAmount={courseTarif?.tarifPhotographe}
                                   bonusChefEquipe={courseTarif?.bonusChefEquipe}
+                                  isUpdating={updatingCells.has(`${course.id}-${photographer.id}`)}
                                 />
                               )}
                             </div>

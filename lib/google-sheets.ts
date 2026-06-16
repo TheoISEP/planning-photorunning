@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import { withGoogleSheetsRetry } from './retry';
 
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID!;
 
@@ -76,25 +77,27 @@ export class GoogleSheetsService {
   }
 
   async getPhotographerById(id: string) {
-    const response = await this.sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAMES.PHOTOGRAPHES}!A:AZ`,
-    });
+    return withGoogleSheetsRetry(async () => {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_NAMES.PHOTOGRAPHES}!A:AZ`,
+      });
 
-    const rows = response.data.values;
-    if (!rows || rows.length === 0) return null;
+      const rows = response.data.values;
+      if (!rows || rows.length === 0) return null;
 
-    const headers = rows[0];
-    const idIndex = headers.indexOf('id');
-    const dataRows = rows.slice(1);
+      const headers = rows[0];
+      const idIndex = headers.indexOf('id');
+      const dataRows = rows.slice(1);
 
-    for (const row of dataRows) {
-      if (row[idIndex] === id) {
-        return this.rowToObject(headers, row);
+      for (const row of dataRows) {
+        if (row[idIndex] === id) {
+          return this.rowToObject(headers, row);
+        }
       }
-    }
 
-    return null;
+      return null;
+    });
   }
 
   async getAllPhotographers() {
@@ -282,30 +285,32 @@ export class GoogleSheetsService {
   }
 
   async getCourseById(id: string) {
-    const response = await this.sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAMES.COURSES}!A:Z`,
-    });
+    return withGoogleSheetsRetry(async () => {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_NAMES.COURSES}!A:Z`,
+      });
 
-    const rows = response.data.values;
-    if (!rows || rows.length === 0) return null;
+      const rows = response.data.values;
+      if (!rows || rows.length === 0) return null;
 
-    const headers = rows[0];
-    const idIndex = headers.indexOf('id');
-    const dataRows = rows.slice(1);
+      const headers = rows[0];
+      const idIndex = headers.indexOf('id');
+      const dataRows = rows.slice(1);
 
-    for (const row of dataRows) {
-      if (row[idIndex] === id) {
-        const obj = this.rowToObject(headers, row);
-        // Alias: numberAttended (Google Sheets) -> coureursAttendus (app)
-        if (obj.numberAttended !== undefined && obj.coureursAttendus === undefined) {
-          obj.coureursAttendus = obj.numberAttended;
+      for (const row of dataRows) {
+        if (row[idIndex] === id) {
+          const obj = this.rowToObject(headers, row);
+          // Alias: numberAttended (Google Sheets) -> coureursAttendus (app)
+          if (obj.numberAttended !== undefined && obj.coureursAttendus === undefined) {
+            obj.coureursAttendus = obj.numberAttended;
+          }
+          return obj;
         }
-        return obj;
       }
-    }
 
-    return null;
+      return null;
+    });
   }
 
   async createCourse(data: Record<string, any>) {
@@ -483,6 +488,32 @@ export class GoogleSheetsService {
     return updatedData;
   }
 
+  async deleteTarif(id: string) {
+    const rowIndex = await this.findRowIndexById(SHEET_NAMES.TARIFS, id);
+    if (rowIndex === -1) throw new Error('Tarif non trouvé');
+
+    // Supprimer la ligne en utilisant l'API batchUpdate
+    await this.sheets.spreadsheets.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: {
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId: SHEET_GIDS.TARIFS,
+                dimension: 'ROWS',
+                startIndex: rowIndex - 1, // -1 car l'API utilise un index 0-based
+                endIndex: rowIndex, // endIndex est exclusif
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    return { success: true };
+  }
+
   // ============================================================================
   // DISPONIBILITÉS
   // ============================================================================
@@ -506,21 +537,23 @@ export class GoogleSheetsService {
   }
 
   async getDisponibilitesByPhotographerId(photographerId: string) {
-    const response = await this.sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAMES.DISPONIBILITES}!A:Z`,
+    return withGoogleSheetsRetry(async () => {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_NAMES.DISPONIBILITES}!A:Z`,
+      });
+
+      const rows = response.data.values;
+      if (!rows || rows.length === 0) return [];
+
+      const headers = rows[0];
+      const photographerIdIndex = headers.indexOf('photographeId');
+      const dataRows = rows.slice(1);
+
+      return dataRows
+        .filter(row => row[photographerIdIndex] === photographerId)
+        .map(row => this.rowToObject(headers, row));
     });
-
-    const rows = response.data.values;
-    if (!rows || rows.length === 0) return [];
-
-    const headers = rows[0];
-    const photographerIdIndex = headers.indexOf('photographeId');
-    const dataRows = rows.slice(1);
-
-    return dataRows
-      .filter(row => row[photographerIdIndex] === photographerId)
-      .map(row => this.rowToObject(headers, row));
   }
 
   async getDisponibiliteById(id: string) {
@@ -556,50 +589,70 @@ export class GoogleSheetsService {
   }
 
   async updateDisponibilite(id: string, data: Record<string, any>) {
-    const rowIndex = await this.findRowIndexById(SHEET_NAMES.DISPONIBILITES, id);
-    if (rowIndex === -1) throw new Error('Disponibilité non trouvée');
+    return withGoogleSheetsRetry(async () => {
+      // Récupérer TOUTES les données en UNE SEULE requête (au lieu de 4)
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_NAMES.DISPONIBILITES}!A:Z`,
+      });
 
-    // Récupérer les données actuelles
-    const response = await this.sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAMES.DISPONIBILITES}!A${rowIndex}:Z${rowIndex}`,
+      const rows = response.data.values;
+      if (!rows || rows.length === 0) throw new Error('Disponibilité non trouvée');
+
+      const headers = rows[0];
+      const idIndex = headers.indexOf('id');
+      const dataRows = rows.slice(1);
+
+      // Trouver la ligne correspondante
+      let rowIndex = -1;
+      let currentRow: any[] = [];
+      for (let i = 0; i < dataRows.length; i++) {
+        if (dataRows[i][idIndex] === id) {
+          rowIndex = i + 2; // +2 car ligne 1 = headers, et les index commencent à 1
+          currentRow = dataRows[i];
+          break;
+        }
+      }
+
+      if (rowIndex === -1) throw new Error('Disponibilité non trouvée');
+
+      // Fusionner les données
+      const currentData = this.rowToObject(headers, currentRow);
+      const updatedData = { ...currentData, ...data, id };
+      const values = headers.map(header => (updatedData as any)[header] ?? '');
+
+      // Mettre à jour avec retry
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_NAMES.DISPONIBILITES}!A${rowIndex}:Z${rowIndex}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [values],
+        },
+      });
+
+      console.log(`✅ Disponibilité ${id} mise à jour avec succès (1 read + 1 write au lieu de 4 appels)`);
+      return updatedData;
     });
-
-    const headers = await this.getSheetHeaders(SHEET_NAMES.DISPONIBILITES);
-    const currentRow = response.data.values?.[0] || [];
-    const currentData = this.rowToObject(headers, currentRow);
-
-    // Fusionner les données
-    const updatedData = { ...currentData, ...data, id };
-
-    const values = headers.map(header => (updatedData as any)[header] ?? '');
-
-    await this.sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAMES.DISPONIBILITES}!A${rowIndex}:Z${rowIndex}`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [values],
-      },
-    });
-
-    return updatedData;
   }
 
   async createDisponibilite(data: Record<string, any>) {
-    const headers = await this.getSheetHeaders(SHEET_NAMES.DISPONIBILITES);
-    const values = headers.map(header => data[header] ?? '');
+    return withGoogleSheetsRetry(async () => {
+      const headers = await this.getSheetHeaders(SHEET_NAMES.DISPONIBILITES);
+      const values = headers.map(header => data[header] ?? '');
 
-    await this.sheets.spreadsheets.values.append({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAMES.DISPONIBILITES}!A:Z`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [values],
-      },
+      await this.sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_NAMES.DISPONIBILITES}!A:Z`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [values],
+        },
+      });
+
+      console.log(`✅ Disponibilité ${data.id} créée avec succès`);
+      return data;
     });
-
-    return data;
   }
 
   async bulkUpdateDisponibilites(ids: string[], data: Record<string, any>) {

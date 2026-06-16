@@ -47,6 +47,32 @@ export async function PATCH(
     const data = await request.json();
 
     const sheetsService = new GoogleSheetsService();
+
+    // Si on passe le statut à "done", refuser automatiquement toutes les disponibilités non validées
+    if (data.statutTraitement === 'done') {
+      console.log(`🔄 Passage de la course ${id} à "Fait" - Rejet automatique des disponibilités non validées`);
+
+      // Récupérer toutes les disponibilités de cette course
+      const disponibilites = await sheetsService.getAllDisponibilites();
+      // Rejeter toutes les disponibilités qui ne sont PAS validées ou chef d'équipe
+      const courseDisponibilites = disponibilites.filter((d: any) =>
+        d.courseId === id &&
+        !['validated', 'teamLeader', 'rejected'].includes(d.statut)
+      );
+
+      console.log(`   → ${courseDisponibilites.length} disponibilité(s) non validée(s) à rejeter`);
+
+      // Passer toutes les disponibilités non validées en "rejected"
+      for (const dispo of courseDisponibilites) {
+        await sheetsService.updateDisponibilite(dispo.id, {
+          ...dispo,
+          statut: 'rejected',
+          dateModification: new Date().toISOString(),
+        });
+        console.log(`   ✅ Disponibilité ${dispo.id} (statut: ${dispo.statut}) passée à "rejected"`);
+      }
+    }
+
     const updatedCourse = await sheetsService.updateCourse(id, data);
 
     return NextResponse.json({ course: updatedCourse, success: true });

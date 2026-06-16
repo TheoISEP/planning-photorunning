@@ -1737,9 +1737,12 @@ export default function AdminCalendrierPage() {
                             );
                           } else {
                             // Affichage normal avec un seul sélecteur
-                            const dispo = course.disponibilites.find((d) => d.photographeId === admin.id);
-
-                            if (!dispo) return <div key={admin.id} className="flex items-center justify-center p-2 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors">-</div>;
+                            const dispo = course.disponibilites.find((d) => d.photographeId === admin.id) || {
+                              id: `dispo-${course.id}-${admin.id}`,
+                              photographeId: admin.id,
+                              courseId: course.id,
+                              statut: 'pending' as const,
+                            };
 
                             return (
                               <div key={admin.id} className="p-2 flex flex-col items-start justify-start gap-0.5 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors">
@@ -1874,9 +1877,12 @@ export default function AdminCalendrierPage() {
                             );
                           } else {
                             // Affichage normal avec un seul sélecteur
-                            const dispo = course.disponibilites.find((d) => d.photographeId === photographer.id);
-
-                            if (!dispo) return <div key={photographer.id} className={`flex items-center justify-center p-2 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors ${getRegionBackgroundColor(photographer.region)}`}>-</div>;
+                            const dispo = course.disponibilites.find((d) => d.photographeId === photographer.id) || {
+                              id: `dispo-${course.id}-${photographer.id}`,
+                              photographeId: photographer.id,
+                              courseId: course.id,
+                              statut: 'pending' as const,
+                            };
 
                             return (
                               <div key={photographer.id} className={`p-2 flex flex-col items-start justify-start gap-0.5 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors ${getRegionBackgroundColor(photographer.region)}`}>

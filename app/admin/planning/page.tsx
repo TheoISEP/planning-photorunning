@@ -1736,7 +1736,7 @@ export default function AdminCalendrierPage() {
                               </div>
                             );
                           } else {
-                            // Affichage normal avec un seul sélecteur
+                            // Affichage normal avec un seul sélecteur (crée une dispo temporaire si inexistante)
                             const dispo = course.disponibilites.find((d) => d.photographeId === admin.id) || {
                               id: `dispo-${course.id}-${admin.id}`,
                               photographeId: admin.id,

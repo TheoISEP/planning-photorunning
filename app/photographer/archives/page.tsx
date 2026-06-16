@@ -305,7 +305,7 @@ export default function PhotographerArchivesPage() {
       </div>
 
       {/* Vue liste mobile */}
-      <div className="md:hidden flex-1 min-h-0 overflow-y-auto space-y-3 px-2">
+      <div className="md:hidden flex-1 min-h-0 overflow-y-auto space-y-3 px-2 pb-8">
         {sortedMonths.map((monthData) => {
           const monthKey = `${monthData.year}-${monthData.month}`;
 
@@ -469,8 +469,8 @@ export default function PhotographerArchivesPage() {
       </div>
 
       {/* Tableau - Desktop uniquement */}
-      <div className="hidden md:block flex-1 min-h-0 rounded-lg border shadow-lg bg-white dark:bg-gray-950 w-full overflow-y-auto">
-        <div className="overflow-x-auto w-full" style={{ zoom: `${zoom}%` }}>
+      <div className="hidden md:block flex-1 min-h-0 rounded-lg border shadow-lg bg-white dark:bg-gray-950 w-full overflow-y-auto pb-8">
+        <div className="overflow-x-auto w-full pb-8" style={{ zoom: `${zoom}%` }}>
           {/* En-tête */}
           <div className="sticky top-0 z-20">
             <div

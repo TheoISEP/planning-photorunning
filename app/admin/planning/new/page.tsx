@@ -88,110 +88,116 @@ export default function NewCalendrierEventPage() {
 	});
 
 	async function onSubmit(values: FormValues) {
-		// Générer un ID unique
-		const courseId = `course-${Date.now()}`;
+		try {
+			// Générer un ID unique
+			const courseId = `course-${Date.now()}`;
 
-		// Combiner date et heure pour créer les timestamps ISO
-		const startDateTime = new Date(values.startDate);
-		const [startHour, startMinute] = values.startTime.split(':');
-		startDateTime.setHours(parseInt(startHour), parseInt(startMinute));
+			// Combiner date et heure pour créer les timestamps ISO
+			const startDateTime = new Date(values.startDate);
+			const [startHour, startMinute] = values.startTime.split(':');
+			startDateTime.setHours(parseInt(startHour), parseInt(startMinute));
 
-		const endDateTime = new Date(values.endDate);
-		const [endHour, endMinute] = values.endTime.split(':');
-		endDateTime.setHours(parseInt(endHour), parseInt(endMinute));
+			const endDateTime = new Date(values.endDate);
+			const [endHour, endMinute] = values.endTime.split(':');
+			endDateTime.setHours(parseInt(endHour), parseInt(endMinute));
 
-		// Créer la course
-		const courseData = {
-			id: courseId,
-			nom: values.name,
-			localisation: values.location || '',
-			ville: values.location || '',
-			description: values.description || '',
-			dateDebut: startDateTime.toISOString(),
-			dateFin: endDateTime.toISOString(),
-			statutTraitement: 'inProgress' as const,
-			coureursAttendus: values.expectedRunners ? parseInt(values.expectedRunners) : undefined,
-			numberAttended: values.expectedPhotographers ? parseInt(values.expectedPhotographers) : undefined,
-			dateCreation: new Date().toISOString(),
-			creePar: 'admin-001',
-			visible: true,
-			hotel: values.hotelNotes || '',
-			transport: values.transportNotes || '',
-			supplementaire: values.specialNotes || '',
-			hotelValid: values.hotelValid ? 'TRUE' : 'FALSE',
-			transportValid: values.transportValid ? 'TRUE' : 'FALSE',
-			hotelPrice: values.hotelPrice || '',
-			transportPrice: values.transportPrice || '',
-			foodPrice: values.foodPrice || '',
-			comOrga: values.comOrga || '',
-			twoPrices: values.isForfait ? 'TRUE' : 'FALSE',
-		};
+			// Créer la course
+			const courseData = {
+				id: courseId,
+				nom: values.name,
+				localisation: values.location || '',
+				ville: values.location || '',
+				description: values.description || '',
+				dateDebut: startDateTime.toISOString(),
+				dateFin: endDateTime.toISOString(),
+				statutTraitement: 'inProgress' as const,
+				coureursAttendus: values.expectedRunners ? parseInt(values.expectedRunners) : undefined,
+				numberAttended: values.expectedPhotographers ? parseInt(values.expectedPhotographers) : undefined,
+				dateCreation: new Date().toISOString(),
+				creePar: 'admin-001',
+				visible: true,
+				hotel: values.hotelNotes || '',
+				transport: values.transportNotes || '',
+				supplementaire: values.specialNotes || '',
+				hotelValid: values.hotelValid ? 'TRUE' : 'FALSE',
+				transportValid: values.transportValid ? 'TRUE' : 'FALSE',
+				hotelPrice: values.hotelPrice || '',
+				transportPrice: values.transportPrice || '',
+				foodPrice: values.foodPrice || '',
+				comOrga: values.comOrga || '',
+				twoPrices: values.isForfait ? 'TRUE' : 'FALSE',
+			};
 
-		// Créer les tarifs
-		const tarifsToCreate = [];
+			// Créer les tarifs
+			const tarifsToCreate = [];
 
-		// Premier tarif (toujours créé)
-		const firstTarifData = {
-			id: `tarif-${courseId}-1`,
-			courseId: courseId,
-			tarifPhotographe: parseFloat(values.photographerPrice),
-			bonusChefEquipe: parseFloat(values.teamLeaderBonus),
-			firstTarifName: values.isForfait ? (values.firstTarifName || 'Tarif 1') : '',
-			dateCreation: new Date().toISOString(),
-			dateModification: new Date().toISOString(),
-		};
-		tarifsToCreate.push(firstTarifData);
-
-		// Deuxième tarif (seulement si forfait)
-		if (values.isForfait && values.secondTarifPrice) {
-			const secondTarifData = {
-				id: `tarif-${courseId}-2`,
+			// Premier tarif (toujours créé)
+			const firstTarifData = {
+				id: `tarif-${courseId}`,
 				courseId: courseId,
-				tarifPhotographe: parseFloat(values.secondTarifPrice),
+				tarifPhotographe: parseFloat(values.photographerPrice),
 				bonusChefEquipe: parseFloat(values.teamLeaderBonus),
-				secondTarifName: values.secondTarifName || 'Tarif 2',
+				firstTarifName: values.isForfait ? (values.firstTarifName || 'Tarif 1') : '',
+				secondTarifName: values.isForfait ? (values.secondTarifName || 'Tarif 2') : '',
 				dateCreation: new Date().toISOString(),
 				dateModification: new Date().toISOString(),
 			};
-			tarifsToCreate.push(secondTarifData);
-		}
+			tarifsToCreate.push(firstTarifData);
 
-		// Afficher le toast immédiatement
-		toast.success('Course créée avec succès');
-
-		// Redirection immédiate vers le calendrier
-		window.location.href = '/admin/planning';
-
-		// Créer en arrière-plan (ne bloque pas la navigation)
-		const tarifPromises = tarifsToCreate.map(tarifData =>
-			fetch('/api/tarifs', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(tarifData),
-			})
-		);
-
-		Promise.all([
-			fetch('/api/courses', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(courseData),
-			}),
-			...tarifPromises
-		]).then((responses) => {
-			const [courseRes, ...tarifRess] = responses;
-			if (!courseRes.ok) {
-				console.error('Erreur création course en arrière-plan');
+			// Deuxième tarif (seulement si forfait)
+			if (values.isForfait && values.secondTarifPrice) {
+				const secondTarifData = {
+					id: `tarif-${courseId}-2`,
+					courseId: courseId,
+					tarifPhotographe: parseFloat(values.secondTarifPrice),
+					bonusChefEquipe: parseFloat(values.teamLeaderBonus),
+					firstTarifName: values.firstTarifName || 'Tarif 1',
+					secondTarifName: values.secondTarifName || 'Tarif 2',
+					dateCreation: new Date().toISOString(),
+					dateModification: new Date().toISOString(),
+				};
+				tarifsToCreate.push(secondTarifData);
 			}
-			tarifRess.forEach((tarifRes, index) => {
-				if (!tarifRes.ok) {
-					console.error(`Erreur création tarif ${index + 1} en arrière-plan`);
+
+			// Créer la course ET les tarifs AVANT de rediriger
+			const tarifPromises = tarifsToCreate.map(tarifData =>
+				fetch('/api/tarifs', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(tarifData),
+				})
+			);
+
+			const responses = await Promise.all([
+				fetch('/api/courses', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(courseData),
+				}),
+				...tarifPromises
+			]);
+
+			const [courseRes, ...tarifRess] = responses;
+
+			if (!courseRes.ok) {
+				throw new Error('Erreur lors de la création de la course');
+			}
+
+			for (let i = 0; i < tarifRess.length; i++) {
+				if (!tarifRess[i].ok) {
+					throw new Error(`Erreur lors de la création du tarif ${i + 1}`);
 				}
-			});
-			console.log('✅ Course et tarifs créés avec succès en arrière-plan');
-		}).catch(error => {
-			console.error('❌ Erreur création en arrière-plan:', error);
-		});
+			}
+
+			// Afficher le toast seulement après la création réussie
+			toast.success('Course créée avec succès');
+
+			// Redirection après la création complète
+			router.push('/admin/planning');
+		} catch (error) {
+			console.error('❌ Erreur création:', error);
+			toast.error('Erreur lors de la création de la course');
+		}
 	}
 
 	return (

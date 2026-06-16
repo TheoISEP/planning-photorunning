@@ -212,6 +212,7 @@ export default function EditCoursePage() {
         tarifPhotographe: parseFloat(data.tarifPhotographe),
         bonusChefEquipe: parseFloat(data.bonusChefEquipe),
         firstTarifName: data.isForfait ? (data.firstTarifName || 'Tarif 1') : '',
+        secondTarifName: '', // Vider aussi ce champ pour le premier tarif
       };
 
       if (existingTarifs.length > 0) {
@@ -272,8 +273,13 @@ export default function EditCoursePage() {
         }
       } else if (!data.isForfait && existingTarifs.length > 1) {
         // Supprimer le deuxième tarif si on désactive le forfait
-        // Note: Il faudrait implémenter un endpoint DELETE pour les tarifs
-        console.log('Devrait supprimer le deuxième tarif');
+        const deleteRes = await fetch(`/api/tarifs?id=${existingTarifs[1].id}`, {
+          method: 'DELETE',
+        });
+
+        if (!deleteRes.ok) {
+          console.error('Erreur lors de la suppression du deuxième tarif');
+        }
       }
 
       toast.success('Course et tarifs modifiés avec succès');

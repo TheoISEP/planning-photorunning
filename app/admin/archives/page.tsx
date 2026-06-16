@@ -60,6 +60,8 @@ interface Tarif {
   bonusChefEquipe: number;
   description?: string;
   nombreJours?: string;
+  firstTarifName?: string;
+  secondTarifName?: string;
 }
 
 interface Disponibilite {
@@ -670,79 +672,6 @@ export default function AdminCalendrierPage() {
     }
   };
 
-  const handleTarifChange = async (
-    disponibiliteId: string,
-    newTarifId: string,
-    courseId: string
-  ) => {
-    try {
-      // Mise à jour optimiste
-      const updatedDisponibilites = disponibilites.map((d) =>
-        d.id === disponibiliteId
-          ? { ...d, tarifId: newTarifId }
-          : d
-      );
-      setDisponibilites(updatedDisponibilites);
-
-      // Recalculer les courses avec nouveaux tarifs
-      const coursesWithData = courses.map((course) => {
-        const dispos = updatedDisponibilites.filter((d) => d.courseId === course.id);
-
-        // Recalculer le coût total avec les tarifs assignés
-        let coutTotal = 0;
-        dispos.forEach((d: Disponibilite) => {
-          if (d.statut === 'validated' || d.statut === 'teamLeader') {
-            const tarifDispo = d.tarifId
-              ? tarifs.find((t) => t.id === d.tarifId)
-              : course.tarif;
-
-            if (tarifDispo) {
-              const tarifPhoto = Number(tarifDispo.tarifPhotographe) || 0;
-              const bonusChef = Number(tarifDispo.bonusChefEquipe) || 0;
-              const montant = d.statut === 'teamLeader'
-                ? tarifPhoto + bonusChef
-                : tarifPhoto;
-              coutTotal += montant;
-            }
-          }
-        });
-
-        return {
-          ...course,
-          disponibilites: dispos,
-          coutTotal,
-        };
-      });
-
-      setCourses(coursesWithData);
-
-      // Récupérer la disponibilité pour extraire le photographeId
-      const dispo = updatedDisponibilites.find(d => d.id === disponibiliteId);
-      if (!dispo) return;
-
-      // Appel API
-      const res = await fetch('/api/disponibilites', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: disponibiliteId,
-          statut: dispo.statut,
-          tarifId: newTarifId,
-          courseId: dispo.courseId,
-          photographeId: dispo.photographeId,
-        }),
-      });
-
-      if (!res.ok) {
-        console.error('Erreur API, rollback');
-        fetchData();
-      }
-    } catch (error) {
-      console.error('Erreur mise à jour tarif:', error);
-      fetchData();
-    }
-  };
-
   const handleArchiveCourse = (courseId: string) => {
     const course = courses.find((c) => c.id === courseId);
     if (!course) return;
@@ -804,10 +733,22 @@ export default function AdminCalendrierPage() {
     }
   };
 
-  // Filtrage: SEULEMENT les courses archivées
+  // Filtrage: SEULEMENT les courses archivées (en excluant le mois en cours)
   const filteredCourses = courses.filter((course) => {
     // Inclure SEULEMENT les courses archivées
     if (course.archived !== 'oui') return false;
+
+    // Exclure les courses du mois en cours (elles apparaissent dans planning)
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const courseDate = new Date(course.dateDebut);
+    const courseMonth = courseDate.getMonth();
+    const courseYear = courseDate.getFullYear();
+
+    if (courseYear === currentYear && courseMonth === currentMonth) {
+      return false; // Exclure les courses archivées du mois en cours
+    }
 
     // Filtre par statut
     if (statutFilter === 'all') return true;
@@ -850,6 +791,29 @@ export default function AdminCalendrierPage() {
       coutTotal: number;
     }
   }>);
+
+  // Exploser les courses avec plusieurs tarifs en plusieurs lignes
+  Object.values(coursesByMonth).forEach(monthData => {
+    const expandedCourses: CourseWithData[] = [];
+
+    monthData.courses.forEach(course => {
+      if (course.tarifs && course.tarifs.length > 1) {
+        // Course avec plusieurs tarifs -> créer une ligne par tarif
+        course.tarifs.forEach((tarif, index) => {
+          expandedCourses.push({
+            ...course,
+            tarif, // Utiliser ce tarif spécifique
+            tarifIndex: index, // Ajouter un index pour différencier
+          } as any);
+        });
+      } else {
+        // Course avec un seul tarif -> garder telle quelle
+        expandedCourses.push(course);
+      }
+    });
+
+    monthData.courses = expandedCourses;
+  });
 
   // Trier par année et mois (ordre chronologique inverse)
   const sortedMonths = Object.values(coursesByMonth).sort((a, b) => {
@@ -1273,26 +1237,39 @@ export default function AdminCalendrierPage() {
               const availableCount = course.photographesDisponibles;
               const bgColor = getRegionBackgroundColor(course.localisation);
 
+              // Déterminer si on affiche la bordure inférieure (seulement pour le premier tarif ou si pas de multi-tarifs)
+              const isFirstTarif = (course as any).tarifIndex === undefined || (course as any).tarifIndex === 0;
+              const isSecondTarif = (course as any).tarifIndex === 1;
+
               return (
                 <div
-                  key={course.id}
+                  key={(course as any).tarifIndex !== undefined ? `${course.id}-tarif-${(course as any).tarifIndex}` : course.id}
                   className={cn(
-                    "group grid gap-0 border-b border-gray-200/50 hover:bg-gray-100 dark:hover:bg-gray-900/30 transition-colors",
+                    "group grid gap-0 hover:bg-gray-100 dark:hover:bg-gray-900/30 transition-colors relative",
+                    !isSecondTarif && "border-b border-gray-200/50",
                     bgColor,
-                    "dark:bg-gray-950"
+                    "dark:bg-gray-950",
+                    // Bordure gauche épaisse bleue pour les lignes de multi-tarifs
+                    (course.tarifs && course.tarifs.length > 1) && "border-l-4 border-l-blue-500 dark:border-l-blue-400"
                   )}
                   style={{
                     gridTemplateColumns: `200px 120px repeat(${[...admins, ...photographers].filter((u) => u.actif).length}, 70px)`,
                     minWidth: 'max-content'
                   }}
                 >
-                  {/* Colonne infos course - STICKY */}
+                  {/* Colonne infos course - STICKY avec masquage pour le deuxième tarif */}
                   <div
                     className={cn(
-                      "sticky left-0 z-10 p-2 pr-1.5 border-r-2 border-gray-600/40",
-                      bgColor
+                      "sticky left-0 z-30 p-2 pr-1.5 border-r-2 border-gray-600/40 transition-colors",
+                      bgColor,
+                      isSecondTarif && "opacity-0 pointer-events-none",
+                      // Enlever la bordure du bas si c'est la première ligne d'un multi-tarifs
+                      isFirstTarif && (course.tarifs && course.tarifs.length > 1) && "border-b-0"
                     )}
-                    style={{ position: 'sticky', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
+                    style={{
+                      position: 'sticky',
+                      boxShadow: isFirstTarif ? '2px 0 5px rgba(0,0,0,0.1)' : 'none'
+                    }}
                   >
                     {/* Ligne 1: Titre + Statut */}
                     <div className="flex items-center justify-between gap-1 mb-0.5">
@@ -1302,6 +1279,13 @@ export default function AdminCalendrierPage() {
                           className="font-semibold hover:underline text-xs hover:text-primary transition-colors"
                         >
                           {course.nom}
+                          {(course as any).tarifIndex !== undefined && course.tarif && (
+                            <span className="ml-1 text-[10px] bg-blue-100 text-blue-700 px-1 rounded">
+                              {(course as any).tarifIndex === 0
+                                ? (course.tarif.firstTarifName || 'Tarif 1')
+                                : (course.tarif.secondTarifName || 'Tarif 2')}
+                            </span>
+                          )}
                         </Link>
                         <Select
                           value={course.statutTraitement}
@@ -1365,21 +1349,28 @@ export default function AdminCalendrierPage() {
                     </div>
                   </div>
 
-                  {/* Colonne Date - STICKY */}
+                  {/* Colonne Date - STICKY - masquer pour deuxième tarif */}
                   <div
                     className={cn(
-                      "sticky z-10 p-2 pr-1.5 flex flex-col justify-start items-start gap-0.5 border-r-2 border-gray-600/40",
-                      bgColor
+                      "sticky z-30 p-2 pr-1.5 flex flex-col justify-start items-start gap-0.5 border-r-2 border-gray-600/40 transition-colors",
+                      bgColor,
+                      isSecondTarif && "opacity-0 pointer-events-none",
+                      // Enlever la bordure du bas si c'est la première ligne d'un multi-tarifs
+                      isFirstTarif && (course.tarifs && course.tarifs.length > 1) && "border-b-0"
                     )}
-                    style={{ position: 'sticky', left: '200px', boxShadow: '2px 0 5px rgba(0,0,0,0.1)' }}
+                    style={{ position: 'sticky', left: '200px', boxShadow: isFirstTarif ? '2px 0 5px rgba(0,0,0,0.1)' : 'none' }}
                   >
-                    <div className="text-xs font-semibold text-gray-700">
-                      {format(new Date(course.dateDebut), "dd/MM/yy", { locale: fr })}
-                    </div>
-                    {course.dateFin && course.dateFin !== course.dateDebut && (
-                      <div className="text-[10px] text-muted-foreground">
-                        au {format(new Date(course.dateFin), "dd/MM/yy", { locale: fr })}
-                      </div>
+                    {!isSecondTarif && (
+                      <>
+                        <div className="text-xs font-semibold text-gray-700">
+                          {format(new Date(course.dateDebut), "dd/MM/yy", { locale: fr })}
+                        </div>
+                        {course.dateFin && course.dateFin !== course.dateDebut && (
+                          <div className="text-[10px] text-muted-foreground">
+                            au {format(new Date(course.dateFin), "dd/MM/yy", { locale: fr })}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
 
@@ -1387,8 +1378,6 @@ export default function AdminCalendrierPage() {
                   {admins.filter((a) => a.actif).map(admin => {
                     const dispo = course.disponibilites.find((d) => d.photographeId === admin.id);
                     if (!dispo) return <div key={admin.id} className="flex items-center justify-center p-2">-</div>;
-
-                    const hasMultipleTarifs = course.tarifs && course.tarifs.length > 1;
 
                     return (
                       <div key={admin.id} className="p-2 flex flex-col items-start justify-start gap-0.5">
@@ -1440,35 +1429,6 @@ export default function AdminCalendrierPage() {
                             </SelectItem>
                           </SelectContent>
                         </Select>
-
-                        {/* Select tarif - seulement si plusieurs tarifs disponibles */}
-                        {hasMultipleTarifs && (
-                          <Select
-                            value={dispo.tarifId || ''}
-                            onValueChange={(value) => handleTarifChange(dispo.id, value, course.id)}
-                          >
-                            <SelectTrigger className="h-6 text-[8px] w-full border border-gray-300 bg-white hover:bg-gray-50 px-0.5">
-                              <SelectValue placeholder="Tarif">
-                                {dispo.tarifId
-                                  ? course.tarifs?.find(t => t.id === dispo.tarifId)?.description || 'Tarif'
-                                  : 'Choisir tarif'}
-                              </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                              {course.tarifs?.map(tarif => (
-                                <SelectItem key={tarif.id} value={tarif.id}>
-                                  <div className="flex flex-col text-[10px]">
-                                    <span className="font-medium">{tarif.description || 'Sans nom'}</span>
-                                    <span className="text-[9px] text-muted-foreground">
-                                      {tarif.tarifPhotographe}€ {tarif.nombreJours ? `(${tarif.nombreJours}j)` : ''}
-                                    </span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-
                       </div>
                     );
                   })}
@@ -1477,8 +1437,6 @@ export default function AdminCalendrierPage() {
                   {sortPhotographersByRegion(photographers.filter((p) => p.actif)).map(photographer => {
                     const dispo = course.disponibilites.find((d) => d.photographeId === photographer.id);
                     if (!dispo) return <div key={photographer.id} className={`flex items-center justify-center p-2 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors ${getRegionBackgroundColor(photographer.region)}`}>-</div>;
-
-                    const hasMultipleTarifs = course.tarifs && course.tarifs.length > 1;
 
                     return (
                       <div key={photographer.id} className={`p-2 flex flex-col items-start justify-start gap-0.5 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/30 transition-colors ${getRegionBackgroundColor(photographer.region)}`}>
@@ -1530,35 +1488,6 @@ export default function AdminCalendrierPage() {
                             </SelectItem>
                           </SelectContent>
                         </Select>
-
-                        {/* Select tarif - seulement si plusieurs tarifs disponibles */}
-                        {hasMultipleTarifs && (
-                          <Select
-                            value={dispo.tarifId || ''}
-                            onValueChange={(value) => handleTarifChange(dispo.id, value, course.id)}
-                          >
-                            <SelectTrigger className="h-6 text-[8px] w-full border border-gray-300 bg-white hover:bg-gray-50 px-0.5">
-                              <SelectValue placeholder="Tarif">
-                                {dispo.tarifId
-                                  ? course.tarifs?.find(t => t.id === dispo.tarifId)?.description || 'Tarif'
-                                  : 'Choisir tarif'}
-                              </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                              {course.tarifs?.map(tarif => (
-                                <SelectItem key={tarif.id} value={tarif.id}>
-                                  <div className="flex flex-col text-[10px]">
-                                    <span className="font-medium">{tarif.description || 'Sans nom'}</span>
-                                    <span className="text-[9px] text-muted-foreground">
-                                      {tarif.tarifPhotographe}€ {tarif.nombreJours ? `(${tarif.nombreJours}j)` : ''}
-                                    </span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-
                       </div>
                     );
                   })}

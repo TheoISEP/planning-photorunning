@@ -114,3 +114,36 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Erreur lors de la mise à jour du tarif' }, { status: 500 });
   }
 }
+
+// DELETE /api/tarifs - Supprimer un tarif par ID
+export async function DELETE(request: NextRequest) {
+  try {
+    // Vérifier l'authentification et le rôle
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth-token')?.value;
+    if (!token) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+
+    const authService = new AuthService();
+    const user = authService.verifyToken(token);
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID du tarif requis' }, { status: 400 });
+    }
+
+    const sheetsService = new GoogleSheetsService();
+    await sheetsService.deleteTarif(id);
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Delete tarif error:', error);
+    return NextResponse.json({ error: 'Erreur lors de la suppression du tarif' }, { status: 500 });
+  }
+}

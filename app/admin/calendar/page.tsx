@@ -425,9 +425,14 @@ export default function AdminCalendarPage() {
             const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id);
             if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
               const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
-              const courseTarif = dispo.tarifId
-                ? tarifs.find((t) => t.id === dispo.tarifId)
-                : courseTarifs[0];
+
+              // Trouver le tarif correspondant avec fallback
+              let courseTarif = dispo.tarifId ? tarifs.find((t) => t.id === dispo.tarifId) : null;
+
+              // Si le tarifId spécifique n'est pas trouvé (ID obsolète), utiliser le tarif de la course
+              if (!courseTarif) {
+                courseTarif = courseTarifs[0];
+              }
 
               if (courseTarif) {
                 const amount = dispo.statut === 'teamLeader'
@@ -630,9 +635,14 @@ export default function AdminCalendarPage() {
                     );
                     if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
                       const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
-                      const courseTarif = dispo.tarifId
-                        ? tarifs.find((t) => t.id === dispo.tarifId)
-                        : courseTarifs[0];
+
+                      // Trouver le tarif correspondant avec fallback
+                      let courseTarif = dispo.tarifId ? tarifs.find((t) => t.id === dispo.tarifId) : null;
+
+                      // Si le tarifId spécifique n'est pas trouvé (ID obsolète), utiliser le tarif de la course
+                      if (!courseTarif) {
+                        courseTarif = courseTarifs[0];
+                      }
 
                       if (courseTarif) {
                         const montant = dispo.statut === 'teamLeader'

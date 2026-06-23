@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Valider le statut
-    const validStatuses = ['pending', 'available', 'unavailable', 'validated', 'teamLeader', 'rejected'];
+    const validStatuses = ['pending', 'available', 'unavailable', 'validated', 'teamLeader', 'rejected', 'nonPris'];
     if (!validStatuses.includes(statut)) {
       return NextResponse.json({ error: 'Statut invalide' }, { status: 400 });
     }
@@ -234,7 +234,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Valider le statut
-    const validStatuses = ['pending', 'available', 'unavailable', 'validated', 'teamLeader', 'rejected'];
+    const validStatuses = ['pending', 'available', 'unavailable', 'validated', 'teamLeader', 'rejected', 'nonPris'];
     if (!validStatuses.includes(statut)) {
       return NextResponse.json({ error: 'Statut invalide' }, { status: 400 });
     }
@@ -447,7 +447,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Valider le statut
-    const validStatuses = ['pending', 'available', 'unavailable', 'validated', 'teamLeader', 'rejected'];
+    const validStatuses = ['pending', 'available', 'unavailable', 'validated', 'teamLeader', 'rejected', 'nonPris'];
     if (!validStatuses.includes(statut)) {
       return NextResponse.json({ error: 'Statut invalide' }, { status: 400 });
     }

@@ -62,19 +62,33 @@ export async function GET(request: NextRequest) {
           monthlyStats[monthKey].nombreCourses++;
           monthlyStats[monthKey].nombrePrestations++;
 
-          // Récupérer le tarif
-          const tarif = dispo.tarifId
-            ? await sheetsService.getTarifById(dispo.tarifId)
-            : (await sheetsService.getTarifsByCourseId(dispo.courseId))[0];
+          // Récupérer le tarif - d'abord essayer avec le tarifId, puis retomber sur le tarif par défaut
+          let tarif = null;
+          if (dispo.tarifId) {
+            console.log(`📋 Recherche tarif avec ID: ${dispo.tarifId} pour course ${dispo.courseId}`);
+            tarif = await sheetsService.getTarifById(dispo.tarifId);
+            if (!tarif) {
+              console.log(`⚠️ Tarif ${dispo.tarifId} non trouvé (ID obsolète), recherche du tarif par défaut...`);
+            }
+          }
+          // Si le tarif n'existe pas (ID obsolète), utiliser le tarif par défaut de la course
+          if (!tarif) {
+            const tarifs = await sheetsService.getTarifsByCourseId(dispo.courseId);
+            console.log(`📋 Tarifs trouvés pour course ${dispo.courseId}:`, tarifs.length, tarifs.map((t: any) => ({ id: t.id, montant: t.tarifPhotographe })));
+            tarif = tarifs[0];
+          }
 
           if (tarif) {
             const tarifBase = Number(tarif.tarifPhotographe) || 0;
             const bonus = dispo.statut === 'teamLeader' ? (Number(tarif.bonusChefEquipe) || 0) : 0;
+            console.log(`💰 Ajout de ${tarifBase + bonus}€ pour ${course.nom} (base: ${tarifBase}, bonus: ${bonus})`);
             monthlyStats[monthKey].montantTotal += tarifBase + bonus;
 
             // Estimation des heures (par défaut 8h par course, ou selon le nombre de jours)
             const nbJours = Number(tarif.nombreJours) || 1;
             monthlyStats[monthKey].heuresTravail += nbJours * 8;
+          } else {
+            console.error(`❌ Aucun tarif trouvé pour course ${course.nom} (${dispo.courseId})`);
           }
         }
       }

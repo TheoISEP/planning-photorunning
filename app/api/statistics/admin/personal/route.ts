@@ -64,10 +64,15 @@ export async function GET(request: NextRequest) {
       monthlyStats[monthKey].nombreCourses++;
       monthlyStats[monthKey].nombrePrestations++;
 
-      // Calculer le montant pour cette prestation
-      const tarif = dispo.tarifId
-        ? tarifs.find((t: any) => t.id === dispo.tarifId)
-        : tarifs.find((t: any) => t.courseId === course.id);
+      // Calculer le montant pour cette prestation - essayer d'abord avec tarifId, puis retomber sur le tarif par défaut
+      let tarif = null;
+      if (dispo.tarifId) {
+        tarif = tarifs.find((t: any) => t.id === dispo.tarifId);
+      }
+      // Si le tarif n'existe pas (ID obsolète), utiliser le tarif par défaut
+      if (!tarif) {
+        tarif = tarifs.find((t: any) => t.courseId === course.id);
+      }
 
       if (tarif) {
         const tarifBase = Number(tarif.tarifPhotographe) || 0;

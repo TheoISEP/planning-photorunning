@@ -15,6 +15,7 @@ const statusBadgeVariants = cva(
 				validated: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
 				teamLeader: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
 				rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+				nonPris: "bg-slate-100 text-slate-600 dark:bg-slate-900/30 dark:text-slate-400",
 
 				// Processing statuses (admin only)
 				inProgress: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
@@ -40,6 +41,7 @@ const statusLabels: Record<NonNullable<StatusBadgeVariant>, string> = {
 	validated: "Validé",
 	teamLeader: "Référent",
 	rejected: "Refusé",
+	nonPris: "Non pris",
 	inProgress: "En cours",
 	done: "Fait",
 };

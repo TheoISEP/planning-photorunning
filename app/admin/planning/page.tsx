@@ -354,21 +354,42 @@ export default function AdminCalendrierPage() {
             // Vérifier si c'est un admin non rémunéré
             const user = allAdmins.find((a: Admin) => a.id === d.photographeId);
             const isNonRemunere = user && (user.rem === 'non' || user.rem === 'non');
+            console.log(`[PLANNING] 👤 Photographe ${d.photographeId} - rem: ${user?.rem}, isNonRemunere: ${isNonRemunere}`);
 
             // Ne pas compter les admins non rémunérés
-            if (isNonRemunere) return;
+            if (isNonRemunere) {
+              console.log(`[PLANNING] ⏭️ Photographe ${d.photographeId} exclu (non rémunéré)`);
+              return;
+            }
 
-            const tarifDispo = d.tarifId
-              ? allTarifs.find((t: Tarif) => t.id === d.tarifId)
-              : tarif;
+            // Essayer d'abord avec le tarifId, puis retomber sur le tarif par défaut
+            let tarifDispo = null;
+            if (d.tarifId) {
+              console.log(`[PLANNING] Recherche tarif ID: ${d.tarifId} pour ${d.photographeId} sur course ${course.nom}`);
+              tarifDispo = allTarifs.find((t: Tarif) => t.id === d.tarifId);
+              if (!tarifDispo) {
+                console.log(`[PLANNING] ⚠️ Tarif ${d.tarifId} non trouvé, utilisation tarif par défaut`);
+              }
+            }
+            // Si le tarif n'existe pas (ID obsolète), utiliser le tarif par défaut de la course
+            if (!tarifDispo) {
+              tarifDispo = tarif;
+              console.log(`[PLANNING] Tarif par défaut pour ${course.nom}:`, tarif ? `${tarif.tarifPhotographe}€` : 'AUCUN');
+            }
 
             if (tarifDispo) {
+              console.log(`[PLANNING] 📊 Calcul CA pour ${d.photographeId} - statut: ${d.statut}`);
               const tarifPhoto = Number(tarifDispo.tarifPhotographe) || 0;
               const bonusChef = Number(tarifDispo.bonusChefEquipe) || 0;
               const montant = d.statut === 'teamLeader'
                 ? tarifPhoto + bonusChef
                 : tarifPhoto;
+              console.log(`[PLANNING] 💰 Montant calculé: ${montant}€ (tarif: ${tarifPhoto}€, bonus: ${bonusChef}€)`);
+              console.log(`[PLANNING] 📈 coutTotal avant: ${coutTotal}€`);
               coutTotal += montant;
+              console.log(`[PLANNING] 📈 coutTotal après: ${coutTotal}€`);
+            } else {
+              console.log(`[PLANNING] ❌ Pas de tarif trouvé pour ${d.photographeId} sur course ${course.nom}`);
             }
           }
         });
@@ -535,15 +556,32 @@ export default function AdminCalendrierPage() {
               const isNonRemunere = user && (user.rem === 'non' || user.rem === 'non');
               if (isNonRemunere) return;
 
-              const tarifDispo = d.tarifId
-                ? tarifs.find((t: any) => t.id === d.tarifId)
-                : course.tarif;
+              // Essayer d'abord avec le tarifId, puis retomber sur le tarif par défaut
+              let tarifDispo = null;
+              if (d.tarifId) {
+                console.log(`[STATUS CHANGE] Recherche tarif ID: ${d.tarifId} pour ${d.photographeId} sur course ${course.nom}`);
+                tarifDispo = tarifs.find((t: any) => t.id === d.tarifId);
+                if (!tarifDispo) {
+                  console.log(`[STATUS CHANGE] ⚠️ Tarif ${d.tarifId} non trouvé, utilisation tarif par défaut`);
+                }
+              }
+              // Si le tarif n'existe pas (ID obsolète), utiliser le tarif par défaut de la course
+              if (!tarifDispo) {
+                tarifDispo = course.tarif;
+                console.log(`[STATUS CHANGE] Tarif par défaut pour ${course.nom}:`, course.tarif ? `${course.tarif.tarifPhotographe}€` : 'AUCUN');
+              }
 
               if (tarifDispo) {
+                console.log(`[STATUS CHANGE] 📊 Calcul CA pour ${d.photographeId} - statut: ${d.statut}`);
                 const tarifPhoto = Number(tarifDispo.tarifPhotographe) || 0;
                 const bonusChef = Number(tarifDispo.bonusChefEquipe) || 0;
                 const montant = d.statut === 'teamLeader' ? tarifPhoto + bonusChef : tarifPhoto;
+                console.log(`[STATUS CHANGE] 💰 Montant calculé: ${montant}€ (tarif: ${tarifPhoto}€, bonus: ${bonusChef}€)`);
+                console.log(`[STATUS CHANGE] 📈 coutTotal avant: ${coutTotal}€`);
                 coutTotal += montant;
+                console.log(`[STATUS CHANGE] 📈 coutTotal après: ${coutTotal}€`);
+              } else {
+                console.log(`[STATUS CHANGE] ❌ Pas de tarif trouvé pour ${d.photographeId} sur course ${course.nom}`);
               }
             }
           });
@@ -595,7 +633,16 @@ export default function AdminCalendrierPage() {
               const isNonRemunere = user && (user.rem === 'non' || user.rem === 'non');
               if (isNonRemunere) return;
 
-              const tarifDispo = d.tarifId ? tarifs.find((t: any) => t.id === d.tarifId) : course.tarif;
+              // Essayer d'abord avec le tarifId, puis retomber sur le tarif par défaut
+              let tarifDispo = null;
+              if (d.tarifId) {
+                tarifDispo = tarifs.find((t: any) => t.id === d.tarifId);
+              }
+              // Si le tarif n'existe pas (ID obsolète), utiliser le tarif par défaut de la course
+              if (!tarifDispo) {
+                tarifDispo = course.tarif;
+              }
+
               if (tarifDispo) {
                 tarifBase += Number(tarifDispo.tarifPhotographe) || 0;
                 if (d.statut === 'teamLeader') bonus += Number(tarifDispo.bonusChefEquipe) || 0;
@@ -754,17 +801,34 @@ export default function AdminCalendrierPage() {
             // Ne pas compter les admins non rémunérés
             if (isNonRemunere) return;
 
-            const tarifDispo = d.tarifId
-              ? tarifs.find((t) => t.id === d.tarifId)
-              : course.tarif;
+            // Essayer d'abord avec le tarifId, puis retomber sur le tarif par défaut
+            let tarifDispo = null;
+            if (d.tarifId) {
+              console.log(`[TARIF CHANGE] Recherche tarif ID: ${d.tarifId} pour ${d.photographeId} sur course ${course.nom}`);
+              tarifDispo = tarifs.find((t) => t.id === d.tarifId);
+              if (!tarifDispo) {
+                console.log(`[TARIF CHANGE] ⚠️ Tarif ${d.tarifId} non trouvé, utilisation tarif par défaut`);
+              }
+            }
+            // Si le tarif n'existe pas (ID obsolète), utiliser le tarif par défaut de la course
+            if (!tarifDispo) {
+              tarifDispo = course.tarif;
+              console.log(`[TARIF CHANGE] Tarif par défaut pour ${course.nom}:`, course.tarif ? `${course.tarif.tarifPhotographe}€` : 'AUCUN');
+            }
 
             if (tarifDispo) {
+              console.log(`[TARIF CHANGE] 📊 Calcul CA pour ${d.photographeId} - statut: ${d.statut}`);
               const tarifPhoto = Number(tarifDispo.tarifPhotographe) || 0;
               const bonusChef = Number(tarifDispo.bonusChefEquipe) || 0;
               const montant = d.statut === 'teamLeader'
                 ? tarifPhoto + bonusChef
                 : tarifPhoto;
+              console.log(`[TARIF CHANGE] 💰 Montant calculé: ${montant}€ (tarif: ${tarifPhoto}€, bonus: ${bonusChef}€)`);
+              console.log(`[TARIF CHANGE] 📈 coutTotal avant: ${coutTotal}€`);
               coutTotal += montant;
+              console.log(`[TARIF CHANGE] 📈 coutTotal après: ${coutTotal}€`);
+            } else {
+              console.log(`[TARIF CHANGE] ❌ Pas de tarif trouvé pour ${d.photographeId} sur course ${course.nom}`);
             }
           }
         });
@@ -1353,9 +1417,15 @@ export default function AdminCalendrierPage() {
 
                                 // Ne compter que si ce n'est pas un admin non rémunéré
                                 if (!isNonPaidAdmin) {
-                                  const courseTarif = dispo.tarifId
-                                    ? tarifs.find((t) => t.id === dispo.tarifId)
-                                    : tarifs.find((t) => t.courseId === course.id);
+                                  // Essayer d'abord avec le tarifId, puis retomber sur le tarif par défaut
+                                  let courseTarif = null;
+                                  if (dispo.tarifId) {
+                                    courseTarif = tarifs.find((t) => t.id === dispo.tarifId);
+                                  }
+                                  // Si le tarif n'existe pas (ID obsolète), utiliser le tarif par défaut de la course
+                                  if (!courseTarif) {
+                                    courseTarif = tarifs.find((t) => t.courseId === course.id);
+                                  }
 
                                   if (courseTarif) {
                                     const amount = dispo.statut === 'teamLeader'
@@ -1389,10 +1459,15 @@ export default function AdminCalendrierPage() {
                         if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
                           userCount += 1;
 
-                          // Trouver le tarif correspondant
-                          const courseTarif = dispo.tarifId
-                            ? tarifs.find((t) => t.id === dispo.tarifId)
-                            : tarifs.find((t) => t.courseId === course.id);
+                          // Essayer d'abord avec le tarifId, puis retomber sur le tarif par défaut
+                          let courseTarif = null;
+                          if (dispo.tarifId) {
+                            courseTarif = tarifs.find((t) => t.id === dispo.tarifId);
+                          }
+                          // Si le tarif n'existe pas (ID obsolète), utiliser le tarif par défaut de la course
+                          if (!courseTarif) {
+                            courseTarif = tarifs.find((t) => t.courseId === course.id);
+                          }
 
                           if (courseTarif) {
                             // Pour les admins non rémunérés : uniquement le tarif de base (pas de bonus chef)
@@ -1428,10 +1503,15 @@ export default function AdminCalendrierPage() {
                         if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
                           userCount += 1;
 
-                          // Trouver le tarif correspondant
-                          const courseTarif = dispo.tarifId
-                            ? tarifs.find((t) => t.id === dispo.tarifId)
-                            : tarifs.find((t) => t.courseId === course.id);
+                          // Essayer d'abord avec le tarifId, puis retomber sur le tarif par défaut
+                          let courseTarif = null;
+                          if (dispo.tarifId) {
+                            courseTarif = tarifs.find((t) => t.id === dispo.tarifId);
+                          }
+                          // Si le tarif n'existe pas (ID obsolète), utiliser le tarif par défaut de la course
+                          if (!courseTarif) {
+                            courseTarif = tarifs.find((t) => t.courseId === course.id);
+                          }
 
                           if (courseTarif) {
                             const amount = dispo.statut === 'teamLeader'

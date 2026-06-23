@@ -68,7 +68,7 @@ interface Disponibilite {
 	id: string;
 	photographeId: string;
 	courseId: string;
-	statut: 'pending' | 'available' | 'unavailable' | 'validated' | 'teamLeader' | 'rejected';
+	statut: 'pending' | 'available' | 'unavailable' | 'validated' | 'teamLeader' | 'rejected' | 'nonPris';
 }
 
 export default function AdminCalendrierEventDetailPage() {
@@ -223,22 +223,25 @@ export default function AdminCalendrierEventDetailPage() {
 	const updateCourseStatus = async (newStatus: string, shouldRejectOthers: boolean) => {
 		if (!course) return;
 
-		// 1. Capture immédiate des disponibilités à rejeter AVANT toute mise à jour d'état
-		const disponibilitesToReject = shouldRejectOthers
+		// 1. Capture immédiate des disponibilités à rejeter/marquer comme non pris AVANT toute mise à jour d'état
+		const disponibilitesToUpdate = shouldRejectOthers
 			? disponibilites.filter((d) => !['validated', 'teamLeader'].includes(d.statut))
 			: [];
 
 		// 2. Mise à jour INSTANTANÉE de l'UI (optimiste)
 		setCourse({ ...course, statutTraitement: newStatus as Course['statutTraitement'] });
 
-		// Si on doit refuser les autres, mettre à jour l'UI immédiatement aussi
+		// Si on doit refuser/marquer les autres, mettre à jour l'UI immédiatement aussi
 		if (shouldRejectOthers) {
 			setDisponibilites((prev) =>
-				prev.map((d) =>
-					!['validated', 'teamLeader'].includes(d.statut)
-						? { ...d, statut: 'rejected' as Disponibilite['statut'] }
-						: d
-				)
+				prev.map((d) => {
+					if (['validated', 'teamLeader'].includes(d.statut)) {
+						return d;
+					}
+					// Refusé pour ceux qui étaient disponibles, non pris pour les autres
+					const newStatut = d.statut === 'available' ? 'rejected' : 'nonPris';
+					return { ...d, statut: newStatut as Disponibilite['statut'] };
+				})
 			);
 		}
 
@@ -255,47 +258,52 @@ export default function AdminCalendrierEventDetailPage() {
 			console.error('Erreur mise à jour statut traitement:', error);
 		});
 
-		// 4. Rejeter tous les photographes non validés/chef en arrière-plan (bulk update)
-		if (disponibilitesToReject.length > 0) {
-			console.log(`🔄 Rejet en masse de ${disponibilitesToReject.length} personnes...`);
-			console.log('Personnes à rejeter:', disponibilitesToReject.map(d => ({
-				id: d.photographeId,
-				statut: d.statut
-			})));
+		// 4. Mettre à jour le statut de tous les photographes non validés/chef en arrière-plan
+		if (disponibilitesToUpdate.length > 0) {
+			console.log(`🔄 Mise à jour en masse de ${disponibilitesToUpdate.length} personnes...`);
 
-			// Utiliser le bulk update endpoint (1 seul appel API au lieu de N appels)
-			// Envoyer à la fois l'ID et le photographeId pour permettre la création si nécessaire
-			const disponibilitesData = disponibilitesToReject.map(d => ({
-				id: d.id,
-				photographeId: d.photographeId,
-			}));
+			// Séparer en deux groupes : ceux à refuser (disponibles) et ceux marqués comme non pris (autres)
+			const toReject = disponibilitesToUpdate.filter(d => d.statut === 'available');
+			const toMarkNonTaken = disponibilitesToUpdate.filter(d => d.statut !== 'available');
 
-			fetch('/api/disponibilites', {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					disponibilites: disponibilitesData,
-					statut: 'rejected',
-					courseId: course.id,
-				}),
-			})
-				.then(async (res) => {
-					if (res.ok) {
-						const data = await res.json();
-						if (data.created > 0) {
-							console.log(`✅ ${data.updated} mises à jour + ${data.created} créées = ${data.count} personnes rejetées`);
-						} else {
-							console.log(`✅ ${data.count} personnes rejetées avec succès en une seule requête`);
-						}
-					} else {
-						console.error('❌ Erreur lors du rejet en masse');
-					}
+			console.log(`- ${toReject.length} personnes disponibles → Refusé`);
+			console.log(`- ${toMarkNonTaken.length} personnes (en attente/pas dispo) → Non pris`);
+
+			// Mettre à jour chaque disponibilité individuellement avec le bon statut
+			const updatePromises = [
+				...toReject.map(d =>
+					fetch('/api/disponibilites', {
+						method: 'PATCH',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							id: d.id,
+							statut: 'rejected',
+							dateModification: new Date().toISOString(),
+						}),
+					})
+				),
+				...toMarkNonTaken.map(d =>
+					fetch('/api/disponibilites', {
+						method: 'PATCH',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							id: d.id,
+							statut: 'nonPris',
+							dateModification: new Date().toISOString(),
+						}),
+					})
+				)
+			];
+
+			Promise.all(updatePromises)
+				.then(() => {
+					console.log(`✅ ${disponibilitesToUpdate.length} personnes mises à jour avec succès`);
 				})
 				.catch((error) => {
-					console.error('❌ Erreur lors du rejet des personnes:', error);
+					console.error('❌ Erreur lors de la mise à jour des personnes:', error);
 				});
 		} else {
-			console.log('ℹ️ Aucune personne à rejeter (toutes validées ou chef d\'équipe)');
+			console.log('ℹ️ Aucune personne à mettre à jour (toutes validées ou chef d\'équipe)');
 		}
 	};
 
@@ -646,10 +654,10 @@ export default function AdminCalendrierEventDetailPage() {
 										htmlFor="reject-others"
 										className="text-sm font-medium leading-none cursor-pointer"
 									>
-										Refuser automatiquement les photographes non validés
+										Mettre à jour automatiquement les photographes non validés
 									</Label>
 									<p className="text-xs text-muted-foreground mt-2">
-										Tous les photographes avec les statuts "En attente", "Disponible" ou "Pas dispo" seront automatiquement passés en "Refusé". Seuls les photographes "Validé" et "Référent" seront conservés.
+										Les photographes "Disponible" seront passés en "Refusé", et ceux "En attente" ou "Pas dispo" seront passés en "Non pris". Seuls les photographes "Validé" et "Référent" conserveront leur statut.
 									</p>
 								</div>
 							</div>

@@ -71,14 +71,29 @@ export async function GET(request: NextRequest) {
 
       // Calculer le coût total
       for (const dispo of courseDisponibilites) {
-        const tarif = dispo.tarifId
-          ? tarifs.find((t: any) => t.id === dispo.tarifId)
-          : tarifs.find((t: any) => t.courseId === course.id);
+        // Essayer d'abord avec le tarifId, puis retomber sur le tarif par défaut de la course
+        let tarif = null;
+        if (dispo.tarifId) {
+          console.log(`📋 [ADMIN] Recherche tarif avec ID: ${dispo.tarifId} pour course ${course.nom} (${course.id})`);
+          tarif = tarifs.find((t: any) => t.id === dispo.tarifId);
+          if (!tarif) {
+            console.log(`⚠️ [ADMIN] Tarif ${dispo.tarifId} non trouvé (ID obsolète), recherche du tarif par défaut...`);
+          }
+        }
+        // Si le tarif n'existe pas (ID obsolète), utiliser le tarif par défaut
+        if (!tarif) {
+          const courseTarifs = tarifs.filter((t: any) => t.courseId === course.id);
+          console.log(`📋 [ADMIN] Tarifs trouvés pour course ${course.nom}:`, courseTarifs.length, courseTarifs.map((t: any) => ({ id: t.id, montant: t.tarifPhotographe })));
+          tarif = courseTarifs[0];
+        }
 
         if (tarif) {
           const tarifBase = Number(tarif.tarifPhotographe) || 0;
           const bonus = dispo.statut === 'teamLeader' ? (Number(tarif.bonusChefEquipe) || 0) : 0;
+          console.log(`💰 [ADMIN] Ajout de ${tarifBase + bonus}€ pour ${course.nom} - photographe ${dispo.photographeId} (base: ${tarifBase}, bonus: ${bonus})`);
           monthlyStats[monthKey].coutTotal += tarifBase + bonus;
+        } else {
+          console.error(`❌ [ADMIN] Aucun tarif trouvé pour course ${course.nom} (${course.id}) - photographe ${dispo.photographeId}`);
         }
       }
     }

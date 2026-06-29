@@ -20,7 +20,7 @@ interface Course {
   ville: string;
   dateDebut: string;
   dateFin: string;
-  statutTraitement: 'inProgress' | 'done';
+  statutTraitement: 'inProgress' | 'validated' | 'done';
   coureursAttendus?: number;
   archived?: string;
   twoPrices?: string | boolean;
@@ -40,7 +40,7 @@ interface Disponibilite {
   id: string;
   photographeId: string;
   courseId: string;
-  statut: 'pending' | 'available' | 'unavailable' | 'validated' | 'teamLeader' | 'rejected';
+  statut: 'pending' | 'available' | 'unavailable' | 'validated' | 'teamLeader' | 'rejected' | 'nonPris';
   tarifId?: string;
 }
 
@@ -710,10 +710,10 @@ export default function PhotographerCalendrierPage() {
               {/* Cartes des courses */}
               {monthData.courses
                 .filter((course) => {
-                  // Filtrer les courses rejected pour le photographe sélectionné
+                  // Filtrer les courses rejected et nonPris pour le photographe sélectionné
                   if (!activePhotographerId) return true;
                   const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === activePhotographerId);
-                  return !dispo || dispo.statut !== 'rejected';
+                  return !dispo || (dispo.statut !== 'rejected' && dispo.statut !== 'nonPris');
                 })
                 .sort((a, b) => new Date(a.dateDebut).getTime() - new Date(b.dateDebut).getTime())
                 .map((course) => {
@@ -989,11 +989,11 @@ export default function PhotographerCalendrierPage() {
                 return sum + calculatePhotographerMonthStats(id).monthlyAmount;
               }, 0);
 
-              // Calculer le nombre de courses visibles (non rejected)
+              // Calculer le nombre de courses visibles (non rejected et non nonPris)
               const visibleCoursesCount = monthData.courses.filter((course) => {
                 if (!currentUser) return true;
                 const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id);
-                return !dispo || dispo.statut !== 'rejected';
+                return !dispo || (dispo.statut !== 'rejected' && dispo.statut !== 'nonPris');
               }).length;
 
               return (
@@ -1051,10 +1051,10 @@ export default function PhotographerCalendrierPage() {
                   {(() => {
                     const sortedCourses = monthData.courses
                       .filter((course) => {
-                        // Filtrer les courses rejected
+                        // Filtrer les courses rejected et nonPris
                         if (!currentUser) return true;
                         const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id);
-                        return !dispo || dispo.statut !== 'rejected';
+                        return !dispo || (dispo.statut !== 'rejected' && dispo.statut !== 'nonPris');
                       })
                       .sort((a, b) => new Date(a.dateDebut).getTime() - new Date(b.dateDebut).getTime());
                     return sortedCourses.map((course, courseIdx) => {

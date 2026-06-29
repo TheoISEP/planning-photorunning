@@ -28,7 +28,7 @@ interface Course {
   ville: string;
   dateDebut: string;
   dateFin: string;
-  statutTraitement: 'inProgress' | 'done';
+  statutTraitement: 'inProgress' | 'validated' | 'done';
   coureursAttendus?: number;
   numberAttended?: number;
   visible: boolean;

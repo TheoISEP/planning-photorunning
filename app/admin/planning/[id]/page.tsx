@@ -37,7 +37,7 @@ interface Course {
 	description?: string;
 	dateDebut: string;
 	dateFin: string;
-	statutTraitement: 'inProgress' | 'done';
+	statutTraitement: 'inProgress' | 'validated' | 'done';
 	coureursAttendus?: number;
 	hotel?: string;
 	transport?: string;
@@ -69,6 +69,7 @@ interface Disponibilite {
 	photographeId: string;
 	courseId: string;
 	statut: 'pending' | 'available' | 'unavailable' | 'validated' | 'teamLeader' | 'rejected' | 'nonPris';
+	tarifId?: string;
 }
 
 export default function AdminCalendrierEventDetailPage() {
@@ -201,8 +202,8 @@ export default function AdminCalendrierEventDetailPage() {
 	const handleProcessingStatusChange = async (newStatus: string) => {
 		if (!course) return;
 
-		// Si on passe de "inProgress" à "done", montrer le Dialog
-		if (course.statutTraitement === 'inProgress' && newStatus === 'done') {
+		// Si on passe à "validated" (à valider) ou "done" (fait), montrer le Dialog
+		if ((course.statutTraitement === 'inProgress' && (newStatus === 'validated' || newStatus === 'done'))) {
 			setPendingStatusChange(newStatus);
 			setShowStatusDialog(true);
 			return;
@@ -532,6 +533,9 @@ export default function AdminCalendrierEventDetailPage() {
 									<SelectItem value="inProgress">
 										<StatusBadge variant="inProgress" />
 									</SelectItem>
+									<SelectItem value="validated">
+										<StatusBadge variant="validated" />
+									</SelectItem>
 									<SelectItem value="done">
 										<StatusBadge variant="done" />
 									</SelectItem>
@@ -542,8 +546,8 @@ export default function AdminCalendrierEventDetailPage() {
 				</div>
 			</div>
 
-			{/* Liste des photographes validés - visible uniquement si course validée */}
-			{course.statutTraitement === 'done' && (
+			{/* Liste des photographes validés - visible si course validée ou terminée */}
+			{(course.statutTraitement === 'validated' || course.statutTraitement === 'done') && (
 				<Card>
 					<CardHeader>
 						<CardTitle>Équipe assignée</CardTitle>
@@ -632,11 +636,13 @@ export default function AdminCalendrierEventDetailPage() {
 				<DialogContent className="sm:max-w-[500px]">
 					<DialogHeader>
 						<DialogTitle className="flex items-center gap-2">
-							<span className="text-2xl">🟢</span>
-							Passer la course en "Fait"
+							<span className="text-2xl">{pendingStatusChange === 'done' ? '🟢' : '✅'}</span>
+							Passer la course en "{pendingStatusChange === 'done' ? 'Fait' : 'À valider'}"
 						</DialogTitle>
 						<DialogDescription className="pt-2">
-							Êtes-vous sûr de vouloir marquer cette course comme terminée ?
+							{pendingStatusChange === 'done'
+								? "Êtes-vous sûr de vouloir marquer cette course comme terminée ?"
+								: "Êtes-vous sûr de vouloir marquer cette course comme à valider ?"}
 						</DialogDescription>
 					</DialogHeader>
 

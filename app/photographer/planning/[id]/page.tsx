@@ -23,7 +23,7 @@ interface Course {
   dateFin: string;
   coureursAttendus?: number;
   briefPdfUrl?: string;
-  statutTraitement?: 'inProgress' | 'done';
+  statutTraitement?: 'inProgress' | 'validated' | 'done';
 }
 
 interface Tarif {

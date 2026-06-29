@@ -13,7 +13,7 @@ interface AvailabilityCellProps {
   } | null;
   course: {
     id: string;
-    statutTraitement: 'inProgress' | 'done';
+    statutTraitement: 'inProgress' | 'validated' | 'done';
   };
   photographerId: string;
   onStatusChange: (disponibiliteId: string, newStatus: string, courseId: string, photographerId: string) => void;

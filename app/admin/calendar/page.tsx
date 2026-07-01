@@ -485,6 +485,7 @@ export default function AdminCalendarPage() {
                   available: { bg: 'bg-blue-50 border-blue-300', text: 'text-blue-700', label: '✓ Disponible' },
                   unavailable: { bg: 'bg-gray-50 border-gray-300', text: 'text-gray-600', label: '✗ Indisponible' },
                   rejected: { bg: 'bg-red-50 border-red-300', text: 'text-red-700', label: '✗ Refusé' },
+                  nonPris: { bg: 'bg-orange-50 border-orange-300', text: 'text-orange-700', label: '⊘ Non pris' },
                 };
 
                 const config = dispo ? statusConfig[dispo.statut] : statusConfig.pending;

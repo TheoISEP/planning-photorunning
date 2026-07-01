@@ -734,15 +734,16 @@ export default function PhotographerCalendrierPage() {
                   available: { bg: 'bg-blue-50 border-blue-300', text: 'text-blue-700', label: '✓ Disponible' },
                   unavailable: { bg: 'bg-gray-50 border-gray-300', text: 'text-gray-600', label: '✗ Indisponible' },
                   rejected: { bg: 'bg-red-50 border-red-300', text: 'text-red-700', label: '✗ Refusé' },
+                  nonPris: { bg: 'bg-orange-50 border-orange-300', text: 'text-orange-700', label: '⊘ Non pris' },
                 };
 
                 const config = dispo ? statusConfig[dispo.statut] : statusConfig.pending;
-                // Afficher le sélecteur pour pending, available, unavailable (pas pour validated, teamLeader, rejected)
+                // Afficher le sélecteur pour pending, available, unavailable (pas pour validated, teamLeader, rejected, nonPris)
                 const isValidatedOrLeader = dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader');
-                const isRejected = dispo && dispo.statut === 'rejected';
+                const isRejectedOrNonPris = dispo && (dispo.statut === 'rejected' || dispo.statut === 'nonPris');
                 const canChangeStatus = dispo && ['pending', 'available', 'unavailable'].includes(dispo.statut);
-                // Afficher le sélecteur si : pas encore de dispo OU statut modifiable (et pas rejeté, pas validé, pas chef)
-                const shouldShowSelector = !isValidatedOrLeader && !isRejected;
+                // Afficher le sélecteur si : pas encore de dispo OU statut modifiable (et pas rejeté, pas validé, pas chef, pas nonPris)
+                const shouldShowSelector = !isValidatedOrLeader && !isRejectedOrNonPris;
 
                 // Vérifier si la course est passée
                 const now = new Date();
@@ -1068,7 +1069,7 @@ export default function PhotographerCalendrierPage() {
                     const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) && courseTarifs.length > 1;
 
                     const isValidated = myDispo && (myDispo.statut === 'validated' || myDispo.statut === 'teamLeader');
-                    const isRejected = myDispo && myDispo.statut === 'rejected';
+                    const isRejectedOrNonPris = myDispo && (myDispo.statut === 'rejected' || myDispo.statut === 'nonPris');
 
                     // Calculer les validations et le coût total pour TOUS les photographes
                     const allPhotographersIds = [
@@ -1130,8 +1131,8 @@ export default function PhotographerCalendrierPage() {
                             rowBgColor,
                             isValidated && myDispo.statut !== 'teamLeader' && 'border-l-4 border-l-green-600 hover:bg-green-100 shadow-sm',
                             myDispo?.statut === 'teamLeader' && 'border-l-4 border-l-purple-600 hover:bg-purple-100',
-                            isRejected && 'opacity-40 hover:opacity-60 border-gray-200/50',
-                            !isValidated && !isRejected && 'border-gray-200/50 hover:bg-gray-100',
+                            isRejectedOrNonPris && 'opacity-40 hover:opacity-60 border-gray-200/50',
+                            !isValidated && !isRejectedOrNonPris && 'border-gray-200/50 hover:bg-gray-100',
                             isPastCourse && 'opacity-40'
                           )}
                           style={{ gridTemplateColumns: `2fr 1fr ${Array(1 + managedPhotographers.length).fill('2fr').join(' ')}` }}

@@ -19,7 +19,7 @@ interface Course {
   ville: string;
   dateDebut: string;
   dateFin: string;
-  statutTraitement: 'inProgress' | 'validated' | 'done';
+  statutTraitement: 'inProgress' | 'done';
   coureursAttendus?: number;
   archived?: string;
 }
@@ -36,7 +36,7 @@ interface Disponibilite {
   id: string;
   photographeId: string;
   courseId: string;
-  statut: 'pending' | 'available' | 'unavailable' | 'validated' | 'teamLeader' | 'rejected' | 'nonPris';
+  statut: 'pending' | 'available' | 'unavailable' | 'validated' | 'teamLeader' | 'rejected';
   tarifId?: string;
 }
 

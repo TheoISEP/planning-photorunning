@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 interface AvailabilityCellProps {
   disponibilite: {
     id: string;
-    statut: 'pending' | 'available' | 'unavailable' | 'validated' | 'teamLeader' | 'rejected';
+    statut: 'pending' | 'available' | 'unavailable' | 'validated' | 'teamLeader' | 'rejected' | 'nonPris';
     photographeId: string;
     tarifId?: string;
   } | null;
@@ -42,6 +42,7 @@ export function AvailabilityCell({
       validated: 'Validé',
       teamLeader: 'Ref',
       rejected: 'Refusé',
+      nonPris: 'Non pris',
     };
     return labels[status] || status;
   };
@@ -55,6 +56,7 @@ export function AvailabilityCell({
       validated: 'bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200',
       teamLeader: 'bg-purple-100 border-purple-300 text-purple-900 hover:bg-purple-200',
       rejected: 'bg-red-100 border-red-300 text-red-900 hover:bg-red-200',
+      nonPris: 'bg-orange-100 border-orange-300 text-orange-900 hover:bg-orange-200',
     };
     return colors[status] || 'bg-white border-gray-300';
   };

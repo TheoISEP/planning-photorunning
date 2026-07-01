@@ -23,7 +23,7 @@ interface Course {
   dateFin: string;
   coureursAttendus?: number;
   briefPdfUrl?: string;
-  statutTraitement?: 'inProgress' | 'validated' | 'done';
+  statutTraitement?: 'inProgress' | 'done';
 }
 
 interface Tarif {
@@ -33,7 +33,7 @@ interface Tarif {
 
 interface Disponibilite {
   id: string;
-  statut: 'pending' | 'available' | 'unavailable' | 'validated' | 'teamLeader' | 'rejected' | 'nonPris';
+  statut: 'pending' | 'available' | 'unavailable' | 'validated' | 'teamLeader' | 'rejected';
   dateDeclaration?: string;
 }
 

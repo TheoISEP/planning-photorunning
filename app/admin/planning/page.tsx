@@ -71,7 +71,7 @@ interface Disponibilite {
   id: string;
   photographeId: string;
   courseId: string;
-  statut: 'pending' | 'available' | 'unavailable' | 'validated' | 'teamLeader' | 'rejected';
+  statut: 'pending' | 'available' | 'unavailable' | 'validated' | 'teamLeader' | 'rejected' | 'nonPris';
   tarifId?: string;
 }
 
@@ -92,6 +92,7 @@ const getStatusLabel = (status: string) => {
     validated: 'Validé',
     teamLeader: 'Ref',
     rejected: 'Refusé',
+    nonPris: 'Non pris',
   };
   return labels[status] || status;
 };
@@ -104,6 +105,7 @@ const getStatusColorClass = (status: string) => {
     validated: 'bg-green-100 border-green-300 text-green-900 hover:bg-green-200',
     teamLeader: 'bg-purple-100 border-purple-300 text-purple-900 hover:bg-purple-200',
     rejected: 'bg-red-100 border-red-300 text-red-900 hover:bg-red-200',
+    nonPris: 'bg-orange-100 border-orange-300 text-orange-900 hover:bg-orange-200',
   };
   return colors[status] || 'bg-white border-gray-300';
 };
@@ -1808,6 +1810,12 @@ export default function AdminCalendrierPage() {
                                               <span className="text-xs">Refusé</span>
                                             </div>
                                           </SelectItem>
+                                          <SelectItem value="nonPris">
+                                            <div className="flex items-center gap-2">
+                                              <div className="h-2 w-2 rounded-full bg-orange-500" />
+                                              <span className="text-xs">Non pris</span>
+                                            </div>
+                                          </SelectItem>
                                         </SelectContent>
                                       </Select>
                                     </div>
@@ -1870,6 +1878,12 @@ export default function AdminCalendrierPage() {
                                       <div className="flex items-center gap-2">
                                         <div className="h-2 w-2 rounded-full bg-red-500" />
                                         <span className="text-xs">Refusé</span>
+                                      </div>
+                                    </SelectItem>
+                                    <SelectItem value="nonPris">
+                                      <div className="flex items-center gap-2">
+                                        <div className="h-2 w-2 rounded-full bg-orange-500" />
+                                        <span className="text-xs">Non pris</span>
                                       </div>
                                     </SelectItem>
                                   </SelectContent>
@@ -1948,6 +1962,12 @@ export default function AdminCalendrierPage() {
                                               <span className="text-xs">Refusé</span>
                                             </div>
                                           </SelectItem>
+                                          <SelectItem value="nonPris">
+                                            <div className="flex items-center gap-2">
+                                              <div className="h-2 w-2 rounded-full bg-orange-500" />
+                                              <span className="text-xs">Non pris</span>
+                                            </div>
+                                          </SelectItem>
                                         </SelectContent>
                                       </Select>
                                     </div>
@@ -2010,6 +2030,12 @@ export default function AdminCalendrierPage() {
                                       <div className="flex items-center gap-2">
                                         <div className="h-2 w-2 rounded-full bg-red-500" />
                                         <span className="text-xs">Refusé</span>
+                                      </div>
+                                    </SelectItem>
+                                    <SelectItem value="nonPris">
+                                      <div className="flex items-center gap-2">
+                                        <div className="h-2 w-2 rounded-full bg-orange-500" />
+                                        <span className="text-xs">Non pris</span>
                                       </div>
                                     </SelectItem>
                                   </SelectContent>

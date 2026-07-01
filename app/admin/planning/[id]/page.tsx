@@ -269,6 +269,11 @@ export default function AdminCalendrierEventDetailPage() {
 
 			console.log(`- ${toReject.length} personnes disponibles → Refusé`);
 			console.log(`- ${toMarkNonTaken.length} personnes (en attente/pas dispo) → Non pris`);
+			console.log(`📋 Liste des personnes à marquer comme "Non pris":`, toMarkNonTaken.map(d => ({
+				id: d.id,
+				photographeId: d.photographeId,
+				statut: d.statut
+			})));
 
 			// Mettre à jour chaque disponibilité individuellement avec le bon statut
 			const updatePromises = [
@@ -279,8 +284,19 @@ export default function AdminCalendrierEventDetailPage() {
 						body: JSON.stringify({
 							id: d.id,
 							statut: 'rejected',
+							courseId: course.id,
+							photographeId: d.photographeId,
+							tarifId: d.tarifId,
 							dateModification: new Date().toISOString(),
 						}),
+					}).then(async (res) => {
+						if (!res.ok) {
+							const errorText = await res.text();
+							console.error(`❌ Erreur pour ${d.id}:`, errorText);
+							throw new Error(`Erreur pour ${d.id}: ${errorText}`);
+						}
+						console.log(`✅ ${d.id} → rejected`);
+						return res.json();
 					})
 				),
 				...toMarkNonTaken.map(d =>
@@ -290,18 +306,38 @@ export default function AdminCalendrierEventDetailPage() {
 						body: JSON.stringify({
 							id: d.id,
 							statut: 'nonPris',
+							courseId: course.id,
+							photographeId: d.photographeId,
+							tarifId: d.tarifId,
 							dateModification: new Date().toISOString(),
 						}),
+					}).then(async (res) => {
+						if (!res.ok) {
+							const errorText = await res.text();
+							console.error(`❌ Erreur pour ${d.id}:`, errorText);
+							throw new Error(`Erreur pour ${d.id}: ${errorText}`);
+						}
+						console.log(`✅ ${d.id} → nonPris`);
+						return res.json();
 					})
 				)
 			];
 
 			Promise.all(updatePromises)
-				.then(() => {
+				.then((results) => {
 					console.log(`✅ ${disponibilitesToUpdate.length} personnes mises à jour avec succès`);
+					console.log(`📊 Résultats:`, results);
+					// Forcer un rechargement après la mise à jour pour éviter les problèmes de cache
+					setTimeout(() => {
+						window.location.reload();
+					}, 1000);
 				})
 				.catch((error) => {
 					console.error('❌ Erreur lors de la mise à jour des personnes:', error);
+					// Même en cas d'erreur, recharger pour voir l'état réel
+					setTimeout(() => {
+						window.location.reload();
+					}, 1500);
 				});
 		} else {
 			console.log('ℹ️ Aucune personne à mettre à jour (toutes validées ou chef d\'équipe)');

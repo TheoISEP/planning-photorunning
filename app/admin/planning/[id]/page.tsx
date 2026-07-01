@@ -202,8 +202,8 @@ export default function AdminCalendrierEventDetailPage() {
 	const handleProcessingStatusChange = async (newStatus: string) => {
 		if (!course) return;
 
-		// Si on passe à "validated" (à valider) ou "done" (fait), montrer le Dialog
-		if ((course.statutTraitement === 'inProgress' && (newStatus === 'validated' || newStatus === 'done'))) {
+		// Si on passe à "done" (fait), montrer le Dialog pour refuser/marquer les autres
+		if (course.statutTraitement === 'inProgress' && newStatus === 'done') {
 			setPendingStatusChange(newStatus);
 			setShowStatusDialog(true);
 			return;
@@ -569,9 +569,6 @@ export default function AdminCalendrierEventDetailPage() {
 									<SelectItem value="inProgress">
 										<StatusBadge variant="inProgress" />
 									</SelectItem>
-									<SelectItem value="validated">
-										<StatusBadge variant="validated" />
-									</SelectItem>
 									<SelectItem value="done">
 										<StatusBadge variant="done" />
 									</SelectItem>
@@ -672,13 +669,11 @@ export default function AdminCalendrierEventDetailPage() {
 				<DialogContent className="sm:max-w-[500px]">
 					<DialogHeader>
 						<DialogTitle className="flex items-center gap-2">
-							<span className="text-2xl">{pendingStatusChange === 'done' ? '🟢' : '✅'}</span>
-							Passer la course en "{pendingStatusChange === 'done' ? 'Fait' : 'À valider'}"
+							<span className="text-2xl">🟢</span>
+							Passer la course en "Fait"
 						</DialogTitle>
 						<DialogDescription className="pt-2">
-							{pendingStatusChange === 'done'
-								? "Êtes-vous sûr de vouloir marquer cette course comme terminée ?"
-								: "Êtes-vous sûr de vouloir marquer cette course comme à valider ?"}
+							Êtes-vous sûr de vouloir marquer cette course comme terminée ?
 						</DialogDescription>
 					</DialogHeader>
 

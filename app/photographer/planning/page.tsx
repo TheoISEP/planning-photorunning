@@ -321,31 +321,6 @@ export default function PhotographerCalendrierPage() {
     fetchData();
   }, [fetchData, refreshKey]);
 
-  // DÉSACTIVÉ: Rafraîchir les données quand on revient sur la page
-  // Ce comportement était trop agressif et rechargeait constamment les données
-  // Le cache de 5-10 minutes est suffisant pour garder les données à jour
-  /*
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        setRefreshKey(prev => prev + 1);
-      }
-    };
-
-    const handleFocus = () => {
-      setRefreshKey(prev => prev + 1);
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, []);
-  */
-
   // Fonction pour recharger uniquement les disponibilités sans loader
   const refreshDisponibilites = async () => {
     if (!currentUser) return;
@@ -376,6 +351,18 @@ export default function PhotographerCalendrierPage() {
       console.error('❌ Erreur refresh disponibilités:', error);
     }
   };
+
+  // Rafraîchir automatiquement les disponibilités toutes les 30 secondes
+  // pour voir les changements de statut faits par l'admin en temps quasi-réel
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const interval = setInterval(() => {
+      refreshDisponibilites();
+    }, 30000); // 30 secondes
+
+    return () => clearInterval(interval);
+  }, [currentUser, managedPhotographers]); // Relancer si l'utilisateur ou les photographes changent
 
   const handleStatusChange = async (
     disponibiliteId: string,

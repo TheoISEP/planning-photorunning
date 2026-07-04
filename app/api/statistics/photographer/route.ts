@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
             const tarifBase = Number(tarif.tarifPhotographe) || 0;
             const bonus = dispo.statut === 'teamLeader' ? (Number(tarif.bonusChefEquipe) || 0) : 0;
             console.log(`💰 Ajout de ${tarifBase + bonus}€ pour ${course.nom} (base: ${tarifBase}, bonus: ${bonus})`);
-            monthlyStats[monthKey].montantTotal += tarifBase + bonus;
+            monthlyStats[monthKey].montantTotal = Number(monthlyStats[monthKey].montantTotal) + tarifBase + bonus;
 
             // Estimation des heures (par défaut 8h par course, ou selon le nombre de jours)
             const nbJours = Number(tarif.nombreJours) || 1;

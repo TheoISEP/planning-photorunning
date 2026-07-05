@@ -21,6 +21,7 @@ interface AvailabilityCellProps {
   tarifAmount?: number;
   bonusChefEquipe?: number;
   isUpdating?: boolean;
+  tarifName?: string;
 }
 
 export function AvailabilityCell({
@@ -32,6 +33,7 @@ export function AvailabilityCell({
   tarifAmount,
   bonusChefEquipe,
   isUpdating = false,
+  tarifName,
 }: AvailabilityCellProps) {
   // Fonction pour obtenir le label d'un statut
   const getStatusLabel = (status: string) => {
@@ -142,10 +144,10 @@ export function AvailabilityCell({
 
   // Calculer le tarif à afficher si validé
   const isValidated = currentStatut === 'validated' || currentStatut === 'teamLeader';
-  const displayAmount = isValidated && tarifAmount
-    ? (currentStatut === 'teamLeader' && bonusChefEquipe
-        ? tarifAmount + bonusChefEquipe
-        : tarifAmount)
+  const displayAmount = isValidated && tarifAmount !== undefined
+    ? (currentStatut === 'teamLeader' && bonusChefEquipe !== undefined
+        ? Number(tarifAmount) + Number(bonusChefEquipe)
+        : Number(tarifAmount))
     : null;
 
   return (
@@ -163,9 +165,9 @@ export function AvailabilityCell({
           </div>
         )}
       </div>
-      {tarifDescription && (
+      {(tarifDescription || tarifName) && (
         <div className="text-[9px] w-full text-center text-gray-600 mt-1">
-          {tarifDescription}
+          {tarifName || tarifDescription}
         </div>
       )}
     </>

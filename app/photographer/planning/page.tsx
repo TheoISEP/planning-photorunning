@@ -1208,11 +1208,15 @@ export default function PhotographerCalendrierPage() {
                         )}>
                           {currentUser && (
                             hasTwoTarifs ? (
-                              // Si deux tarifs, afficher deux sélecteurs
+                              // Si deux tarifs, afficher uniquement ceux qui ne sont pas refusés
                               courseTarifs.map((tarif) => {
                                 const tarifDispo = disponibilites.find(
                                   (d) => d.courseId === course.id && d.photographeId === currentUser.id && d.tarifId === tarif.id
                                 );
+                                // Si la dispo existe et est refusée, ne pas l'afficher
+                                if (tarifDispo && tarifDispo.statut === 'rejected') {
+                                  return null;
+                                }
                                 // Créer une dispo temporaire avec le tarifId si elle n'existe pas
                                 const dispoWithTarif = tarifDispo || {
                                   id: `dispo-${course.id}-${currentUser.id}-${tarif.id}`,
@@ -1231,6 +1235,7 @@ export default function PhotographerCalendrierPage() {
                                       tarifAmount={tarif.tarifPhotographe}
                                       bonusChefEquipe={tarif.bonusChefEquipe}
                                       isUpdating={updatingCells.has(`${course.id}-${currentUser.id}`)}
+                                      tarifName={tarif.description}
                                     />
                                   </div>
                                 );
@@ -1266,11 +1271,15 @@ export default function PhotographerCalendrierPage() {
                               hasTwoTarifs ? "px-2 pb-2 pt-14" : "p-2"
                             )}>
                               {hasTwoTarifs ? (
-                                // Si deux tarifs, afficher deux sélecteurs
+                                // Si deux tarifs, afficher uniquement ceux qui ne sont pas refusés
                                 courseTarifs.map((tarif) => {
                                   const tarifDispo = disponibilites.find(
                                     (d) => d.courseId === course.id && d.photographeId === photographer.id && d.tarifId === tarif.id
                                   );
+                                  // Si la dispo existe et est refusée, ne pas l'afficher
+                                  if (tarifDispo && tarifDispo.statut === 'rejected') {
+                                    return null;
+                                  }
                                   // Créer une dispo temporaire avec le tarifId si elle n'existe pas
                                   const dispoWithTarif = tarifDispo || {
                                     id: `dispo-${course.id}-${photographer.id}-${tarif.id}`,
@@ -1289,6 +1298,7 @@ export default function PhotographerCalendrierPage() {
                                         tarifAmount={tarif.tarifPhotographe}
                                         bonusChefEquipe={tarif.bonusChefEquipe}
                                         isUpdating={updatingCells.has(`${course.id}-${photographer.id}`)}
+                                        tarifName={tarif.description}
                                       />
                                     </div>
                                   );

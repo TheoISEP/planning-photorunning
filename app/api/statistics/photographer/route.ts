@@ -31,6 +31,8 @@ export async function GET(request: NextRequest) {
 
       // Créer un objet pour stocker les stats par mois
       const monthlyStats: Record<string, any> = {};
+      // Suivre les courses déjà comptées pour ne pas les compter plusieurs fois
+      const coursesCountedPerMonth: Record<string, Set<string>> = {};
 
       for (const dispo of disponibilites) {
         if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
@@ -57,10 +59,15 @@ export async function GET(request: NextRequest) {
               montantTotal: 0,
               heuresTravail: 0,
             };
+            coursesCountedPerMonth[monthKey] = new Set<string>();
           }
 
-          monthlyStats[monthKey].nombreCourses++;
-          monthlyStats[monthKey].nombrePrestations++;
+          // Ne compter la course qu'une seule fois, même s'il y a plusieurs tarifs/disponibilités
+          if (!coursesCountedPerMonth[monthKey].has(dispo.courseId)) {
+            monthlyStats[monthKey].nombreCourses++;
+            monthlyStats[monthKey].nombrePrestations++;
+            coursesCountedPerMonth[monthKey].add(dispo.courseId);
+          }
 
           // Récupérer le tarif - d'abord essayer avec le tarifId, puis retomber sur le tarif par défaut
           let tarif = null;

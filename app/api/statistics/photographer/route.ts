@@ -39,27 +39,58 @@ export async function GET(request: NextRequest) {
 
       // Regrouper les disponibilités par courseId-tarifId et ne garder que le meilleur statut
       // IMPORTANT: Pour les courses à double tarif, on peut avoir des doublons si:
-      // - Une ligne a tarifId=X et statut=validated
-      // - Une ligne a tarifId=null et statut=teamLeader
-      // Il faut résoudre le tarifId null AVANT de dédoublonner
-      const dispoMap = new Map<string, any>();
+      // - Une ligne a tarifId=X et statut=validated (nouvelle assignation admin)
+      // - Une ligne a tarifId=null et statut=teamLeader (ancienne donnée)
+      // Il faut PRIORISER les dispos avec tarifId exact sur celles avec tarifId=null
+
+      // Grouper d'abord par course pour détecter les courses double tarif
+      const disposByCourse = new Map<string, any[]>();
       for (const dispo of disponibilites) {
         if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
-          // Si pas de tarifId, récupérer le tarif par défaut de la course pour créer une clé stable
+          if (!disposByCourse.has(dispo.courseId)) {
+            disposByCourse.set(dispo.courseId, []);
+          }
+          disposByCourse.get(dispo.courseId)!.push(dispo);
+        }
+      }
+
+      const dispoMap = new Map<string, any>();
+      for (const [courseId, courseDispos] of disposByCourse.entries()) {
+        // Récupérer les tarifs de la course
+        const course = await sheetsService.getCourseById(courseId);
+        if (!course) continue;
+
+        const courseTarifs = await sheetsService.getTarifsByCourseId(courseId);
+        const hasTwoTarifs = course.twoPrices === 'TRUE' && courseTarifs.length > 1;
+
+        // Pour les courses double tarif, filtrer les dispos avec tarifId exact si elles existent
+        let filteredDispos = courseDispos;
+        if (hasTwoTarifs) {
+          const disposWithTarif = courseDispos.filter(d => d.tarifId);
+          if (disposWithTarif.length > 0) {
+            filteredDispos = disposWithTarif;
+          }
+        }
+
+        // Grouper par tarifId résolu
+        for (const dispo of filteredDispos) {
           let resolvedTarifId = dispo.tarifId;
           if (!resolvedTarifId) {
-            const tarifs = await sheetsService.getTarifsByCourseId(dispo.courseId);
-            resolvedTarifId = tarifs[0]?.id || 'default';
+            resolvedTarifId = courseTarifs[0]?.id || 'default';
           }
 
-          const key = `${dispo.courseId}-${resolvedTarifId}`;
+          const key = `${courseId}-${resolvedTarifId}`;
           const existing = dispoMap.get(key);
 
           // Créer une copie du dispo avec le tarifId résolu
           const dispoWithResolvedTarif = { ...dispo, tarifId: resolvedTarifId };
 
-          // Garder teamLeader en priorité, sinon validated
-          if (!existing || (dispo.statut === 'teamLeader' && existing.statut === 'validated')) {
+          // Prioriser tarifId exact > null, puis teamLeader > validated
+          const shouldReplace = !existing ||
+            (dispo.tarifId && !existing.tarifId) ||
+            (dispo.tarifId === existing.tarifId && dispo.statut === 'teamLeader' && existing.statut === 'validated');
+
+          if (shouldReplace) {
             dispoMap.set(key, dispoWithResolvedTarif);
           }
         }

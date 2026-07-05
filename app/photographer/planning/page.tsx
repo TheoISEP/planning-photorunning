@@ -1090,9 +1090,13 @@ export default function PhotographerCalendrierPage() {
                       })
                       .sort((a, b) => new Date(a.dateDebut).getTime() - new Date(b.dateDebut).getTime());
                     return sortedCourses.map((course, courseIdx) => {
-                    const myDispo = currentUser
-                      ? disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id)
-                      : undefined;
+                    // Trouver toutes les dispos pour le photographe actuel et prioriser teamLeader > validated
+                    const myDispos = currentUser
+                      ? disponibilites.filter((d) => d.courseId === course.id && d.photographeId === currentUser.id)
+                      : [];
+                    let myDispo = myDispos.find(d => d.statut === 'teamLeader');
+                    if (!myDispo) myDispo = myDispos.find(d => d.statut === 'validated');
+                    if (!myDispo) myDispo = myDispos[0];
 
                     const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
                     const courseTarif = courseTarifs[0];
@@ -1201,13 +1205,24 @@ export default function PhotographerCalendrierPage() {
                             </Link>
                             {course.statutTraitement === 'done' ? <span className="text-xs">🟢</span> : <span className="text-xs">🟠</span>}
                           </div>
+                          {/* Afficher le nom du tarif pour les courses double tarif */}
+                          {hasTwoTarifs && myDispo && (
+                            <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">
+                              {(() => {
+                                const myTarif = myDispo.tarifId
+                                  ? tarifs.find(t => t.id === myDispo.tarifId)
+                                  : courseTarifs[0];
+                                return myTarif?.description || '';
+                              })()}
+                            </div>
+                          )}
                           <div className="text-xs text-muted-foreground">📍 {course.ville || course.localisation}</div>
 
                           {/* Afficher tous les photographes validés */}
-                          {allValidatedDispos.length > 0 && (
+                          {dispoByPhotographerTarif.size > 0 && (
                             <div className="mt-1.5 space-y-0.5">
                               <div className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                                {allValidatedDispos.length} validé{allValidatedDispos.length > 1 ? 's' : ''}
+                                {dispoByPhotographerTarif.size} validé{dispoByPhotographerTarif.size > 1 ? 's' : ''}
                               </div>
                               {totalCourseAmount > 0 && (
                                 <div className="text-sm font-bold text-green-700 dark:text-green-400">

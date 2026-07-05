@@ -1519,6 +1519,7 @@ export default function PhotographerCalendrierPage() {
                                   tarifAmount={courseTarif?.tarifPhotographe}
                                   bonusChefEquipe={courseTarif?.bonusChefEquipe}
                                   isUpdating={updatingCells.has(`${course.id}-${photographer.id}`)}
+                                  tarifDescription={courseTarif?.description}
                                 />
                               )}
                             </div>

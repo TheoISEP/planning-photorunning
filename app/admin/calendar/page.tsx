@@ -22,6 +22,7 @@ interface Course {
   statutTraitement: 'inProgress' | 'validated' | 'done';
   coureursAttendus?: number;
   archived?: string;
+  twoPrices?: string | boolean;
 }
 
 interface Tarif {

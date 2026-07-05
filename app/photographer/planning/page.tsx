@@ -929,40 +929,50 @@ export default function PhotographerCalendrierPage() {
 
               // Fonction pour calculer les stats d'un photographe pour un mois
               const calculatePhotographerMonthStats = (photographerId: string) => {
-                // Pour les doubles tarifs, compter chaque validation séparément
-                const validatedCount = monthData.courses.reduce((count, course) => {
-                  // Utiliser filter au lieu de find pour gérer les doubles tarifs
+                // Compter le nombre de courses validées (pas le nombre de tarifs)
+                const validatedCoursesSet = new Set<string>();
+                monthData.courses.forEach(course => {
                   const dispos = disponibilites.filter(
                     (d) => d.courseId === course.id && d.photographeId === photographerId
                   );
-                  const validated = dispos.filter(d => d.statut === 'validated' || d.statut === 'teamLeader');
-                  return count + validated.length;
-                }, 0);
+                  const hasValidated = dispos.some(d => d.statut === 'validated' || d.statut === 'teamLeader');
+                  if (hasValidated) {
+                    validatedCoursesSet.add(course.id);
+                  }
+                });
+                const validatedCount = validatedCoursesSet.size;
 
-                const monthlyAmount = monthData.courses.reduce((total, course) => {
-                  // Utiliser filter au lieu de find pour gérer les doubles tarifs
+                // Calculer le montant total en évitant les doublons
+                const amountData = monthData.courses.reduce((data, course) => {
                   const dispos = disponibilites.filter(
                     (d) => d.courseId === course.id && d.photographeId === photographerId
                   );
+
                   dispos.forEach(dispo => {
                     if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
-                      const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
-                      const courseTarif = dispo.tarifId
-                        ? tarifs.find((t) => t.id === dispo.tarifId)
-                        : courseTarifs[0];
+                      // Clé unique pour éviter de compter le même tarif plusieurs fois
+                      const uniqueKey = `${course.id}-${dispo.tarifId || 'default'}`;
 
-                      if (courseTarif) {
-                        const montant = dispo.statut === 'teamLeader'
-                          ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
-                          : Number(courseTarif.tarifPhotographe);
-                        total += montant;
+                      if (!data.counted.has(uniqueKey)) {
+                        const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+                        const courseTarif = dispo.tarifId
+                          ? tarifs.find((t) => t.id === dispo.tarifId)
+                          : courseTarifs[0];
+
+                        if (courseTarif) {
+                          const montant = dispo.statut === 'teamLeader'
+                            ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
+                            : Number(courseTarif.tarifPhotographe);
+                          data.total += montant;
+                          data.counted.add(uniqueKey);
+                        }
                       }
                     }
                   });
-                  return total;
-                }, 0);
+                  return data;
+                }, { total: 0, counted: new Set<string>() });
 
-                return { validatedCount, monthlyAmount };
+                return { validatedCount, monthlyAmount: amountData.total };
               };
 
               const myValidatedCount = currentUser ? calculatePhotographerMonthStats(currentUser.id).validatedCount : 0;
@@ -1070,7 +1080,16 @@ export default function PhotographerCalendrierPage() {
                       (d.statut === 'validated' || d.statut === 'teamLeader')
                     );
 
-                    const totalCourseAmount = allValidatedDispos.reduce((sum, dispo) => {
+                    // Calculer le total en évitant les doublons (même photographe + même tarif)
+                    const totalCourseAmount = allValidatedDispos.reduce((data, dispo) => {
+                      // Créer une clé unique pour éviter de compter le même tarif plusieurs fois
+                      const uniqueKey = `${dispo.photographeId}-${dispo.tarifId || 'default'}`;
+
+                      // Si ce tarif a déjà été compté pour ce photographe, l'ignorer
+                      if (data.counted.has(uniqueKey)) {
+                        return data;
+                      }
+
                       const tarifForDispo = dispo.tarifId
                         ? tarifs.find(t => t.id === dispo.tarifId)
                         : courseTarif;
@@ -1079,10 +1098,11 @@ export default function PhotographerCalendrierPage() {
                         const amount = dispo.statut === 'teamLeader'
                           ? Number(tarifForDispo.tarifPhotographe) + Number(tarifForDispo.bonusChefEquipe)
                           : Number(tarifForDispo.tarifPhotographe);
-                        return sum + amount;
+                        data.counted.add(uniqueKey);
+                        data.sum += amount;
                       }
-                      return sum;
-                    }, 0);
+                      return data;
+                    }, { sum: 0, counted: new Set<string>() }).sum;
 
                     const bgColor = courseIdx % 2 === 0 ? 'bg-gray-50 dark:bg-gray-950' : 'bg-gray-50 dark:bg-gray-950';
                     const rowBgColor = isValidated

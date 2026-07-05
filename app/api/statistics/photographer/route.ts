@@ -33,11 +33,23 @@ export async function GET(request: NextRequest) {
       const monthlyStats: Record<string, any> = {};
       // Suivre les courses déjà comptées pour ne pas les compter plusieurs fois
       const coursesCountedPerMonth: Record<string, Set<string>> = {};
-      // Suivre les montants déjà ajoutés pour éviter les doublons (courseId + tarifId)
-      const amountsAddedPerMonth: Record<string, Set<string>> = {};
 
+      // Regrouper les disponibilités par courseId-tarifId et ne garder que le meilleur statut
+      const dispoMap = new Map<string, any>();
       for (const dispo of disponibilites) {
         if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
+          const key = `${dispo.courseId}-${dispo.tarifId || 'default'}`;
+          const existing = dispoMap.get(key);
+
+          // Garder teamLeader en priorité, sinon validated
+          if (!existing || (dispo.statut === 'teamLeader' && existing.statut === 'validated')) {
+            dispoMap.set(key, dispo);
+          }
+        }
+      }
+
+      // Traiter les disponibilités dédoublonnées
+      for (const dispo of dispoMap.values()) {
           // Récupérer la course associée
           const course = await sheetsService.getCourseById(dispo.courseId);
           if (!course) continue;
@@ -62,7 +74,6 @@ export async function GET(request: NextRequest) {
               heuresTravail: 0,
             };
             coursesCountedPerMonth[monthKey] = new Set<string>();
-            amountsAddedPerMonth[monthKey] = new Set<string>();
           }
 
           // Ne compter la course qu'une seule fois, même s'il y a plusieurs tarifs/disponibilités
@@ -89,27 +100,17 @@ export async function GET(request: NextRequest) {
           }
 
           if (tarif) {
-            // Créer une clé unique pour éviter d'ajouter le même montant plusieurs fois
-            const amountKey = `${dispo.courseId}-${dispo.tarifId || 'default'}`;
+            const tarifBase = Number(tarif.tarifPhotographe) || 0;
+            const bonus = dispo.statut === 'teamLeader' ? (Number(tarif.bonusChefEquipe) || 0) : 0;
+            console.log(`💰 Ajout de ${tarifBase + bonus}€ pour ${course.nom} (base: ${tarifBase}, bonus: ${bonus})`);
+            monthlyStats[monthKey].montantTotal = Number(monthlyStats[monthKey].montantTotal) + tarifBase + bonus;
 
-            // Ne compter ce montant que s'il n'a pas déjà été ajouté ce mois
-            if (!amountsAddedPerMonth[monthKey].has(amountKey)) {
-              const tarifBase = Number(tarif.tarifPhotographe) || 0;
-              const bonus = dispo.statut === 'teamLeader' ? (Number(tarif.bonusChefEquipe) || 0) : 0;
-              console.log(`💰 Ajout de ${tarifBase + bonus}€ pour ${course.nom} (base: ${tarifBase}, bonus: ${bonus})`);
-              monthlyStats[monthKey].montantTotal = Number(monthlyStats[monthKey].montantTotal) + tarifBase + bonus;
-              amountsAddedPerMonth[monthKey].add(amountKey);
-
-              // Estimation des heures (par défaut 8h par course, ou selon le nombre de jours)
-              const nbJours = Number(tarif.nombreJours) || 1;
-              monthlyStats[monthKey].heuresTravail += nbJours * 8;
-            } else {
-              console.log(`⚠️ Montant déjà compté pour ${course.nom} (${amountKey})`);
-            }
+            // Estimation des heures (par défaut 8h par course, ou selon le nombre de jours)
+            const nbJours = Number(tarif.nombreJours) || 1;
+            monthlyStats[monthKey].heuresTravail += nbJours * 8;
           } else {
             console.error(`❌ Aucun tarif trouvé pour course ${course.nom} (${dispo.courseId})`);
           }
-        }
       }
 
       // Convertir en tableau et trier par mois

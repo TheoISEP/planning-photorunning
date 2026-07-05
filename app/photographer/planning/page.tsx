@@ -623,23 +623,36 @@ export default function PhotographerCalendrierPage() {
           // Calculer le montant total du mois pour les courses validées (photographe actuel)
           const monthTotal = monthData.courses.reduce((total, course) => {
             if (!activePhotographerId) return total;
-            // Utiliser filter au lieu de find pour gérer les doubles tarifs
-            const dispos = disponibilites.filter((d) => d.courseId === course.id && d.photographeId === activePhotographerId);
-            dispos.forEach(dispo => {
-              if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
-                const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
-                const courseTarif = dispo.tarifId
-                  ? tarifs.find((t) => t.id === dispo.tarifId)
-                  : courseTarifs[0];
 
-                if (courseTarif) {
-                  const amount = dispo.statut === 'teamLeader'
-                    ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
-                    : Number(courseTarif.tarifPhotographe);
-                  total += amount;
+            const dispos = disponibilites.filter(
+              (d) => d.courseId === course.id && d.photographeId === activePhotographerId && (d.statut === 'validated' || d.statut === 'teamLeader')
+            );
+
+            // Grouper les dispos par tarifId et garder seulement la meilleure pour chaque tarif
+            const dispoByTarif = new Map<string, any>();
+            dispos.forEach(dispo => {
+              const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+              const courseTarif = dispo.tarifId
+                ? tarifs.find((t) => t.id === dispo.tarifId)
+                : courseTarifs[0];
+
+              if (courseTarif) {
+                const existing = dispoByTarif.get(courseTarif.id);
+                // Prioriser teamLeader > validated
+                if (!existing || (dispo.statut === 'teamLeader' && existing.dispo.statut === 'validated')) {
+                  dispoByTarif.set(courseTarif.id, { dispo, tarif: courseTarif });
                 }
               }
             });
+
+            // Calculer le montant pour chaque tarif unique
+            dispoByTarif.forEach(({ dispo, tarif }) => {
+              const amount = dispo.statut === 'teamLeader'
+                ? Number(tarif.tarifPhotographe) + Number(tarif.bonusChefEquipe)
+                : Number(tarif.tarifPhotographe);
+              total += amount;
+            });
+
             return total;
           }, 0);
 
@@ -650,22 +663,33 @@ export default function PhotographerCalendrierPage() {
           ];
           const allMonthTotal = monthData.courses.reduce((total, course) => {
             allPhotographersIds.forEach(photographerId => {
-              // Utiliser filter au lieu de find pour gérer les doubles tarifs
-              const dispos = disponibilites.filter((d) => d.courseId === course.id && d.photographeId === photographerId);
-              dispos.forEach(dispo => {
-                if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
-                  const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
-                  const courseTarif = dispo.tarifId
-                    ? tarifs.find((t) => t.id === dispo.tarifId)
-                    : courseTarifs[0];
+              const dispos = disponibilites.filter(
+                (d) => d.courseId === course.id && d.photographeId === photographerId && (d.statut === 'validated' || d.statut === 'teamLeader')
+              );
 
-                  if (courseTarif) {
-                    const amount = dispo.statut === 'teamLeader'
-                      ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
-                      : Number(courseTarif.tarifPhotographe);
-                    total += amount;
+              // Grouper les dispos par tarifId et garder seulement la meilleure pour chaque tarif
+              const dispoByTarif = new Map<string, any>();
+              dispos.forEach(dispo => {
+                const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+                const courseTarif = dispo.tarifId
+                  ? tarifs.find((t) => t.id === dispo.tarifId)
+                  : courseTarifs[0];
+
+                if (courseTarif) {
+                  const existing = dispoByTarif.get(courseTarif.id);
+                  // Prioriser teamLeader > validated
+                  if (!existing || (dispo.statut === 'teamLeader' && existing.dispo.statut === 'validated')) {
+                    dispoByTarif.set(courseTarif.id, { dispo, tarif: courseTarif });
                   }
                 }
+              });
+
+              // Calculer le montant pour chaque tarif unique
+              dispoByTarif.forEach(({ dispo, tarif }) => {
+                const amount = dispo.statut === 'teamLeader'
+                  ? Number(tarif.tarifPhotographe) + Number(tarif.bonusChefEquipe)
+                  : Number(tarif.tarifPhotographe);
+                total += amount;
               });
             });
             return total;
@@ -942,34 +966,43 @@ export default function PhotographerCalendrierPage() {
                 });
                 const validatedCount = validatedCoursesSet.size;
 
-                // Calculer le montant total en évitant les doublons
+                // Calculer le montant total en évitant les doublons et en priorisant les statuts
                 const amountData = monthData.courses.reduce((data, course) => {
                   const dispos = disponibilites.filter(
-                    (d) => d.courseId === course.id && d.photographeId === photographerId
+                    (d) => d.courseId === course.id && d.photographeId === photographerId && (d.statut === 'validated' || d.statut === 'teamLeader')
                   );
 
+                  // Grouper les dispos par tarifId et garder seulement la meilleure pour chaque tarif
+                  const dispoByTarif = new Map<string, any>();
                   dispos.forEach(dispo => {
-                    if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
-                      // Résoudre le tarif pour créer une clé stable
-                      const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
-                      const courseTarif = dispo.tarifId
-                        ? tarifs.find((t) => t.id === dispo.tarifId)
-                        : courseTarifs[0];
+                    const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+                    const courseTarif = dispo.tarifId
+                      ? tarifs.find((t) => t.id === dispo.tarifId)
+                      : courseTarifs[0];
 
-                      if (courseTarif) {
-                        // Clé unique basée sur le vrai tarifId résolu (pas "default")
-                        const uniqueKey = `${course.id}-${courseTarif.id}`;
+                    if (courseTarif) {
+                      const tarifKey = courseTarif.id;
+                      const existing = dispoByTarif.get(tarifKey);
 
-                        if (!data.counted.has(uniqueKey)) {
-                          const montant = dispo.statut === 'teamLeader'
-                            ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
-                            : Number(courseTarif.tarifPhotographe);
-                          data.total += montant;
-                          data.counted.add(uniqueKey);
-                        }
+                      // Prioriser teamLeader > validated
+                      if (!existing || (dispo.statut === 'teamLeader' && existing.dispo.statut === 'validated')) {
+                        dispoByTarif.set(tarifKey, { dispo, tarif: courseTarif });
                       }
                     }
                   });
+
+                  // Calculer le montant pour chaque tarif unique
+                  dispoByTarif.forEach(({ dispo, tarif }) => {
+                    const uniqueKey = `${course.id}-${tarif.id}`;
+                    if (!data.counted.has(uniqueKey)) {
+                      const montant = dispo.statut === 'teamLeader'
+                        ? Number(tarif.tarifPhotographe) + Number(tarif.bonusChefEquipe)
+                        : Number(tarif.tarifPhotographe);
+                      data.total += montant;
+                      data.counted.add(uniqueKey);
+                    }
+                  });
+
                   return data;
                 }, { total: 0, counted: new Set<string>() });
 
@@ -1081,28 +1114,31 @@ export default function PhotographerCalendrierPage() {
                       (d.statut === 'validated' || d.statut === 'teamLeader')
                     );
 
-                    // Calculer le total en évitant les doublons (même photographe + même tarif)
-                    const totalCourseAmount = allValidatedDispos.reduce((data, dispo) => {
-                      // Résoudre le tarif d'abord
+                    // Grouper les dispos par photographe+tarif et garder la meilleure
+                    const dispoByPhotographerTarif = new Map<string, any>();
+                    allValidatedDispos.forEach(dispo => {
                       const tarifForDispo = dispo.tarifId
                         ? tarifs.find(t => t.id === dispo.tarifId)
                         : courseTarif;
 
                       if (tarifForDispo) {
-                        // Clé unique basée sur le vrai tarifId résolu
-                        const uniqueKey = `${dispo.photographeId}-${tarifForDispo.id}`;
+                        const key = `${dispo.photographeId}-${tarifForDispo.id}`;
+                        const existing = dispoByPhotographerTarif.get(key);
 
-                        // Si ce tarif a déjà été compté pour ce photographe, l'ignorer
-                        if (!data.counted.has(uniqueKey)) {
-                          const amount = dispo.statut === 'teamLeader'
-                            ? Number(tarifForDispo.tarifPhotographe) + Number(tarifForDispo.bonusChefEquipe)
-                            : Number(tarifForDispo.tarifPhotographe);
-                          data.counted.add(uniqueKey);
-                          data.sum += amount;
+                        // Prioriser teamLeader > validated
+                        if (!existing || (dispo.statut === 'teamLeader' && existing.dispo.statut === 'validated')) {
+                          dispoByPhotographerTarif.set(key, { dispo, tarif: tarifForDispo });
                         }
                       }
-                      return data;
-                    }, { sum: 0, counted: new Set<string>() }).sum;
+                    });
+
+                    // Calculer le total à partir des dispos priorisées
+                    const totalCourseAmount = Array.from(dispoByPhotographerTarif.values()).reduce((sum, { dispo, tarif }) => {
+                      const amount = dispo.statut === 'teamLeader'
+                        ? Number(tarif.tarifPhotographe) + Number(tarif.bonusChefEquipe)
+                        : Number(tarif.tarifPhotographe);
+                      return sum + amount;
+                    }, 0);
 
                     const bgColor = courseIdx % 2 === 0 ? 'bg-gray-50 dark:bg-gray-950' : 'bg-gray-50 dark:bg-gray-950';
                     const rowBgColor = isValidated

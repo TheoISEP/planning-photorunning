@@ -1282,8 +1282,11 @@ export default function PhotographerCalendrierPage() {
                               // Si deux tarifs, afficher uniquement ceux qui ne sont pas refusés
                               courseTarifs.map((tarif) => {
                                 // Trouver toutes les dispos pour ce tarif
+                                // Inclure celles avec tarifId=null seulement pour le premier tarif (par défaut)
+                                const isDefaultTarif = tarif.id === courseTarifs[0]?.id;
                                 const allTarifDispos = disponibilites.filter(
-                                  (d) => d.courseId === course.id && d.photographeId === currentUser.id && d.tarifId === tarif.id
+                                  (d) => d.courseId === course.id && d.photographeId === currentUser.id &&
+                                  (d.tarifId === tarif.id || (!d.tarifId && isDefaultTarif))
                                 );
 
                                 // Prioriser: teamLeader > validated > autres
@@ -1352,8 +1355,11 @@ export default function PhotographerCalendrierPage() {
                                 // Si deux tarifs, afficher uniquement ceux qui ne sont pas refusés
                                 courseTarifs.map((tarif) => {
                                   // Trouver toutes les dispos pour ce tarif
+                                  // Inclure celles avec tarifId=null seulement pour le premier tarif (par défaut)
+                                  const isDefaultTarif = tarif.id === courseTarifs[0]?.id;
                                   const allTarifDispos = disponibilites.filter(
-                                    (d) => d.courseId === course.id && d.photographeId === photographer.id && d.tarifId === tarif.id
+                                    (d) => d.courseId === course.id && d.photographeId === photographer.id &&
+                                    (d.tarifId === tarif.id || (!d.tarifId && isDefaultTarif))
                                   );
 
                                   // Prioriser: teamLeader > validated > autres

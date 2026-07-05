@@ -35,10 +35,21 @@ export async function GET(request: NextRequest) {
       const coursesCountedPerMonth: Record<string, Set<string>> = {};
 
       // Regrouper les disponibilités par courseId-tarifId et ne garder que le meilleur statut
+      // IMPORTANT: Pour les courses à double tarif, on peut avoir des doublons si:
+      // - Une ligne a tarifId=X et statut=validated
+      // - Une ligne a tarifId=null et statut=teamLeader
+      // Il faut résoudre le tarifId null AVANT de dédoublonner
       const dispoMap = new Map<string, any>();
       for (const dispo of disponibilites) {
         if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
-          const key = `${dispo.courseId}-${dispo.tarifId || 'default'}`;
+          // Si pas de tarifId, récupérer le tarif par défaut de la course pour créer une clé stable
+          let resolvedTarifId = dispo.tarifId;
+          if (!resolvedTarifId) {
+            const tarifs = await sheetsService.getTarifsByCourseId(dispo.courseId);
+            resolvedTarifId = tarifs[0]?.id || 'default';
+          }
+
+          const key = `${dispo.courseId}-${resolvedTarifId}`;
           const existing = dispoMap.get(key);
 
           // Garder teamLeader en priorité, sinon validated

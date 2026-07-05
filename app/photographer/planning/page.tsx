@@ -1090,18 +1090,41 @@ export default function PhotographerCalendrierPage() {
                       })
                       .sort((a, b) => new Date(a.dateDebut).getTime() - new Date(b.dateDebut).getTime());
                     return sortedCourses.map((course, courseIdx) => {
-                    // Trouver toutes les dispos pour le photographe actuel et prioriser teamLeader > validated
-                    const myDispos = currentUser
-                      ? disponibilites.filter((d) => d.courseId === course.id && d.photographeId === currentUser.id)
-                      : [];
-                    let myDispo = myDispos.find(d => d.statut === 'teamLeader');
-                    if (!myDispo) myDispo = myDispos.find(d => d.statut === 'validated');
-                    if (!myDispo) myDispo = myDispos[0];
-
                     const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
                     const courseTarif = courseTarifs[0];
                     const hasMultipleTarifs = courseTarifs.length > 1;
                     const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) && courseTarifs.length > 1;
+
+                    // Pour les courses double tarif, trouver la dispo réelle affichée
+                    let myDispo: any = undefined;
+                    if (currentUser) {
+                      if (hasTwoTarifs) {
+                        // Pour double tarif, chercher la dispo avec tarifId exact prioritairement
+                        const myDisposExact = disponibilites.filter(
+                          (d) => d.courseId === course.id && d.photographeId === currentUser.id && d.tarifId
+                        );
+                        if (myDisposExact.length > 0) {
+                          // Prioriser teamLeader > validated parmi celles avec tarifId exact
+                          myDispo = myDisposExact.find(d => d.statut === 'teamLeader');
+                          if (!myDispo) myDispo = myDisposExact.find(d => d.statut === 'validated');
+                          if (!myDispo) myDispo = myDisposExact[0];
+                        } else {
+                          // Si aucune avec tarifId exact, chercher avec tarifId=null
+                          const myDisposNull = disponibilites.filter(
+                            (d) => d.courseId === course.id && d.photographeId === currentUser.id && !d.tarifId
+                          );
+                          myDispo = myDisposNull.find(d => d.statut === 'teamLeader');
+                          if (!myDispo) myDispo = myDisposNull.find(d => d.statut === 'validated');
+                          if (!myDispo) myDispo = myDisposNull[0];
+                        }
+                      } else {
+                        // Pour les courses simples, garder l'ancienne logique
+                        const myDispos = disponibilites.filter((d) => d.courseId === course.id && d.photographeId === currentUser.id);
+                        myDispo = myDispos.find(d => d.statut === 'teamLeader');
+                        if (!myDispo) myDispo = myDispos.find(d => d.statut === 'validated');
+                        if (!myDispo) myDispo = myDispos[0];
+                      }
+                    }
 
                     const isValidated = myDispo && (myDispo.statut === 'validated' || myDispo.statut === 'teamLeader');
                     const isRejectedOrNonPris = myDispo && (myDispo.statut === 'rejected' || myDispo.statut === 'nonPris');

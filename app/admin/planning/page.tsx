@@ -1406,37 +1406,71 @@ export default function AdminCalendrierPage() {
                           let monthTotal = 0;
 
                           monthData.courses.forEach((course) => {
-                            course.disponibilites.forEach((dispo) => {
-                              if (dispo.statut === 'validated' || dispo.statut === 'teamLeader') {
-                                // Vérifier si c'est un admin non rémunéré
-                                const admin = admins.find((a) => a.id === dispo.photographeId);
-                                const isNonPaidAdmin = admin && (
-                                  admin.rem === true ||
-                                  admin.rem === 'TRUE' ||
-                                  admin.rem === 'true' ||
-                                  String(admin.rem).toLowerCase() === 'true'
-                                );
+                            const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+                            const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) && courseTarifs.length > 1;
 
-                                // Ne compter que si ce n'est pas un admin non rémunéré
-                                if (!isNonPaidAdmin) {
-                                  // Essayer d'abord avec le tarifId, puis retomber sur le tarif par défaut
-                                  let courseTarif = null;
-                                  if (dispo.tarifId) {
-                                    courseTarif = tarifs.find((t) => t.id === dispo.tarifId);
-                                  }
-                                  // Si le tarif n'existe pas (ID obsolète), utiliser le tarif par défaut de la course
-                                  if (!courseTarif) {
-                                    courseTarif = tarifs.find((t) => t.courseId === course.id);
-                                  }
+                            // Filtrer les dispos validées
+                            const validatedDispos = course.disponibilites.filter(
+                              (d) => d.statut === 'validated' || d.statut === 'teamLeader'
+                            );
 
-                                  if (courseTarif) {
-                                    const amount = dispo.statut === 'teamLeader'
-                                      ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
-                                      : Number(courseTarif.tarifPhotographe);
-                                    monthTotal += amount;
-                                  }
+                            // Grouper par photographe pour filtrer les anciennes dispos
+                            const disposByPhotographer = new Map<string, any[]>();
+                            validatedDispos.forEach(d => {
+                              if (!disposByPhotographer.has(d.photographeId)) {
+                                disposByPhotographer.set(d.photographeId, []);
+                              }
+                              disposByPhotographer.get(d.photographeId)!.push(d);
+                            });
+
+                            // Pour chaque photographe, dédupliquer et calculer le montant
+                            disposByPhotographer.forEach((dispos, photographerId) => {
+                              // Vérifier si c'est un admin non rémunéré
+                              const admin = admins.find((a) => a.id === photographerId);
+                              const isNonPaidAdmin = admin && (
+                                admin.rem === true ||
+                                admin.rem === 'TRUE' ||
+                                admin.rem === 'true' ||
+                                String(admin.rem).toLowerCase() === 'true'
+                              );
+
+                              if (isNonPaidAdmin) return;
+
+                              // Pour les courses double tarif, filtrer les dispos avec tarifId exact
+                              let filteredDispos = dispos;
+                              if (hasTwoTarifs) {
+                                const disposWithTarif = dispos.filter(d => d.tarifId);
+                                if (disposWithTarif.length > 0) {
+                                  filteredDispos = disposWithTarif;
                                 }
                               }
+
+                              // Grouper par tarifId et garder la meilleure pour chaque tarif
+                              const dispoByTarif = new Map<string, any>();
+                              filteredDispos.forEach(dispo => {
+                                let courseTarif = dispo.tarifId
+                                  ? tarifs.find((t) => t.id === dispo.tarifId)
+                                  : courseTarifs[0];
+
+                                if (courseTarif) {
+                                  const existing = dispoByTarif.get(courseTarif.id);
+                                  // Prioriser tarifId exact > null, puis teamLeader > validated
+                                  const shouldReplace = !existing ||
+                                    (dispo.tarifId && !existing.dispo.tarifId) ||
+                                    (dispo.tarifId === existing.dispo.tarifId && dispo.statut === 'teamLeader' && existing.dispo.statut === 'validated');
+                                  if (shouldReplace) {
+                                    dispoByTarif.set(courseTarif.id, { dispo, tarif: courseTarif });
+                                  }
+                                }
+                              });
+
+                              // Calculer le montant pour chaque tarif unique
+                              dispoByTarif.forEach(({ dispo, tarif }) => {
+                                const amount = dispo.statut === 'teamLeader'
+                                  ? Number(tarif.tarifPhotographe) + Number(tarif.bonusChefEquipe)
+                                  : Number(tarif.tarifPhotographe);
+                                monthTotal += amount;
+                              });
                             });
                           });
 

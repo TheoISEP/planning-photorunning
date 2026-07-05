@@ -628,18 +628,33 @@ export default function PhotographerCalendrierPage() {
               (d) => d.courseId === course.id && d.photographeId === activePhotographerId && (d.statut === 'validated' || d.statut === 'teamLeader')
             );
 
+            // Vérifier si c'est une course double tarif
+            const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+            const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) && courseTarifs.length > 1;
+
+            // Pour les courses double tarif, si on a des dispos avec tarifId exact, ignorer celles avec tarifId=null
+            let filteredDispos = dispos;
+            if (hasTwoTarifs) {
+              const disposWithTarif = dispos.filter(d => d.tarifId);
+              if (disposWithTarif.length > 0) {
+                filteredDispos = disposWithTarif;
+              }
+            }
+
             // Grouper les dispos par tarifId et garder seulement la meilleure pour chaque tarif
             const dispoByTarif = new Map<string, any>();
-            dispos.forEach(dispo => {
-              const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+            filteredDispos.forEach(dispo => {
               const courseTarif = dispo.tarifId
                 ? tarifs.find((t) => t.id === dispo.tarifId)
                 : courseTarifs[0];
 
               if (courseTarif) {
                 const existing = dispoByTarif.get(courseTarif.id);
-                // Prioriser teamLeader > validated
-                if (!existing || (dispo.statut === 'teamLeader' && existing.dispo.statut === 'validated')) {
+                // Prioriser tarifId exact > null, puis teamLeader > validated
+                const shouldReplace = !existing ||
+                  (dispo.tarifId && !existing.dispo.tarifId) ||
+                  (dispo.tarifId === existing.dispo.tarifId && dispo.statut === 'teamLeader' && existing.dispo.statut === 'validated');
+                if (shouldReplace) {
                   dispoByTarif.set(courseTarif.id, { dispo, tarif: courseTarif });
                 }
               }
@@ -662,23 +677,37 @@ export default function PhotographerCalendrierPage() {
             ...managedPhotographers.map(p => p.id)
           ];
           const allMonthTotal = monthData.courses.reduce((total, course) => {
+            const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+            const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) && courseTarifs.length > 1;
+
             allPhotographersIds.forEach(photographerId => {
               const dispos = disponibilites.filter(
                 (d) => d.courseId === course.id && d.photographeId === photographerId && (d.statut === 'validated' || d.statut === 'teamLeader')
               );
 
+              // Pour les courses double tarif, si on a des dispos avec tarifId exact, ignorer celles avec tarifId=null
+              let filteredDispos = dispos;
+              if (hasTwoTarifs) {
+                const disposWithTarif = dispos.filter(d => d.tarifId);
+                if (disposWithTarif.length > 0) {
+                  filteredDispos = disposWithTarif;
+                }
+              }
+
               // Grouper les dispos par tarifId et garder seulement la meilleure pour chaque tarif
               const dispoByTarif = new Map<string, any>();
-              dispos.forEach(dispo => {
-                const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+              filteredDispos.forEach(dispo => {
                 const courseTarif = dispo.tarifId
                   ? tarifs.find((t) => t.id === dispo.tarifId)
                   : courseTarifs[0];
 
                 if (courseTarif) {
                   const existing = dispoByTarif.get(courseTarif.id);
-                  // Prioriser teamLeader > validated
-                  if (!existing || (dispo.statut === 'teamLeader' && existing.dispo.statut === 'validated')) {
+                  // Prioriser tarifId exact > null, puis teamLeader > validated
+                  const shouldReplace = !existing ||
+                    (dispo.tarifId && !existing.dispo.tarifId) ||
+                    (dispo.tarifId === existing.dispo.tarifId && dispo.statut === 'teamLeader' && existing.dispo.statut === 'validated');
+                  if (shouldReplace) {
                     dispoByTarif.set(courseTarif.id, { dispo, tarif: courseTarif });
                   }
                 }
@@ -959,7 +988,20 @@ export default function PhotographerCalendrierPage() {
                   const dispos = disponibilites.filter(
                     (d) => d.courseId === course.id && d.photographeId === photographerId
                   );
-                  const hasValidated = dispos.some(d => d.statut === 'validated' || d.statut === 'teamLeader');
+
+                  // Pour les courses double tarif, prioriser les dispos avec tarifId exact
+                  const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+                  const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) && courseTarifs.length > 1;
+
+                  let effectiveDispos = dispos;
+                  if (hasTwoTarifs) {
+                    const disposWithTarif = dispos.filter(d => d.tarifId);
+                    if (disposWithTarif.length > 0) {
+                      effectiveDispos = disposWithTarif;
+                    }
+                  }
+
+                  const hasValidated = effectiveDispos.some(d => d.statut === 'validated' || d.statut === 'teamLeader');
                   if (hasValidated) {
                     validatedCoursesSet.add(course.id);
                   }
@@ -972,10 +1014,22 @@ export default function PhotographerCalendrierPage() {
                     (d) => d.courseId === course.id && d.photographeId === photographerId && (d.statut === 'validated' || d.statut === 'teamLeader')
                   );
 
+                  // Vérifier si c'est une course double tarif
+                  const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+                  const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) && courseTarifs.length > 1;
+
+                  // Pour les courses double tarif, si on a des dispos avec tarifId exact, ignorer celles avec tarifId=null
+                  let filteredDispos = dispos;
+                  if (hasTwoTarifs) {
+                    const disposWithTarif = dispos.filter(d => d.tarifId);
+                    if (disposWithTarif.length > 0) {
+                      filteredDispos = disposWithTarif;
+                    }
+                  }
+
                   // Grouper les dispos par tarifId et garder seulement la meilleure pour chaque tarif
                   const dispoByTarif = new Map<string, any>();
-                  dispos.forEach(dispo => {
-                    const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+                  filteredDispos.forEach(dispo => {
                     const courseTarif = dispo.tarifId
                       ? tarifs.find((t) => t.id === dispo.tarifId)
                       : courseTarifs[0];
@@ -984,8 +1038,12 @@ export default function PhotographerCalendrierPage() {
                       const tarifKey = courseTarif.id;
                       const existing = dispoByTarif.get(tarifKey);
 
-                      // Prioriser teamLeader > validated
-                      if (!existing || (dispo.statut === 'teamLeader' && existing.dispo.statut === 'validated')) {
+                      // Prioriser tarifId exact, puis teamLeader > validated
+                      const shouldReplace = !existing ||
+                        (dispo.tarifId && !existing.dispo.tarifId) || // tarifId exact > null
+                        (dispo.tarifId === existing.dispo.tarifId && dispo.statut === 'teamLeader' && existing.dispo.statut === 'validated');
+
+                      if (shouldReplace) {
                         dispoByTarif.set(tarifKey, { dispo, tarif: courseTarif });
                       }
                     }
@@ -1141,9 +1199,32 @@ export default function PhotographerCalendrierPage() {
                       (d.statut === 'validated' || d.statut === 'teamLeader')
                     );
 
+                    // Pour les courses double tarif, filtrer les dispos avec tarifId exact
+                    let filteredAllDispos = allValidatedDispos;
+                    if (hasTwoTarifs) {
+                      // Grouper par photographe pour filtrer correctement
+                      const disposByPhotographer = new Map<string, any[]>();
+                      allValidatedDispos.forEach(d => {
+                        if (!disposByPhotographer.has(d.photographeId)) {
+                          disposByPhotographer.set(d.photographeId, []);
+                        }
+                        disposByPhotographer.get(d.photographeId)!.push(d);
+                      });
+
+                      filteredAllDispos = [];
+                      disposByPhotographer.forEach((dispos, photographerId) => {
+                        const disposWithTarif = dispos.filter(d => d.tarifId);
+                        if (disposWithTarif.length > 0) {
+                          filteredAllDispos.push(...disposWithTarif);
+                        } else {
+                          filteredAllDispos.push(...dispos);
+                        }
+                      });
+                    }
+
                     // Grouper les dispos par photographe+tarif et garder la meilleure
                     const dispoByPhotographerTarif = new Map<string, any>();
-                    allValidatedDispos.forEach(dispo => {
+                    filteredAllDispos.forEach(dispo => {
                       const tarifForDispo = dispo.tarifId
                         ? tarifs.find(t => t.id === dispo.tarifId)
                         : courseTarif;
@@ -1152,8 +1233,11 @@ export default function PhotographerCalendrierPage() {
                         const key = `${dispo.photographeId}-${tarifForDispo.id}`;
                         const existing = dispoByPhotographerTarif.get(key);
 
-                        // Prioriser teamLeader > validated
-                        if (!existing || (dispo.statut === 'teamLeader' && existing.dispo.statut === 'validated')) {
+                        // Prioriser tarifId exact > null, puis teamLeader > validated
+                        const shouldReplace = !existing ||
+                          (dispo.tarifId && !existing.dispo.tarifId) ||
+                          (dispo.tarifId === existing.dispo.tarifId && dispo.statut === 'teamLeader' && existing.dispo.statut === 'validated');
+                        if (shouldReplace) {
                           dispoByPhotographerTarif.set(key, { dispo, tarif: tarifForDispo });
                         }
                       }

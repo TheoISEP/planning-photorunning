@@ -25,6 +25,9 @@ export async function GET(request: NextRequest) {
     if (user.role === 'photographer') {
       // Récupérer toutes les disponibilités du photographe
       const disponibilites = await sheetsService.getDisponibilitesByPhotographerId(user.id);
+      console.log(`📊 Photographe ${user.id}: ${disponibilites.length} disponibilités totales`);
+      const validatedCount = disponibilites.filter((d: any) => d.statut === 'validated' || d.statut === 'teamLeader').length;
+      console.log(`✅ ${validatedCount} disponibilités validées/teamLeader`);
 
       const now = new Date();
       const currentYear = now.getFullYear();
@@ -52,12 +55,17 @@ export async function GET(request: NextRequest) {
           const key = `${dispo.courseId}-${resolvedTarifId}`;
           const existing = dispoMap.get(key);
 
+          // Créer une copie du dispo avec le tarifId résolu
+          const dispoWithResolvedTarif = { ...dispo, tarifId: resolvedTarifId };
+
           // Garder teamLeader en priorité, sinon validated
           if (!existing || (dispo.statut === 'teamLeader' && existing.statut === 'validated')) {
-            dispoMap.set(key, dispo);
+            dispoMap.set(key, dispoWithResolvedTarif);
           }
         }
       }
+
+      console.log(`🔄 Après déduplication: ${dispoMap.size} disponibilités uniques`);
 
       // Traiter les disponibilités dédoublonnées
       for (const dispo of dispoMap.values()) {
@@ -129,6 +137,8 @@ export async function GET(request: NextRequest) {
         if (a.annee !== b.annee) return a.annee - b.annee;
         return a.mois - b.mois;
       });
+
+      console.log(`📈 Statistiques finales: ${statistics.length} mois`, statistics);
 
       return NextResponse.json({ statistics });
     }

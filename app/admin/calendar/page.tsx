@@ -422,25 +422,53 @@ export default function AdminCalendarPage() {
           // Calculer le montant total du mois pour les courses validées
           const monthTotal = monthData.courses.reduce((total, course) => {
             if (!currentUser) return total;
-            const dispo = disponibilites.find((d) => d.courseId === course.id && d.photographeId === currentUser.id);
-            if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
-              const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
 
-              // Trouver le tarif correspondant avec fallback
-              let courseTarif = dispo.tarifId ? tarifs.find((t) => t.id === dispo.tarifId) : null;
+            const dispos = disponibilites.filter(
+              (d) => d.courseId === course.id && d.photographeId === currentUser.id && (d.statut === 'validated' || d.statut === 'teamLeader')
+            );
 
-              // Si le tarifId spécifique n'est pas trouvé (ID obsolète), utiliser le tarif de la course
-              if (!courseTarif) {
-                courseTarif = courseTarifs[0];
-              }
+            if (dispos.length === 0) return total;
 
-              if (courseTarif) {
-                const amount = dispo.statut === 'teamLeader'
-                  ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
-                  : Number(courseTarif.tarifPhotographe);
-                return total + amount;
+            // Vérifier si c'est une course double tarif
+            const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+            const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) && courseTarifs.length > 1;
+
+            // Pour les courses double tarif, si on a des dispos avec tarifId exact, ignorer celles avec tarifId=null
+            let filteredDispos = dispos;
+            if (hasTwoTarifs) {
+              const disposWithTarif = dispos.filter(d => d.tarifId);
+              if (disposWithTarif.length > 0) {
+                filteredDispos = disposWithTarif;
               }
             }
+
+            // Grouper les dispos par tarifId et garder seulement la meilleure pour chaque tarif
+            const dispoByTarif = new Map<string, any>();
+            filteredDispos.forEach(dispo => {
+              const courseTarif = dispo.tarifId
+                ? tarifs.find((t) => t.id === dispo.tarifId)
+                : courseTarifs[0];
+
+              if (courseTarif) {
+                const existing = dispoByTarif.get(courseTarif.id);
+                // Prioriser tarifId exact > null, puis teamLeader > validated
+                const shouldReplace = !existing ||
+                  (dispo.tarifId && !existing.dispo.tarifId) ||
+                  (dispo.tarifId === existing.dispo.tarifId && dispo.statut === 'teamLeader' && existing.dispo.statut === 'validated');
+                if (shouldReplace) {
+                  dispoByTarif.set(courseTarif.id, { dispo, tarif: courseTarif });
+                }
+              }
+            });
+
+            // Calculer le montant pour chaque tarif unique
+            dispoByTarif.forEach(({ dispo, tarif }) => {
+              const amount = dispo.statut === 'teamLeader'
+                ? Number(tarif.tarifPhotographe) + Number(tarif.bonusChefEquipe)
+                : Number(tarif.tarifPhotographe);
+              total += amount;
+            });
+
             return total;
           }, 0);
 
@@ -618,10 +646,24 @@ export default function AdminCalendarPage() {
               const monthKey = `${monthData.year}-${monthData.month}`;
               const myValidatedCount = currentUser
                 ? monthData.courses.reduce((count, course) => {
-                    const dispo = disponibilites.find(
+                    const dispos = disponibilites.filter(
                       (d) => d.courseId === course.id && d.photographeId === currentUser.id
                     );
-                    if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
+
+                    // Pour les courses double tarif, prioriser les dispos avec tarifId exact
+                    const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+                    const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) && courseTarifs.length > 1;
+
+                    let effectiveDispos = dispos;
+                    if (hasTwoTarifs) {
+                      const disposWithTarif = dispos.filter(d => d.tarifId);
+                      if (disposWithTarif.length > 0) {
+                        effectiveDispos = disposWithTarif;
+                      }
+                    }
+
+                    const hasValidated = effectiveDispos.some(d => d.statut === 'validated' || d.statut === 'teamLeader');
+                    if (hasValidated) {
                       return count + 1;
                     }
                     return count;
@@ -631,27 +673,52 @@ export default function AdminCalendarPage() {
               // Calculer le montant total gagné ce mois
               const myMonthlyAmount = currentUser
                 ? monthData.courses.reduce((total, course) => {
-                    const dispo = disponibilites.find(
-                      (d) => d.courseId === course.id && d.photographeId === currentUser.id
+                    const dispos = disponibilites.filter(
+                      (d) => d.courseId === course.id && d.photographeId === currentUser.id && (d.statut === 'validated' || d.statut === 'teamLeader')
                     );
-                    if (dispo && (dispo.statut === 'validated' || dispo.statut === 'teamLeader')) {
-                      const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
 
-                      // Trouver le tarif correspondant avec fallback
-                      let courseTarif = dispo.tarifId ? tarifs.find((t) => t.id === dispo.tarifId) : null;
+                    if (dispos.length === 0) return total;
 
-                      // Si le tarifId spécifique n'est pas trouvé (ID obsolète), utiliser le tarif de la course
-                      if (!courseTarif) {
-                        courseTarif = courseTarifs[0];
-                      }
+                    // Vérifier si c'est une course double tarif
+                    const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
+                    const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) && courseTarifs.length > 1;
 
-                      if (courseTarif) {
-                        const montant = dispo.statut === 'teamLeader'
-                          ? Number(courseTarif.tarifPhotographe) + Number(courseTarif.bonusChefEquipe)
-                          : Number(courseTarif.tarifPhotographe);
-                        return total + montant;
+                    // Pour les courses double tarif, si on a des dispos avec tarifId exact, ignorer celles avec tarifId=null
+                    let filteredDispos = dispos;
+                    if (hasTwoTarifs) {
+                      const disposWithTarif = dispos.filter(d => d.tarifId);
+                      if (disposWithTarif.length > 0) {
+                        filteredDispos = disposWithTarif;
                       }
                     }
+
+                    // Grouper les dispos par tarifId et garder seulement la meilleure pour chaque tarif
+                    const dispoByTarif = new Map<string, any>();
+                    filteredDispos.forEach(dispo => {
+                      const courseTarif = dispo.tarifId
+                        ? tarifs.find((t) => t.id === dispo.tarifId)
+                        : courseTarifs[0];
+
+                      if (courseTarif) {
+                        const existing = dispoByTarif.get(courseTarif.id);
+                        // Prioriser tarifId exact > null, puis teamLeader > validated
+                        const shouldReplace = !existing ||
+                          (dispo.tarifId && !existing.dispo.tarifId) ||
+                          (dispo.tarifId === existing.dispo.tarifId && dispo.statut === 'teamLeader' && existing.dispo.statut === 'validated');
+                        if (shouldReplace) {
+                          dispoByTarif.set(courseTarif.id, { dispo, tarif: courseTarif });
+                        }
+                      }
+                    });
+
+                    // Calculer le montant pour chaque tarif unique
+                    dispoByTarif.forEach(({ dispo, tarif }) => {
+                      const montant = dispo.statut === 'teamLeader'
+                        ? Number(tarif.tarifPhotographe) + Number(tarif.bonusChefEquipe)
+                        : Number(tarif.tarifPhotographe);
+                      total += montant;
+                    });
+
                     return total;
                   }, 0)
                 : 0;

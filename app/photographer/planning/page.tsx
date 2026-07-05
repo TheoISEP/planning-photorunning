@@ -1281,13 +1281,17 @@ export default function PhotographerCalendrierPage() {
                             hasTwoTarifs ? (
                               // Si deux tarifs, afficher uniquement ceux qui ne sont pas refusés
                               courseTarifs.map((tarif) => {
-                                // Trouver toutes les dispos pour ce tarif
-                                // Inclure celles avec tarifId=null seulement pour le premier tarif (par défaut)
-                                const isDefaultTarif = tarif.id === courseTarifs[0]?.id;
-                                const allTarifDispos = disponibilites.filter(
-                                  (d) => d.courseId === course.id && d.photographeId === currentUser.id &&
-                                  (d.tarifId === tarif.id || (!d.tarifId && isDefaultTarif))
+                                // D'abord chercher les dispos avec le tarifId exact
+                                let allTarifDispos = disponibilites.filter(
+                                  (d) => d.courseId === course.id && d.photographeId === currentUser.id && d.tarifId === tarif.id
                                 );
+
+                                // Si aucune dispo avec tarifId exact et que c'est le premier tarif, chercher avec tarifId=null
+                                if (allTarifDispos.length === 0 && tarif.id === courseTarifs[0]?.id) {
+                                  allTarifDispos = disponibilites.filter(
+                                    (d) => d.courseId === course.id && d.photographeId === currentUser.id && !d.tarifId
+                                  );
+                                }
 
                                 // Prioriser: teamLeader > validated > autres
                                 let tarifDispo = allTarifDispos.find(d => d.statut === 'teamLeader');
@@ -1354,13 +1358,17 @@ export default function PhotographerCalendrierPage() {
                               {hasTwoTarifs ? (
                                 // Si deux tarifs, afficher uniquement ceux qui ne sont pas refusés
                                 courseTarifs.map((tarif) => {
-                                  // Trouver toutes les dispos pour ce tarif
-                                  // Inclure celles avec tarifId=null seulement pour le premier tarif (par défaut)
-                                  const isDefaultTarif = tarif.id === courseTarifs[0]?.id;
-                                  const allTarifDispos = disponibilites.filter(
-                                    (d) => d.courseId === course.id && d.photographeId === photographer.id &&
-                                    (d.tarifId === tarif.id || (!d.tarifId && isDefaultTarif))
+                                  // D'abord chercher les dispos avec le tarifId exact
+                                  let allTarifDispos = disponibilites.filter(
+                                    (d) => d.courseId === course.id && d.photographeId === photographer.id && d.tarifId === tarif.id
                                   );
+
+                                  // Si aucune dispo avec tarifId exact et que c'est le premier tarif, chercher avec tarifId=null
+                                  if (allTarifDispos.length === 0 && tarif.id === courseTarifs[0]?.id) {
+                                    allTarifDispos = disponibilites.filter(
+                                      (d) => d.courseId === course.id && d.photographeId === photographer.id && !d.tarifId
+                                    );
+                                  }
 
                                   // Prioriser: teamLeader > validated > autres
                                   let tarifDispo = allTarifDispos.find(d => d.statut === 'teamLeader');

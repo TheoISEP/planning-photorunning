@@ -1230,9 +1230,16 @@ export default function PhotographerCalendrierPage() {
                             hasTwoTarifs ? (
                               // Si deux tarifs, afficher uniquement ceux qui ne sont pas refusés
                               courseTarifs.map((tarif) => {
-                                const tarifDispo = disponibilites.find(
+                                // Trouver toutes les dispos pour ce tarif
+                                const allTarifDispos = disponibilites.filter(
                                   (d) => d.courseId === course.id && d.photographeId === currentUser.id && d.tarifId === tarif.id
                                 );
+
+                                // Prioriser: teamLeader > validated > autres
+                                let tarifDispo = allTarifDispos.find(d => d.statut === 'teamLeader');
+                                if (!tarifDispo) tarifDispo = allTarifDispos.find(d => d.statut === 'validated');
+                                if (!tarifDispo) tarifDispo = allTarifDispos[0];
+
                                 // Si la dispo existe et est refusée, ne pas l'afficher
                                 if (tarifDispo && tarifDispo.statut === 'rejected') {
                                   return null;
@@ -1293,9 +1300,16 @@ export default function PhotographerCalendrierPage() {
                               {hasTwoTarifs ? (
                                 // Si deux tarifs, afficher uniquement ceux qui ne sont pas refusés
                                 courseTarifs.map((tarif) => {
-                                  const tarifDispo = disponibilites.find(
+                                  // Trouver toutes les dispos pour ce tarif
+                                  const allTarifDispos = disponibilites.filter(
                                     (d) => d.courseId === course.id && d.photographeId === photographer.id && d.tarifId === tarif.id
                                   );
+
+                                  // Prioriser: teamLeader > validated > autres
+                                  let tarifDispo = allTarifDispos.find(d => d.statut === 'teamLeader');
+                                  if (!tarifDispo) tarifDispo = allTarifDispos.find(d => d.statut === 'validated');
+                                  if (!tarifDispo) tarifDispo = allTarifDispos[0];
+
                                   // Si la dispo existe et est refusée, ne pas l'afficher
                                   if (tarifDispo && tarifDispo.statut === 'rejected') {
                                     return null;

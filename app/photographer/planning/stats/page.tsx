@@ -208,12 +208,22 @@ export default function PhotographerStatsPage() {
         const combinedMonthlyStats: Record<string, any> = {};
 
         // Fonction pour traiter les disponibilités d'un photographe
-        const processDisponibilites = (disponibilites: any[]) => {
+        const processDisponibilites = (disponibilites: any[], photographerId: string) => {
+          // Grouper les dispos par course pour gérer les courses à double tarif
+          const courseMap = new Map<string, any[]>();
+
           for (const dispo of disponibilites) {
             if (dispo.statut !== 'validated' && dispo.statut !== 'teamLeader') continue;
 
-            // Trouver la course associée
-            const course = allCourses.find((c: any) => c.id === dispo.courseId);
+            if (!courseMap.has(dispo.courseId)) {
+              courseMap.set(dispo.courseId, []);
+            }
+            courseMap.get(dispo.courseId)!.push(dispo);
+          }
+
+          // Traiter chaque course
+          for (const [courseId, dispos] of courseMap.entries()) {
+            const course = allCourses.find((c: any) => c.id === courseId);
             if (!course) continue;
 
             const courseDate = new Date(course.dateDebut);
@@ -229,55 +239,91 @@ export default function PhotographerStatsPage() {
                 nombreCourses: 0,
                 nombrePrestations: 0,
                 montantTotal: 0,
+                countedCourses: new Set<string>(), // Pour éviter de compter 2x la même course
               };
             }
 
-            combinedMonthlyStats[monthKey].nombreCourses++;
-            combinedMonthlyStats[monthKey].nombrePrestations++;
+            // Vérifier si c'est une course double tarif
+            const courseTarifs = allTarifs.filter((t: any) => t.courseId === courseId);
+            const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) && courseTarifs.length > 1;
 
-            // Calculer le montant pour cette prestation
-            const tarif = dispo.tarifId
-              ? allTarifs.find((t: any) => t.id === dispo.tarifId)
-              : allTarifs.find((t: any) => t.courseId === course.id);
-
-            if (tarif) {
-              const tarifBase = Number(tarif.tarifPhotographe) || 0;
-              const bonus = dispo.statut === 'teamLeader' ? (Number(tarif.bonusChefEquipe) || 0) : 0;
-              const amount = tarifBase + bonus;
-              combinedMonthlyStats[monthKey].montantTotal += amount;
+            // Pour les courses double tarif, filtrer les dispos avec tarifId exact
+            let filteredDispos = dispos;
+            if (hasTwoTarifs) {
+              const disposWithTarif = dispos.filter(d => d.tarifId);
+              if (disposWithTarif.length > 0) {
+                filteredDispos = disposWithTarif;
+              }
             }
+
+            // Grouper par tarifId et garder la meilleure dispo pour chaque tarif
+            const dispoByTarif = new Map<string, any>();
+            filteredDispos.forEach(dispo => {
+              const courseTarif = dispo.tarifId
+                ? allTarifs.find((t: any) => t.id === dispo.tarifId)
+                : courseTarifs[0];
+
+              if (courseTarif) {
+                const existing = dispoByTarif.get(courseTarif.id);
+                // Prioriser tarifId exact > null, puis teamLeader > validated
+                const shouldReplace = !existing ||
+                  (dispo.tarifId && !existing.tarifId) ||
+                  (dispo.tarifId === existing.tarifId && dispo.statut === 'teamLeader' && existing.statut === 'validated');
+                if (shouldReplace) {
+                  dispoByTarif.set(courseTarif.id, dispo);
+                }
+              }
+            });
+
+            // Compter la course une seule fois par photographe
+            const courseKey = `${courseId}-${photographerId}`;
+            if (!combinedMonthlyStats[monthKey].countedCourses.has(courseKey)) {
+              combinedMonthlyStats[monthKey].nombreCourses++;
+              combinedMonthlyStats[monthKey].countedCourses.add(courseKey);
+            }
+
+            // Compter le nombre de prestations (= nombre de tarifs différents)
+            combinedMonthlyStats[monthKey].nombrePrestations += dispoByTarif.size;
+
+            // Calculer le montant total pour tous les tarifs
+            dispoByTarif.forEach((dispo, tarifId) => {
+              const tarif = allTarifs.find((t: any) => t.id === tarifId);
+              if (tarif) {
+                const tarifBase = Number(tarif.tarifPhotographe) || 0;
+                const bonus = dispo.statut === 'teamLeader' ? (Number(tarif.bonusChefEquipe) || 0) : 0;
+                const amount = tarifBase + bonus;
+                combinedMonthlyStats[monthKey].montantTotal += amount;
+              }
+            });
           }
         };
 
-        // Traiter les dispos du photographe principal (à partir des stats Google Sheets)
-        // On utilise les stats déjà chargées pour éviter de recalculer
-        for (const stat of statistics) {
-          const monthKey = `${stat.annee}-${stat.mois}`;
-          if (!combinedMonthlyStats[monthKey]) {
-            combinedMonthlyStats[monthKey] = {
-              mois: Number(stat.mois),
-              annee: Number(stat.annee),
-              nombreCourses: 0,
-              nombrePrestations: 0,
-              montantTotal: 0,
-            };
+        // Traiter les dispos du photographe principal
+        if (userId) {
+          const principalDispoRes = await fetch(`/api/disponibilites?photographerId=${userId}`);
+          if (principalDispoRes.ok) {
+            const principalDispoData = await principalDispoRes.json();
+            const principalDisponibilites = principalDispoData.disponibilites || [];
+            processDisponibilites(principalDisponibilites, userId);
           }
-          combinedMonthlyStats[monthKey].nombreCourses += Number(stat.nombreCourses || 0);
-          combinedMonthlyStats[monthKey].nombrePrestations += Number(stat.nombrePrestations || 0);
-          combinedMonthlyStats[monthKey].montantTotal += Number(stat.montantTotal || 0);
         }
 
         // Traiter les dispos de chaque photographe à charge
-        for (const dispoRes of disponibilitesRess) {
-          if (dispoRes.ok) {
+        for (let i = 0; i < disponibilitesRess.length; i++) {
+          const dispoRes = disponibilitesRess[i];
+          const photographerId = managedPhotographerIds[i];
+          if (dispoRes.ok && photographerId) {
             const dispoData = await dispoRes.json();
             const disponibilites = dispoData.disponibilites || [];
-            processDisponibilites(disponibilites);
+            processDisponibilites(disponibilites, photographerId);
           }
         }
 
-        // Convertir l'objet en tableau
-        const combinedStats = Object.values(combinedMonthlyStats);
+        // Convertir l'objet en tableau et nettoyer les Sets
+        const combinedStats = Object.values(combinedMonthlyStats).map((stat: any) => {
+          const { countedCourses, ...cleanedStat } = stat;
+          return cleanedStat;
+        });
 
         // Stats du mois en cours (combinées)
         const combinedCurrentData = combinedStats.find(

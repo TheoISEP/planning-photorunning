@@ -1382,7 +1382,20 @@ export default function PhotographerCalendrierPage() {
                             const myTarif = myDispo.tarifId
                               ? tarifs.find(t => t.id === myDispo.tarifId)
                               : courseTarifs[0];
-                            const tarifName = myTarif?.description || (hasTwoTarifs ? 'Tarif' : null);
+
+                            if (!myTarif) return null;
+
+                            // Déterminer le nom du tarif selon l'index
+                            const idx = courseTarifs.indexOf(myTarif);
+                            let tarifName = null;
+
+                            if (hasTwoTarifs) {
+                              tarifName = idx === 0
+                                ? (myTarif.firstTarifName || 'Tarif 1')
+                                : (myTarif.secondTarifName || 'Tarif 2');
+                            } else {
+                              tarifName = myTarif.description || null;
+                            }
 
                             if (!tarifName) return null;
 

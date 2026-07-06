@@ -1367,12 +1367,17 @@ export default function PhotographerCalendrierPage() {
                           </div>
                           {/* Afficher le nom du tarif pour les courses double tarif */}
                           {hasTwoTarifs && myDispo && (
-                            <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">
+                            <div className={cn(
+                              "text-xs font-semibold mb-0.5 px-1.5 py-0.5 rounded inline-block",
+                              myDispo.statut === 'teamLeader' ? "bg-purple-200 text-purple-800" :
+                              myDispo.statut === 'validated' ? "bg-green-200 text-green-800" :
+                              "bg-blue-200 text-blue-800"
+                            )}>
                               {(() => {
                                 const myTarif = myDispo.tarifId
                                   ? tarifs.find(t => t.id === myDispo.tarifId)
                                   : courseTarifs[0];
-                                return myTarif?.description || '';
+                                return myTarif?.description || 'Tarif';
                               })()}
                             </div>
                           )}

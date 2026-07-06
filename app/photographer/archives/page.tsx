@@ -24,6 +24,7 @@ interface Course {
   coureursAttendus?: number;
   archived?: string;
   archivedAt?: string;
+  twoPrices?: string | boolean;
 }
 
 interface Tarif {

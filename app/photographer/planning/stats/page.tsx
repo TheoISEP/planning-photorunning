@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
-import { Calendar, TrendingUp, TrendingDown, ArrowLeft, Award } from 'lucide-react';
+import { Calendar, TrendingUp, TrendingDown, ArrowLeft, Award, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,19 @@ interface MonthStats {
   nombreCourses: number;
   nombrePrestations: number;
   montantTotal: number;
+}
+
+interface Photographer {
+  id: string;
+  nom: string;
+  prenom: string;
+  email: string;
+  inCharge?: boolean | string;
+  chargeOne?: string;
+  chargeTwo?: string;
+  chargeThree?: string;
+  chargeFour?: string;
+  chargeFive?: string;
 }
 
 function calculatePercentChange(current: number, previous: number): number {
@@ -46,11 +59,66 @@ export default function PhotographerStatsPage() {
   });
   const [monthlyBreakdown, setMonthlyBreakdown] = useState<MonthStats[]>([]);
 
+  // Stats combinées (photographe + photographes à charge)
+  const [hasManagedPhotographers, setHasManagedPhotographers] = useState(false);
+  const [managedPhotographers, setManagedPhotographers] = useState<Photographer[]>([]);
+  const [combinedCurrentMonthStats, setCombinedCurrentMonthStats] = useState<MonthStats | null>(null);
+  const [combinedPreviousMonthStats, setCombinedPreviousMonthStats] = useState<MonthStats | null>(null);
+  const [combinedYearlyStats, setCombinedYearlyStats] = useState({
+    nombreCourses: 0,
+    nombrePrestations: 0,
+    montantTotal: 0,
+  });
+  const [combinedMonthlyBreakdown, setCombinedMonthlyBreakdown] = useState<MonthStats[]>([]);
+
   const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Récupérer les statistiques du photographe connecté depuis Google Sheets
+      // 1. Récupérer l'utilisateur connecté
+      const userRes = await fetch('/api/auth/me');
+      let userId: string | null = null;
+      if (userRes.ok) {
+        const userData = await userRes.json();
+        userId = userData.user.id;
+      }
+
+      // 2. Charger les données du photographe connecté pour vérifier s'il a des photographes à charge
+      let managedPhotographerIds: string[] = [];
+      let allManagedPhotographers: Photographer[] = [];
+
+      if (userId) {
+        const photographerRes = await fetch(`/api/photographers/${userId}`);
+        if (photographerRes.ok) {
+          const photoData = await photographerRes.json();
+          const photographerData = photoData.photographer;
+
+          // Vérifier si ce photographe a des photographes à charge
+          if (photographerData && (photographerData.inCharge === 'TRUE' || photographerData.inCharge === true)) {
+            // Collecter les IDs des photographes à charge
+            if (photographerData.chargeOne) managedPhotographerIds.push(photographerData.chargeOne);
+            if (photographerData.chargeTwo) managedPhotographerIds.push(photographerData.chargeTwo);
+            if (photographerData.chargeThree) managedPhotographerIds.push(photographerData.chargeThree);
+            if (photographerData.chargeFour) managedPhotographerIds.push(photographerData.chargeFour);
+            if (photographerData.chargeFive) managedPhotographerIds.push(photographerData.chargeFive);
+
+            // Charger les données de chaque photographe à charge
+            if (managedPhotographerIds.length > 0) {
+              const managedPhotosPromises = managedPhotographerIds.map(id =>
+                fetch(`/api/photographers/${id}`).then(res => res.ok ? res.json() : null)
+              );
+              const managedPhotosResults = await Promise.all(managedPhotosPromises);
+              allManagedPhotographers = managedPhotosResults
+                .filter(result => result !== null)
+                .map(result => result.photographer);
+              setManagedPhotographers(allManagedPhotographers);
+              setHasManagedPhotographers(true);
+            }
+          }
+        }
+      }
+
+      // 3. Récupérer les statistiques du photographe connecté depuis Google Sheets
       const res = await fetch('/api/statistics/photographer');
       if (!res.ok) throw new Error('Erreur lors de la récupération des statistiques');
 
@@ -117,6 +185,98 @@ export default function PhotographerStatsPage() {
         });
       }
       setMonthlyBreakdown(months);
+
+      // 4. Si le photographe a des photographes à charge, calculer les stats combinées
+      if (managedPhotographerIds.length > 0) {
+        // Charger les stats de chaque photographe à charge
+        const managedStatsPromises = managedPhotographerIds.map(id =>
+          fetch(`/api/photographers/${id}/stats`).then(res => res.ok ? res.json() : null)
+        );
+        const managedStatsResults = await Promise.all(managedStatsPromises);
+
+        // Créer un tableau combiné de toutes les stats (photographe principal + à charge)
+        const allStatistics = [...statistics];
+
+        managedStatsResults.forEach(result => {
+          if (result && result.statistics) {
+            allStatistics.push(...result.statistics);
+          }
+        });
+
+        // Grouper les stats par mois/année et sommer les valeurs
+        const groupedStats = new Map<string, any>();
+
+        allStatistics.forEach((stat: any) => {
+          const key = `${stat.annee}-${stat.mois}`;
+          if (!groupedStats.has(key)) {
+            groupedStats.set(key, {
+              annee: stat.annee,
+              mois: stat.mois,
+              nombreCourses: 0,
+              nombrePrestations: 0,
+              montantTotal: 0,
+            });
+          }
+          const current = groupedStats.get(key);
+          current.nombreCourses += parseInt(stat.nombreCourses || '0');
+          current.nombrePrestations += parseInt(stat.nombrePrestations || '0');
+          current.montantTotal += parseFloat(stat.montantTotal || '0');
+        });
+
+        const combinedStats = Array.from(groupedStats.values());
+
+        // Stats du mois en cours (combinées)
+        const combinedCurrentData = combinedStats.find(
+          (stat: any) => parseInt(stat.mois) === currentMonthNum && parseInt(stat.annee) === currentYear
+        );
+
+        setCombinedCurrentMonthStats({
+          month: currentMonth,
+          nombreCourses: combinedCurrentData?.nombreCourses || 0,
+          nombrePrestations: combinedCurrentData?.nombrePrestations || 0,
+          montantTotal: combinedCurrentData?.montantTotal || 0,
+        });
+
+        // Stats du mois précédent (combinées)
+        const combinedPreviousData = combinedStats.find(
+          (stat: any) => parseInt(stat.mois) === previousMonthNum && parseInt(stat.annee) === previousYear
+        );
+
+        setCombinedPreviousMonthStats({
+          month: previousMonth,
+          nombreCourses: combinedPreviousData?.nombreCourses || 0,
+          nombrePrestations: combinedPreviousData?.nombrePrestations || 0,
+          montantTotal: combinedPreviousData?.montantTotal || 0,
+        });
+
+        // Stats annuelles (combinées)
+        const combinedYearStats = combinedStats.filter((stat: any) => parseInt(stat.annee) === currentYear);
+        const combinedNombreCourses = combinedYearStats.reduce((sum: number, stat: any) => sum + stat.nombreCourses, 0);
+        const combinedNombrePrestations = combinedYearStats.reduce((sum: number, stat: any) => sum + stat.nombrePrestations, 0);
+        const combinedMontantTotal = combinedYearStats.reduce((sum: number, stat: any) => sum + stat.montantTotal, 0);
+
+        setCombinedYearlyStats({
+          nombreCourses: combinedNombreCourses,
+          nombrePrestations: combinedNombrePrestations,
+          montantTotal: combinedMontantTotal,
+        });
+
+        // Détail mois par mois (combiné)
+        const combinedMonths: MonthStats[] = [];
+        for (let i = 1; i <= 12; i++) {
+          const monthData = combinedStats.find(
+            (stat: any) => parseInt(stat.mois) === i && parseInt(stat.annee) === currentYear
+          );
+          const monthDate = new Date(currentYear, i - 1, 1);
+          combinedMonths.push({
+            month: format(monthDate, 'MMMM', { locale: fr }),
+            nombreCourses: monthData?.nombreCourses || 0,
+            nombrePrestations: monthData?.nombrePrestations || 0,
+            montantTotal: monthData?.montantTotal || 0,
+          });
+        }
+        setCombinedMonthlyBreakdown(combinedMonths);
+      }
     } catch (error) {
       // Erreur chargement stats
     } finally {
@@ -282,6 +442,145 @@ export default function PhotographerStatsPage() {
           ))}
         </div>
       </div>
+
+      {/* Statistiques combinées (si photographes à charge) */}
+      {hasManagedPhotographers && (
+        <>
+          {/* Séparateur */}
+          <div className="border-t-4 border-orange-300 dark:border-orange-700 pt-6 mt-8">
+            <div className="flex items-center gap-2 mb-6">
+              <Users className="h-6 w-6 text-orange-600" />
+              <div>
+                <h2 className="text-xl font-bold">Statistiques combinées</h2>
+                <p className="text-sm text-muted-foreground">
+                  Vous + {managedPhotographers.length} photographe{managedPhotographers.length > 1 ? 's' : ''} à charge
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Récapitulatif mensuel combiné */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Total mois en cours vs mois dernier</h2>
+            <div className="grid gap-4 md:grid-cols-4">
+              <Card className="border-orange-200 bg-orange-50/50">
+                <CardHeader className="pb-3">
+                  <CardDescription>Courses</CardDescription>
+                  <CardTitle className="text-2xl">{combinedCurrentMonthStats?.nombreCourses || 0}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-xs text-muted-foreground">
+                    {combinedPreviousMonthStats?.nombreCourses || 0} le mois dernier
+                    <PercentBadge value={
+                      combinedCurrentMonthStats && combinedPreviousMonthStats
+                        ? calculatePercentChange(combinedCurrentMonthStats.nombreCourses, combinedPreviousMonthStats.nombreCourses)
+                        : 0
+                    } />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-orange-200 bg-orange-50/50">
+                <CardHeader className="pb-3">
+                  <CardDescription>Prestations</CardDescription>
+                  <CardTitle className="text-2xl">{combinedCurrentMonthStats?.nombrePrestations || 0}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-xs text-muted-foreground">
+                    {combinedPreviousMonthStats?.nombrePrestations || 0} le mois dernier
+                    <PercentBadge value={
+                      combinedCurrentMonthStats && combinedPreviousMonthStats
+                        ? calculatePercentChange(combinedCurrentMonthStats.nombrePrestations, combinedPreviousMonthStats.nombrePrestations)
+                        : 0
+                    } />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-orange-200 bg-orange-50/50">
+                <CardHeader className="pb-3">
+                  <CardDescription>Revenus</CardDescription>
+                  <CardTitle className="text-2xl">{formatCurrency(combinedCurrentMonthStats?.montantTotal || 0)}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-xs text-muted-foreground">
+                    {formatCurrency(combinedPreviousMonthStats?.montantTotal || 0)} le mois dernier
+                    <PercentBadge value={
+                      combinedCurrentMonthStats && combinedPreviousMonthStats
+                        ? calculatePercentChange(combinedCurrentMonthStats.montantTotal, combinedPreviousMonthStats.montantTotal)
+                        : 0
+                    } />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Récapitulatif annuel combiné */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Performance combinée {new Date().getFullYear()}</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/20 dark:from-orange-500/20 dark:to-orange-600/30 border-orange-500/30">
+                <CardHeader className="pb-3">
+                  <CardDescription>Revenus totaux {new Date().getFullYear()}</CardDescription>
+                  <CardTitle className="text-3xl">{formatCurrency(combinedYearlyStats.montantTotal)}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-xs text-muted-foreground">
+                    Moyenne mensuelle : {formatCurrency(Math.round(combinedYearlyStats.montantTotal / 12))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/20 dark:from-orange-500/20 dark:to-orange-600/30 border-orange-500/30">
+                <CardHeader className="pb-3">
+                  <CardDescription>Prestations totales</CardDescription>
+                  <CardTitle className="text-3xl flex items-center gap-2">
+                    <Award className="h-8 w-8 text-orange-600" />
+                    {combinedYearlyStats.nombrePrestations}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-xs text-muted-foreground">
+                    {combinedYearlyStats.nombreCourses} courses
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Détail mois par mois combiné */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Détail mois par mois combiné ({new Date().getFullYear()})</h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {combinedMonthlyBreakdown.map((month, index) => (
+                <Card key={index} className="border-orange-200 bg-orange-50/30">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Calendar className="h-4 w-4 text-orange-600" />
+                      {month.month}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Courses</span>
+                      <span className="font-medium">{month.nombreCourses}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Prestations</span>
+                      <span className="font-medium">{month.nombrePrestations}</span>
+                    </div>
+                    <div className="flex justify-between text-sm border-t pt-2 mt-2">
+                      <span className="text-muted-foreground">Revenus</span>
+                      <span className="font-bold text-orange-700">{formatCurrency(month.montantTotal)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

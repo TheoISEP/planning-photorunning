@@ -833,21 +833,66 @@ export default function PhotographerCalendrierPage() {
 
                         {/* Affichage des tarifs */}
                         {hasTwoTarifs ? (
-                          // Si deux tarifs, afficher les deux avec séparateur
-                          <div className="border-t border-gray-300 pt-2 mt-2">
-                            {courseTarifs.map((tarif, idx) => (
-                              <div key={tarif.id} className="flex items-center gap-1 mb-1">
-                                <span className="font-medium">💶</span>
-                                <span className="font-semibold text-blue-700">
-                                  {idx === 0
-                                    ? (tarif.firstTarifName || 'Tarif 1')
-                                    : (tarif.secondTarifName || 'Tarif 2')}
-                                  {' - '}
-                                  {tarif.tarifPhotographe}€
-                                </span>
+                          // Si deux tarifs, afficher uniquement ceux sur lesquels le photographe est validé/référent
+                          (() => {
+                            // Récupérer toutes les dispos validées/teamLeader pour ce photographe et cette course
+                            const validatedDispos = activePhotographerId
+                              ? disponibilites.filter(
+                                  d => d.courseId === course.id &&
+                                       d.photographeId === activePhotographerId &&
+                                       (d.statut === 'validated' || d.statut === 'teamLeader')
+                                )
+                              : [];
+
+                            // Si le photographe a des dispos validées, afficher uniquement ces tarifs
+                            if (validatedDispos.length > 0) {
+                              return (
+                                <div className="border-t border-gray-300 pt-2 mt-2">
+                                  {validatedDispos.map((validatedDispo) => {
+                                    const tarif = validatedDispo.tarifId
+                                      ? courseTarifs.find(t => t.id === validatedDispo.tarifId)
+                                      : courseTarifs[0];
+
+                                    if (!tarif) return null;
+
+                                    const idx = courseTarifs.indexOf(tarif);
+                                    return (
+                                      <div key={tarif.id} className="flex items-center gap-1 mb-1">
+                                        <span className="font-medium">💶</span>
+                                        <span className="font-semibold text-foreground">
+                                          {idx === 0
+                                            ? (tarif.firstTarifName || 'Tarif 1')
+                                            : (tarif.secondTarifName || 'Tarif 2')}
+                                          {' - '}
+                                          {validatedDispo.statut === 'teamLeader'
+                                            ? `${Number(tarif.tarifPhotographe) + Number(tarif.bonusChefEquipe)}€ (ref)`
+                                            : `${tarif.tarifPhotographe}€`}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            }
+
+                            // Sinon, afficher tous les tarifs (cas normal)
+                            return (
+                              <div className="border-t border-gray-300 pt-2 mt-2">
+                                {courseTarifs.map((tarif, idx) => (
+                                  <div key={tarif.id} className="flex items-center gap-1 mb-1">
+                                    <span className="font-medium">💶</span>
+                                    <span className="font-semibold text-blue-700">
+                                      {idx === 0
+                                        ? (tarif.firstTarifName || 'Tarif 1')
+                                        : (tarif.secondTarifName || 'Tarif 2')}
+                                      {' - '}
+                                      {tarif.tarifPhotographe}€
+                                    </span>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
-                          </div>
+                            );
+                          })()
                         ) : (
                           // Si un seul tarif, affichage normal
                           courseTarif && (

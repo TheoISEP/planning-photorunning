@@ -846,15 +846,27 @@ export default function PhotographerCalendrierPage() {
 
                             // Si le photographe a des dispos validées, afficher uniquement ces tarifs
                             if (validatedDispos.length > 0) {
+                              // Grouper par tarifId pour éviter les doublons
+                              const tarifMap = new Map<string, any>();
+                              validatedDispos.forEach(validatedDispo => {
+                                const tarif = validatedDispo.tarifId
+                                  ? courseTarifs.find(t => t.id === validatedDispo.tarifId)
+                                  : courseTarifs[0];
+
+                                if (tarif && !tarifMap.has(tarif.id)) {
+                                  tarifMap.set(tarif.id, { tarif, dispo: validatedDispo });
+                                } else if (tarif && tarifMap.has(tarif.id)) {
+                                  // Prioriser teamLeader > validated
+                                  const existing = tarifMap.get(tarif.id);
+                                  if (validatedDispo.statut === 'teamLeader' && existing.dispo.statut === 'validated') {
+                                    tarifMap.set(tarif.id, { tarif, dispo: validatedDispo });
+                                  }
+                                }
+                              });
+
                               return (
                                 <div className="border-t border-gray-300 pt-2 mt-2">
-                                  {validatedDispos.map((validatedDispo) => {
-                                    const tarif = validatedDispo.tarifId
-                                      ? courseTarifs.find(t => t.id === validatedDispo.tarifId)
-                                      : courseTarifs[0];
-
-                                    if (!tarif) return null;
-
+                                  {Array.from(tarifMap.values()).map(({ tarif, dispo: validatedDispo }) => {
                                     const idx = courseTarifs.indexOf(tarif);
                                     return (
                                       <div key={tarif.id} className="flex items-center gap-1 mb-1">
@@ -1365,22 +1377,26 @@ export default function PhotographerCalendrierPage() {
                             </Link>
                             {course.statutTraitement === 'done' ? <span className="text-xs">🟢</span> : <span className="text-xs">🟠</span>}
                           </div>
-                          {/* Afficher le nom du tarif pour les courses double tarif */}
-                          {hasTwoTarifs && myDispo && (
-                            <div className={cn(
-                              "text-xs font-semibold mb-0.5 px-1.5 py-0.5 rounded inline-block",
-                              myDispo.statut === 'teamLeader' ? "bg-purple-200 text-purple-800" :
-                              myDispo.statut === 'validated' ? "bg-green-200 text-green-800" :
-                              "bg-blue-200 text-blue-800"
-                            )}>
-                              {(() => {
-                                const myTarif = myDispo.tarifId
-                                  ? tarifs.find(t => t.id === myDispo.tarifId)
-                                  : courseTarifs[0];
-                                return myTarif?.description || 'Tarif';
-                              })()}
-                            </div>
-                          )}
+                          {/* Afficher le nom du tarif si disponible */}
+                          {myDispo && (() => {
+                            const myTarif = myDispo.tarifId
+                              ? tarifs.find(t => t.id === myDispo.tarifId)
+                              : courseTarifs[0];
+                            const tarifName = myTarif?.description || (hasTwoTarifs ? 'Tarif' : null);
+
+                            if (!tarifName) return null;
+
+                            return (
+                              <div className={cn(
+                                "text-xs font-semibold mb-0.5 px-1.5 py-0.5 rounded inline-block",
+                                myDispo.statut === 'teamLeader' ? "bg-purple-200 text-purple-800" :
+                                myDispo.statut === 'validated' ? "bg-green-200 text-green-800" :
+                                "bg-blue-200 text-blue-800"
+                              )}>
+                                {tarifName}
+                              </div>
+                            );
+                          })()}
                           <div className="text-xs text-muted-foreground">📍 {course.ville || course.localisation}</div>
 
                           {/* Afficher tous les photographes validés */}

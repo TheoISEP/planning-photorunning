@@ -621,8 +621,8 @@ export default function PhotographerCalendrierPage() {
           const activePhotographerId = selectedPhotographerId || currentUser?.id;
 
           // Calculer le montant total du mois pour les courses validées (photographe actuel)
-          const monthTotal = monthData.courses.reduce((total, course) => {
-            if (!activePhotographerId) return total;
+          const monthTotal = monthData.courses.reduce((data, course) => {
+            if (!activePhotographerId) return data;
 
             const dispos = disponibilites.filter(
               (d) => d.courseId === course.id && d.photographeId === activePhotographerId && (d.statut === 'validated' || d.statut === 'teamLeader')
@@ -660,23 +660,27 @@ export default function PhotographerCalendrierPage() {
               }
             });
 
-            // Calculer le montant pour chaque tarif unique
+            // Calculer le montant pour chaque tarif unique (avec déduplication)
             dispoByTarif.forEach(({ dispo, tarif }) => {
-              const amount = dispo.statut === 'teamLeader'
-                ? Number(tarif.tarifPhotographe) + Number(tarif.bonusChefEquipe)
-                : Number(tarif.tarifPhotographe);
-              total += amount;
+              const uniqueKey = `${course.id}-${tarif.id}`;
+              if (!data.counted.has(uniqueKey)) {
+                const amount = dispo.statut === 'teamLeader'
+                  ? Number(tarif.tarifPhotographe) + Number(tarif.bonusChefEquipe)
+                  : Number(tarif.tarifPhotographe);
+                data.total += amount;
+                data.counted.add(uniqueKey);
+              }
             });
 
-            return total;
-          }, 0);
+            return data;
+          }, { total: 0, counted: new Set<string>() }).total;
 
           // Calculer le total de tous les photographes
           const allPhotographersIds = [
             ...(currentUser ? [currentUser.id] : []),
             ...managedPhotographers.map(p => p.id)
           ];
-          const allMonthTotal = monthData.courses.reduce((total, course) => {
+          const allMonthTotal = monthData.courses.reduce((data, course) => {
             const courseTarifs = tarifs.filter((t) => t.courseId === course.id);
             const hasTwoTarifs = (course.twoPrices === 'TRUE' || course.twoPrices === true) && courseTarifs.length > 1;
 
@@ -713,16 +717,20 @@ export default function PhotographerCalendrierPage() {
                 }
               });
 
-              // Calculer le montant pour chaque tarif unique
+              // Calculer le montant pour chaque tarif unique (avec déduplication)
               dispoByTarif.forEach(({ dispo, tarif }) => {
-                const amount = dispo.statut === 'teamLeader'
-                  ? Number(tarif.tarifPhotographe) + Number(tarif.bonusChefEquipe)
-                  : Number(tarif.tarifPhotographe);
-                total += amount;
+                const uniqueKey = `${course.id}-${photographerId}-${tarif.id}`;
+                if (!data.counted.has(uniqueKey)) {
+                  const amount = dispo.statut === 'teamLeader'
+                    ? Number(tarif.tarifPhotographe) + Number(tarif.bonusChefEquipe)
+                    : Number(tarif.tarifPhotographe);
+                  data.total += amount;
+                  data.counted.add(uniqueKey);
+                }
               });
             });
-            return total;
-          }, 0);
+            return data;
+          }, { total: 0, counted: new Set<string>() }).total;
 
           return (
             <div key={monthKey} className="space-y-2">
@@ -1331,6 +1339,17 @@ export default function PhotographerCalendrierPage() {
                               <div className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                                 {dispoByPhotographerTarif.size} validé{dispoByPhotographerTarif.size > 1 ? 's' : ''}
                               </div>
+                              {hasTwoTarifs && (
+                                <div className="text-[10px] text-gray-600 dark:text-gray-400 space-y-0.5">
+                                  {Array.from(dispoByPhotographerTarif.values()).map(({ dispo, tarif }) => (
+                                    <div key={`${dispo.photographeId}-${tarif.id}`}>
+                                      {tarif.description || 'Tarif'}: {dispo.statut === 'teamLeader'
+                                        ? Number(tarif.tarifPhotographe) + Number(tarif.bonusChefEquipe)
+                                        : Number(tarif.tarifPhotographe)}€
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                               {totalCourseAmount > 0 && (
                                 <div className="text-sm font-bold text-green-700 dark:text-green-400">
                                   💰 Total: {totalCourseAmount}€

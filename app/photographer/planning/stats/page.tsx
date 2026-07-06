@@ -188,42 +188,96 @@ export default function PhotographerStatsPage() {
 
       // 4. Si le photographe a des photographes à charge, calculer les stats combinées
       if (managedPhotographerIds.length > 0) {
-        // Charger les stats de chaque photographe à charge
-        const managedStatsPromises = managedPhotographerIds.map(id =>
-          fetch(`/api/photographers/${id}/stats`).then(res => res.ok ? res.json() : null)
-        );
-        const managedStatsResults = await Promise.all(managedStatsPromises);
+        // Charger les disponibilités, courses et tarifs pour calculer les stats
+        const [coursesRes, tarifsRes, ...disponibilitesRess] = await Promise.all([
+          fetch('/api/courses'),
+          fetch('/api/tarifs'),
+          ...managedPhotographerIds.map(id => fetch(`/api/disponibilites?photographerId=${id}`))
+        ]);
 
-        // Créer un tableau combiné de toutes les stats (photographe principal + à charge)
-        const allStatistics = [...statistics];
+        const coursesData = coursesRes.ok ? await coursesRes.json() : { courses: [] };
+        const tarifsData = tarifsRes.ok ? await tarifsRes.json() : { tarifs: [] };
+        const allCourses = coursesData.courses || [];
+        const allTarifs = (tarifsData.tarifs || []).map((t: any) => ({
+          ...t,
+          tarifPhotographe: Number(t.tarifPhotographe) || 0,
+          bonusChefEquipe: Number(t.bonusChefEquipe) || 0,
+        }));
 
-        managedStatsResults.forEach(result => {
-          if (result && result.statistics) {
-            allStatistics.push(...result.statistics);
+        // Créer un objet pour stocker les stats combinées par mois
+        const combinedMonthlyStats: Record<string, any> = {};
+
+        // Fonction pour traiter les disponibilités d'un photographe
+        const processDisponibilites = (disponibilites: any[]) => {
+          for (const dispo of disponibilites) {
+            if (dispo.statut !== 'validated' && dispo.statut !== 'teamLeader') continue;
+
+            // Trouver la course associée
+            const course = allCourses.find((c: any) => c.id === dispo.courseId);
+            if (!course) continue;
+
+            const courseDate = new Date(course.dateDebut);
+            const courseYear = courseDate.getFullYear();
+            const courseMonth = courseDate.getMonth() + 1; // 1-12
+
+            const monthKey = `${courseYear}-${courseMonth}`;
+
+            if (!combinedMonthlyStats[monthKey]) {
+              combinedMonthlyStats[monthKey] = {
+                mois: courseMonth,
+                annee: courseYear,
+                nombreCourses: 0,
+                nombrePrestations: 0,
+                montantTotal: 0,
+              };
+            }
+
+            combinedMonthlyStats[monthKey].nombreCourses++;
+            combinedMonthlyStats[monthKey].nombrePrestations++;
+
+            // Calculer le montant pour cette prestation
+            const tarif = dispo.tarifId
+              ? allTarifs.find((t: any) => t.id === dispo.tarifId)
+              : allTarifs.find((t: any) => t.courseId === course.id);
+
+            if (tarif) {
+              const tarifBase = Number(tarif.tarifPhotographe) || 0;
+              const bonus = dispo.statut === 'teamLeader' ? (Number(tarif.bonusChefEquipe) || 0) : 0;
+              const amount = tarifBase + bonus;
+              combinedMonthlyStats[monthKey].montantTotal += amount;
+            }
           }
-        });
+        };
 
-        // Grouper les stats par mois/année et sommer les valeurs
-        const groupedStats = new Map<string, any>();
-
-        allStatistics.forEach((stat: any) => {
-          const key = `${stat.annee}-${stat.mois}`;
-          if (!groupedStats.has(key)) {
-            groupedStats.set(key, {
-              annee: stat.annee,
-              mois: stat.mois,
+        // Traiter les dispos du photographe principal (à partir des stats Google Sheets)
+        // On utilise les stats déjà chargées pour éviter de recalculer
+        for (const stat of statistics) {
+          const monthKey = `${stat.annee}-${stat.mois}`;
+          if (!combinedMonthlyStats[monthKey]) {
+            combinedMonthlyStats[monthKey] = {
+              mois: Number(stat.mois),
+              annee: Number(stat.annee),
               nombreCourses: 0,
               nombrePrestations: 0,
               montantTotal: 0,
-            });
+            };
           }
-          const current = groupedStats.get(key);
-          current.nombreCourses += parseInt(stat.nombreCourses || '0');
-          current.nombrePrestations += parseInt(stat.nombrePrestations || '0');
-          current.montantTotal += parseFloat(stat.montantTotal || '0');
-        });
+          combinedMonthlyStats[monthKey].nombreCourses += Number(stat.nombreCourses || 0);
+          combinedMonthlyStats[monthKey].nombrePrestations += Number(stat.nombrePrestations || 0);
+          combinedMonthlyStats[monthKey].montantTotal += Number(stat.montantTotal || 0);
+        }
 
-        const combinedStats = Array.from(groupedStats.values());
+        // Traiter les dispos de chaque photographe à charge
+        for (const dispoRes of disponibilitesRess) {
+          if (dispoRes.ok) {
+            const dispoData = await dispoRes.json();
+            const disponibilites = dispoData.disponibilites || [];
+            processDisponibilites(disponibilites);
+          }
+        }
+
+        // Convertir l'objet en tableau
+        const combinedStats = Object.values(combinedMonthlyStats);
 
         // Stats du mois en cours (combinées)
         const combinedCurrentData = combinedStats.find(

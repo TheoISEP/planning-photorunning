@@ -1450,7 +1450,12 @@ export default function AdminCalendrierPage() {
                               filteredDispos.forEach(dispo => {
                                 let courseTarif = dispo.tarifId
                                   ? tarifs.find((t) => t.id === dispo.tarifId)
-                                  : courseTarifs[0];
+                                  : null;
+
+                                // Si tarifId est défini mais non trouvé, ou si pas de tarifId, utiliser le premier tarif de la course
+                                if (!courseTarif && courseTarifs.length > 0) {
+                                  courseTarif = courseTarifs[0];
+                                }
 
                                 if (courseTarif) {
                                   const existing = dispoByTarif.get(courseTarif.id);
@@ -1514,7 +1519,12 @@ export default function AdminCalendrierPage() {
                         filteredDispos.forEach(dispo => {
                           let courseTarif = dispo.tarifId
                             ? tarifs.find((t) => t.id === dispo.tarifId)
-                            : courseTarifs[0];
+                            : null;
+
+                          // Si tarifId est défini mais non trouvé, ou si pas de tarifId, utiliser le premier tarif de la course
+                          if (!courseTarif && courseTarifs.length > 0) {
+                            courseTarif = courseTarifs[0];
+                          }
 
                           if (courseTarif) {
                             const existing = dispoByTarif.get(courseTarif.id);
@@ -1585,7 +1595,12 @@ export default function AdminCalendrierPage() {
                         filteredDispos.forEach(dispo => {
                           let courseTarif = dispo.tarifId
                             ? tarifs.find((t) => t.id === dispo.tarifId)
-                            : courseTarifs[0];
+                            : null;
+
+                          // Si tarifId est défini mais non trouvé, ou si pas de tarifId, utiliser le premier tarif de la course
+                          if (!courseTarif && courseTarifs.length > 0) {
+                            courseTarif = courseTarifs[0];
+                          }
 
                           if (courseTarif) {
                             const existing = dispoByTarif.get(courseTarif.id);

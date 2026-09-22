@@ -385,7 +385,7 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
   }
 
   return (
-    <div className="-mx-3 -my-4 flex h-full flex-col gap-2 overflow-hidden px-3 py-3 md:-mx-6 md:-my-8 md:px-6 md:py-5">
+    <div className="-mx-3 -my-4 flex h-[calc(100%+2rem)] min-h-0 flex-col gap-2 overflow-hidden px-3 py-3 md:-mx-6 md:-my-8 md:h-[calc(100%+4rem)] md:px-6 md:py-5">
       {/* En-tête */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -504,7 +504,6 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
       {/* Grille */}
       <div
         className={cn('min-h-0 flex-1 overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-gray-950', viewMode === 'list' && 'hidden md:block')}
-        style={{ height: 'calc(100dvh - 230px)', minHeight: 360 }}
       >
         <div className="h-full overflow-auto" style={{ zoom: `${zoom}%` }}>
           {/* En-tête sticky */}

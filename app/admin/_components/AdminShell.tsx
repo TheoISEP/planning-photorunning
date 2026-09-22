@@ -402,7 +402,7 @@ export function AdminShell({ children, user }: { children: React.ReactNode; user
 					</header>
 
 					<AdminMain className="min-w-0 flex-1 overflow-y-auto rounded-2xl border bg-card shadow-md">
-						<div className="mx-auto w-full max-w-[1440px] px-3 py-4 md:px-6 md:py-8">{children}</div>
+						<div className="mx-auto h-full w-full max-w-[1440px] px-3 py-4 md:px-6 md:py-8">{children}</div>
 					</AdminMain>
 				</div>
 			</div>

@@ -263,7 +263,7 @@ export function PhotographerBoard({ mode, linkBase = '/photographer/planning', s
   const gridTemplate = `minmax(240px, 2fr) 90px ${people.map(() => 'minmax(150px, 1fr)').join(' ')}`;
 
   return (
-    <div className="flex h-full flex-col gap-2">
+    <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden">
       {/* En-tête */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -324,7 +324,7 @@ export function PhotographerBoard({ mode, linkBase = '/photographer/planning', s
       </div>
 
       {/* Vue desktop : tableau */}
-      <div className="hidden min-h-0 flex-1 overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-gray-950 md:flex" style={{ height: 'calc(100dvh - 210px)', minHeight: 360 }}>
+      <div className="hidden min-h-0 flex-1 overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-gray-950 md:flex">
         <div className="h-full w-full overflow-auto">
           <div ref={headerRef} className="sticky top-0 z-20 grid border-b-2 border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900" style={{ gridTemplateColumns: gridTemplate }}>
             <div className="border-r p-3 text-sm font-semibold">Course</div>

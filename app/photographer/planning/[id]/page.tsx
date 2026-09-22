@@ -110,7 +110,7 @@ export default function PhotographerCourseDetailPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="h-full space-y-6 overflow-y-auto pb-6">
       <div className="flex items-start gap-3">
         <Button variant="ghost" size="sm" asChild className="mt-0.5">
           <Link href="/photographer/planning"><ArrowLeft className="h-4 w-4" /></Link>
@@ -197,7 +197,7 @@ export default function PhotographerCourseDetailPage() {
                             </Avatar>
                             <div className="text-sm">
                               <div className={cn('font-medium', d.photographeId === me.id && 'underline')}>{name(d.photographeId)}{d.photographeId === me.id ? ' (moi)' : ''}</div>
-                              <div className="text-xs text-muted-foreground">{d.decision === 'teamLeader' ? '★ Référent' : 'Validé'}{people.get(d.photographeId)?.telephone && d.decision === 'teamLeader' ? ` · ${people.get(d.photographeId)?.telephone}` : ''}</div>
+                              <div className="text-xs text-muted-foreground">{d.decision === 'teamLeader' ? '★ Référent' : 'Validé'}</div>
                             </div>
                           </li>
                         ))}

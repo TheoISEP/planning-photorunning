@@ -19,7 +19,7 @@ interface Course {
   transportPrice?: string;
   foodPrice?: string;
   comOrga?: string;
-  archived?: string;
+  archived?: boolean | string;
 }
 
 interface MonthlySoftCost {
@@ -453,7 +453,7 @@ export default function CostsRecapPage() {
               {MONTH_NAMES.map((monthName, monthIndex) => {
                 const monthCourses = coursesByMonth[monthIndex] || [];
                 const totals = calculateMonthTotals(monthCourses, monthIndex);
-                const archivedCount = monthCourses.filter(c => c.archived === 'oui').length;
+                const archivedCount = monthCourses.filter(c => c.archived === true).length;
                 const activeCount = monthCourses.length - archivedCount;
                 const isEditingThisMonth = editingMonth === monthIndex;
                 const monthKey = `${selectedYear}-${String(monthIndex + 1).padStart(2, '0')}`;
@@ -542,7 +542,7 @@ export default function CostsRecapPage() {
                   <div>
                     <div>{yearCourses.length}</div>
                     {(() => {
-                      const archivedTotal = yearCourses.filter(c => c.archived === 'oui').length;
+                      const archivedTotal = yearCourses.filter(c => c.archived === true).length;
                       const activeTotal = yearCourses.length - archivedTotal;
                       if (archivedTotal > 0) {
                         return (

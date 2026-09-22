@@ -12,7 +12,7 @@ interface Course {
   ville: string;
   dateDebut: string;
   dateFin: string;
-  archived?: string;
+  archived?: boolean | string;
 }
 
 interface Tarif {

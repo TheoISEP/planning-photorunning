@@ -24,7 +24,7 @@ interface Photographer {
   email: string;
   telephone: string;
   actif: boolean;
-  accord?: string;
+  accord?: boolean | string;
 }
 
 export default function PhotographersListPage() {
@@ -218,7 +218,7 @@ export default function PhotographersListPage() {
                       </button>
                     </TableCell>
                     <TableCell>
-                      {photographer.accord === 'TRUE' ? (
+                      {photographer.accord === true ? (
                         <CheckCircle2 className="h-5 w-5 text-green-600" />
                       ) : (
                         <XCircle className="h-5 w-5 text-gray-300" />

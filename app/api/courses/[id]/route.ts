@@ -1,83 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleSheetsService } from '@/lib/google-sheets';
-import { AuthService } from '@/lib/auth-google-sheets';
-import { cookies } from 'next/headers';
+import { db } from '@/lib/db';
+import { badRequest, forbidden, getSessionUser, notFound, serverError, unauthorized } from '@/lib/api-auth';
+import { courseDataFromInput, courseInclude, setCourseStatus, syncCourseTarifs, tarifsFromInput } from '@/lib/data/courses';
+import { serializeCourse } from '@/lib/serialize';
 
-// GET /api/courses/[id] - Récupérer une course
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+type Params = { params: Promise<{ id: string }> };
+
+// GET /api/courses/[id]
+export async function GET(_request: NextRequest, { params }: Params) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
     const { id } = await params;
-    const sheetsService = new GoogleSheetsService();
-    const course = await sheetsService.getCourseById(id);
-
-    if (!course) {
-      return NextResponse.json({ error: 'Course introuvable' }, { status: 404 });
-    }
-
-    return NextResponse.json({ course });
-  } catch (error: any) {
-    console.error('Get course error:', error);
-    return NextResponse.json({ error: 'Erreur lors de la récupération de la course' }, { status: 500 });
+    const course = await db.course.findUnique({ where: { id }, include: courseInclude });
+    if (!course) return notFound('Course introuvable');
+    return NextResponse.json({ course: serializeCourse(course) });
+  } catch (error) {
+    return serverError('Erreur lors de la récupération de la course', error);
   }
 }
 
-// PATCH /api/courses/[id] - Mettre à jour une course
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// PATCH /api/courses/[id] — champs, créneaux (tarifs) et statut de traitement
+//  - { statutTraitement: 'done' }  → publie les décisions (voir setCourseStatus)
+//  - { tarifs: [...] }             → synchronise les créneaux (ajout = course rouverte)
+export async function PATCH(request: NextRequest, { params }: Params) {
   try {
-    // Vérifier l'authentification et le rôle
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
-    }
-
-    const authService = new AuthService();
-    const user = authService.verifyToken(token);
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
-    }
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+    if (user.role !== 'admin') return forbidden();
 
     const { id } = await params;
-    const data = await request.json();
+    const data = (await request.json()) as Record<string, unknown>;
+    const existing = await db.course.findUnique({ where: { id }, select: { id: true, statutTraitement: true } });
+    if (!existing) return notFound('Course introuvable');
 
-    const sheetsService = new GoogleSheetsService();
+    const fields = courseDataFromInput(data);
+    let info: { published?: number; added?: number; deleted?: number; reopened?: boolean } = {};
 
-    // Si on passe le statut à "done", refuser automatiquement toutes les disponibilités non validées
-    if (data.statutTraitement === 'done') {
-      console.log(`🔄 Passage de la course ${id} à "Fait" - Rejet automatique des disponibilités non validées`);
-
-      // Récupérer toutes les disponibilités de cette course
-      const disponibilites = await sheetsService.getAllDisponibilites();
-      // Rejeter toutes les disponibilités qui ne sont PAS validées ou chef d'équipe
-      const courseDisponibilites = disponibilites.filter((d: any) =>
-        d.courseId === id &&
-        !['validated', 'teamLeader', 'rejected'].includes(d.statut)
-      );
-
-      console.log(`   → ${courseDisponibilites.length} disponibilité(s) non validée(s) à rejeter`);
-
-      // Passer toutes les disponibilités non validées en "rejected"
-      for (const dispo of courseDisponibilites) {
-        await sheetsService.updateDisponibilite(dispo.id, {
-          ...dispo,
-          statut: 'rejected',
-          dateModification: new Date().toISOString(),
-        });
-        console.log(`   ✅ Disponibilité ${dispo.id} (statut: ${dispo.statut}) passée à "rejected"`);
-      }
+    if (Object.keys(fields).length > 0) {
+      await db.course.update({ where: { id }, data: fields });
     }
 
-    const updatedCourse = await sheetsService.updateCourse(id, data);
+    const tarifs = tarifsFromInput(data.tarifs);
+    if (tarifs) {
+      const r = await db.$transaction((tx) => syncCourseTarifs(tx, id, tarifs));
+      info = { ...info, ...r };
+    }
 
-    return NextResponse.json({ course: updatedCourse, success: true });
-  } catch (error: any) {
-    console.error('Update course error:', error);
-    return NextResponse.json({ error: 'Erreur lors de la mise à jour de la course' }, { status: 500 });
+    if (data.statutTraitement === 'done' || data.statutTraitement === 'inProgress') {
+      if (info.reopened && data.statutTraitement === 'done') {
+        // Un nouveau créneau vient d'être ajouté : la course reste « En cours »
+        // tant que les nouvelles réponses n'ont pas été tranchées.
+      } else {
+        const r = await setCourseStatus(id, data.statutTraitement);
+        info.published = r.published;
+      }
+    } else if (data.statutTraitement !== undefined) {
+      return badRequest('statutTraitement invalide');
+    }
+
+    const course = await db.course.findUniqueOrThrow({ where: { id }, include: courseInclude });
+    return NextResponse.json({ course: serializeCourse(course), success: true, ...info });
+  } catch (error) {
+    return serverError('Erreur lors de la mise à jour de la course', error);
+  }
+}
+
+// DELETE /api/courses/[id] — suppression définitive (admin)
+export async function DELETE(_request: NextRequest, { params }: Params) {
+  try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+    if (user.role !== 'admin') return forbidden();
+    const { id } = await params;
+    await db.course.delete({ where: { id } });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return serverError('Erreur lors de la suppression de la course', error);
   }
 }

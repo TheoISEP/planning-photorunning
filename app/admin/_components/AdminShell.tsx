@@ -10,7 +10,6 @@ import {
 	Camera,
 	ChevronLeft,
 	ChevronRight,
-	Euro,
 	LayoutGrid,
 	LogOut,
 	Menu,
@@ -47,7 +46,6 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
 	{ href: "/admin/planning", label: "Calendrier", icon: LayoutGrid },
 	{ href: "/admin/calendar", label: "Mon calendrier", icon: CalendarIcon },
-	{ href: "/admin/costs", label: "Récap coûts", icon: Euro },
 	{ href: "/admin/archives", label: "Archives", icon: Archive },
 	{ href: "/admin/photographers", label: "Photographes", icon: Camera },
 	{ href: "/admin/admins", label: "Admins", icon: Shield },
@@ -67,7 +65,11 @@ function getAdminMeta(pathname: string): { title: string; crumbs: Crumb[]; prima
 	if (section === "photographers") {
 		crumbs.push({ label: "Photographes", href: "/admin/photographers" });
 		if (parts.length === 2) {
-			return { title: "Photographes", crumbs };
+			return { title: "Photographes", crumbs, primaryAction: { href: "/admin/photographers/new", label: "Nouveau photographe" } };
+		}
+		if (parts[2] === "new") {
+			crumbs.push({ label: "Nouveau" });
+			return { title: "Nouveau photographe", crumbs };
 		}
 		crumbs.push({ label: `Photographe` });
 		return { title: "Détails du photographe", crumbs };
@@ -87,7 +89,7 @@ function getAdminMeta(pathname: string): { title: string; crumbs: Crumb[]; prima
 		return { title: "Détails de l'admin", crumbs };
 	}
 
-	if (section === "calendrier") {
+	if (section === "planning") {
 		crumbs.push({ label: "Calendrier", href: "/admin/planning" });
 
 		// /admin/planning
@@ -105,6 +107,12 @@ function getAdminMeta(pathname: string): { title: string; crumbs: Crumb[]; prima
 		if (parts[2] === "stats") {
 			crumbs.push({ label: "Statistiques" });
 			return { title: "Statistiques calendrier", crumbs };
+		}
+
+		// /admin/planning/[id]/edit
+		if (parts[3] === "edit") {
+			crumbs.push({ label: "Course", href: `/admin/planning/${parts[2]}` }, { label: "Modifier" });
+			return { title: "Modifier la course", crumbs };
 		}
 
 		// /admin/planning/[id]

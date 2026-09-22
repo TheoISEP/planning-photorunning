@@ -116,7 +116,7 @@ export default function AccordPage() {
         const data = await res.json();
         setPhotographer(data.photographer);
         // Vérifier si accord est signé
-        const isSigned = data.photographer.accord === 'TRUE';
+        const isSigned = data.photographer.accord === true;
         setSigned(isSigned);
       }
     } catch (error) {

@@ -1,24 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleDriveService } from '@/lib/google-drive';
-import { GoogleSheetsService } from '@/lib/google-sheets';
-import { AuthService } from '@/lib/auth-google-sheets';
-import { cookies } from 'next/headers';
+import { db } from '@/lib/db';
+import { forbidden, getSessionUser, unauthorized } from '@/lib/api-auth';
 
 // POST /api/briefs/upload - Upload un brief PDF vers Google Drive
 export async function POST(request: NextRequest) {
   try {
     // Vérifier l'authentification et le rôle
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
-    }
-
-    const authService = new AuthService();
-    const user = authService.verifyToken(token);
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
-    }
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+    if (user.role !== 'admin') return forbidden();
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -46,23 +37,15 @@ export async function POST(request: NextRequest) {
 
     const { fileId, webViewLink } = await driveService.uploadBrief(fileName, buffer, file.type);
 
-    // 2. Mettre à jour la course dans Google Sheets
-    const sheetsService = new GoogleSheetsService();
-    await sheetsService.updateCourse(courseId, {
-      briefPdfUrl: webViewLink,
-    });
+    // 2. Mettre à jour la course
+    await db.course.update({ where: { id: courseId }, data: { briefPdfUrl: webViewLink } });
 
     return NextResponse.json({ success: true, url: webViewLink, fileId });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Upload brief error:', error);
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      response: error.response?.data,
-    });
     return NextResponse.json({
-      error: 'Erreur lors de l\'upload du brief',
-      details: error.message
+      error: "Erreur lors de l'upload du brief",
+      details: error instanceof Error ? error.message : String(error),
     }, { status: 500 });
   }
 }

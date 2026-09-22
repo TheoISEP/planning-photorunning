@@ -1,37 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Planning PhotoRunning
 
-## Getting Started
+Outil de planning des photographes : les admins créent les courses, les photographes déclarent leurs disponibilités, les admins valident, puis publient en passant la course en « Fait ».
 
-First, run the development server:
+Stack : Next.js 16 (App Router), Prisma 6 + Neon (PostgreSQL), better-auth 1.6 (mots de passe bcrypt), Tailwind 4, déployé sur Vercel.
+
+## Règles métier (v2, septembre 2026)
+
+- **Déclaration / décision / publication.** Pour chaque créneau d'une course, une ligne `Disponibilite` porte ce que le photographe déclare (`declaration` : en attente / dispo / pas dispo) et ce que l'admin décide (`decision` : validé / référent / refusé / non pris). Tant que la course est **En cours**, le photographe ne voit que sa déclaration. Au passage en **Fait**, toutes les lignes sont tranchées et publiées : validé/référent conservés, « dispo » non retenu → refusé, « en attente » / « pas dispo » → non pris. Un photographe refusé ou non pris ne voit plus la course.
+- **Jours / créneaux (`Tarif`).** Une course a un ou plusieurs créneaux tarifés (ex. Samedi, Dimanche). Chaque photographe est placé par créneau. Ajouter un créneau à une course « Fait » la repasse « En cours » : les validés restent validés (déjà publiés), le nouveau créneau est en attente pour tout le monde ; on repasse en Fait une fois le nouveau jour validé.
+- **Week-end.** Un photographe validé voit « N photographes travaillent ce week-end sur M événements », calculé uniquement sur les courses en « Fait » (week-end = jeudi → lundi).
+- **Admins non rémunérés** (`nonRemunere`) : comptés à 0 € dans les coûts, tarif de base affiché entre parenthèses.
+
+Le cœur des règles est dans `lib/planning.ts` (fonctions pures testées) et `lib/data/*.ts` (accès base).
+
+## Développement
 
 ```bash
+npm install
+cp .env.example .env.local      # puis renseigner DATABASE_URL, DIRECT_DATABASE_URL, BETTER_AUTH_SECRET…
+npx prisma migrate deploy       # applique les migrations SQL (prisma/migrations)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- `npm run typecheck` · `npm run lint` · `npm test` (vitest ; les tests base sautent sans `DATABASE_URL`)
+- Le client Prisma est généré en mode `engineType = "client"` (pas de moteur binaire) avec le driver `pg`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Migration depuis l'ancien Google Sheet
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run migrate:sheets -- --dry-run   # lit le Sheet et contrôle, n'écrit rien
+npm run migrate:sheets                # importe (relançable : upserts)
+npm run verify:sheets                 # compare Sheet et base
+```
 
-## Learn More
+Le script lit le Sheet via l'export CSV public (lien lisible) ou via l'API Sheets si `GOOGLE_SERVICE_ACCOUNT_EMAIL` / `GOOGLE_PRIVATE_KEY` sont renseignés. Identifiants, hashs de mots de passe, courses (y compris archivées), tarifs, disponibilités et coûts mensuels sont conservés.
 
-To learn more about Next.js, take a look at the following resources:
+## Variables d'environnement (Vercel)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Variable | Rôle |
+| --- | --- |
+| `DATABASE_URL` | Neon, URL *pooler* |
+| `DIRECT_DATABASE_URL` | Neon, URL directe (migrations) |
+| `BETTER_AUTH_SECRET` | secret de session (32+ caractères aléatoires) |
+| `NEXT_PUBLIC_APP_URL` | URL publique de l'app (ex. `https://planning-photorunning.vercel.app`) |
+| `BETTER_AUTH_TRUSTED_ORIGINS` | même URL (plusieurs séparées par des virgules) |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_DRIVE_BRIEF_FOLDER_ID` | upload des briefs PDF sur Drive (inchangé) |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# Deployment timestamp: Sat Jun  6 22:39:57 CEST 2026
+Le build Vercel exécute `prisma generate && prisma migrate deploy && next build`.

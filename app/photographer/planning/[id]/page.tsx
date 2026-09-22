@@ -1,498 +1,239 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import * as React from 'react';
 import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ArrowLeft, Calendar, MapPin, FileText, Users, Euro, Star, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Calendar, FileText, Hotel, Lock, MapPin, Train, Users } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StatusBadge } from '@/components/calendrier/StatusBadge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-
-interface Course {
-  id: string;
-  nom: string;
-  description?: string;
-  localisation: string;
-  ville: string;
-  dateDebut: string;
-  dateFin: string;
-  coureursAttendus?: number;
-  briefPdfUrl?: string;
-  statutTraitement?: 'inProgress' | 'validated' | 'done';
-}
-
-interface Tarif {
-  tarifPhotographe: number;
-  bonusChefEquipe: number;
-}
-
-interface Disponibilite {
-  id: string;
-  statut: 'pending' | 'available' | 'unavailable' | 'validated' | 'teamLeader' | 'rejected' | 'nonPris';
-  dateDeclaration?: string;
-}
-
-interface TeamMember {
-  id: string;
-  photographeId: string;
-  prenom: string;
-  nom: string;
-  statut: string;
-}
-
-interface Photographer {
-  id: string;
-  prenom: string;
-  nom: string;
-}
+import { amountFor, defaultDecision, weekendKey, type Statut } from '@/lib/planning';
+import { StatutSelect } from '@/components/planning/StatutSelect';
+import { DECLARATION_OPTIONS, STATUT_META, formatEuros, isWorkingStatut } from '@/components/planning/statuts';
+import { fetchJson, type CourseJson, type DispoJson, type UserJson, type WeekendSummaryJson } from '@/components/planning/types';
 
 export default function PhotographerCourseDetailPage() {
-  const router = useRouter();
   const params = useParams();
+  const router = useRouter();
   const courseId = params.id as string;
 
-  const [loading, setLoading] = useState(true);
-  const [course, setCourse] = useState<Course | null>(null);
-  const [tarif, setTarif] = useState<Tarif | null>(null);
-  const [disponibilite, setDisponibilite] = useState<Disponibilite | null>(null);
-  const [team, setTeam] = useState<TeamMember[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [photographers, setPhotographers] = useState<Photographer[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [me, setMe] = React.useState<{ id: string } | null>(null);
+  const [course, setCourse] = React.useState<CourseJson | null>(null);
+  const [mine, setMine] = React.useState<DispoJson[]>([]);
+  const [team, setTeam] = React.useState<DispoJson[]>([]);
+  const [people, setPeople] = React.useState<Map<string, UserJson>>(new Map());
+  const [weekend, setWeekend] = React.useState<WeekendSummaryJson | null>(null);
+  const [busy, setBusy] = React.useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const load = React.useCallback(async () => {
     try {
-      setLoading(true);
-
-      // Récupérer l'utilisateur connecté
-      const userRes = await fetch('/api/auth/me');
-      let userId: string | null = null;
-      if (userRes.ok) {
-        const userData = await userRes.json();
-        userId = userData.user.id;
-        setCurrentUserId(userId);
-      }
-
-      // Récupérer tous les photographes et admins pour les noms
-      const [photographersRes, adminsRes] = await Promise.all([
-        fetch('/api/photographers'),
-        fetch('/api/admins'),
+      const { user } = await fetchJson<{ user: { id: string } }>('/api/auth/me');
+      setMe(user);
+      const [c, m, t, p, a, w] = await Promise.all([
+        fetchJson<{ course: CourseJson }>(`/api/courses/${courseId}`),
+        fetchJson<{ disponibilites: DispoJson[] }>(`/api/disponibilites?photographerId=${user.id}&courseId=${courseId}`),
+        fetchJson<{ disponibilites: DispoJson[] }>(`/api/disponibilites?courseId=${courseId}`),
+        fetchJson<{ photographers: UserJson[] }>('/api/photographers'),
+        fetchJson<{ admins: UserJson[] }>('/api/admins'),
+        fetchJson<{ weekends: Record<string, WeekendSummaryJson> }>('/api/weekends'),
       ]);
-
-      const photographersData = await photographersRes.json();
-      const adminsData = await adminsRes.json();
-
-      const allPhotographers = photographersData.photographers || [];
-      const allAdmins = adminsData.admins || [];
-      const allPeople = [...allPhotographers, ...allAdmins];
-
-      setPhotographers(allPeople);
-
-      // Récupérer la course
-      const courseRes = await fetch(`/api/courses/${courseId}`);
-      if (courseRes.ok) {
-        const courseData = await courseRes.json();
-        setCourse(courseData.course);
-      }
-
-      // Récupérer le tarif de la course
-      const tarifRes = await fetch(`/api/tarifs?courseId=${courseId}`);
-      if (tarifRes.ok) {
-        const tarifData = await tarifRes.json();
-        if (tarifData.tarifs && tarifData.tarifs.length > 0) {
-          setTarif({
-            tarifPhotographe: Number(tarifData.tarifs[0].tarifPhotographe) || 0,
-            bonusChefEquipe: Number(tarifData.tarifs[0].bonusChefEquipe) || 0,
-          });
-        }
-      }
-
-      // Récupérer les disponibilités
-      const dispoRes = await fetch(`/api/disponibilites?courseId=${courseId}`);
-      if (dispoRes.ok) {
-        const dispoData = await dispoRes.json();
-        if (dispoData.disponibilites && userId) {
-          // Trouver MA disponibilité (celle du photographe connecté)
-          const myDispo = dispoData.disponibilites.find(
-            (d: any) => d.photographeId === userId
-          );
-          if (myDispo) {
-            setDisponibilite(myDispo);
-          }
-
-          // Récupérer l'équipe (tous les photographes validés ou chefs)
-          const validatedMembers = dispoData.disponibilites.filter(
-            (d: any) => d.statut === 'validated' || d.statut === 'teamLeader'
-          );
-
-          // Mapper et filtrer seulement les membres dont on trouve les données
-          // Utiliser un Set pour éviter les doublons basés sur photographeId
-          const seenIds = new Set<string>();
-          const teamWithNames: TeamMember[] = [];
-
-          validatedMembers.forEach((d: any) => {
-            // Éviter les doublons
-            if (seenIds.has(d.photographeId)) return;
-            seenIds.add(d.photographeId);
-
-            const person = allPeople.find((p: any) => p.id === d.photographeId);
-
-            // Si la personne est trouvée, l'ajouter à l'équipe
-            if (person) {
-              teamWithNames.push({
-                id: d.id,
-                photographeId: d.photographeId,
-                prenom: person.prenom,
-                nom: person.nom,
-                statut: d.statut,
-              });
-            }
-          });
-
-          setTeam(teamWithNames);
-        }
-      }
+      setCourse(c.course);
+      setMine(m.disponibilites);
+      setTeam(t.disponibilites);
+      setPeople(new Map([...a.admins, ...p.photographers].map((u) => [u.id, u])));
+      setWeekend(w.weekends[weekendKey(c.course.dateDebut)] ?? null);
     } catch (error) {
-      // Erreur silencieuse en production
+      toast.error(error instanceof Error ? error.message : 'Course introuvable');
+      router.push('/photographer/planning');
     } finally {
       setLoading(false);
     }
-  }, [courseId]);
+  }, [courseId, router]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
-  const handleDeclareAvailability = async (newStatus: 'available' | 'unavailable') => {
-    if (!disponibilite) return;
-
+  const changeStatut = async (tarifId: string, statut: Statut) => {
+    if (!me || !course) return;
+    setBusy(tarifId);
     try {
-      const res = await fetch('/api/disponibilites', {
+      const res = await fetchJson<{ disponibilite: DispoJson }>('/api/disponibilites', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: disponibilite.id,
-          statut: newStatus,
-          dateModification: new Date().toISOString(),
-        }),
+        body: JSON.stringify({ courseId: course.id, photographeId: me.id, tarifId, statut }),
       });
-
-      if (res.ok) {
-        setDisponibilite({ ...disponibilite, statut: newStatus });
-      }
+      setMine((prev) => [...prev.filter((d) => d.tarifId !== tarifId), res.disponibilite]);
     } catch (error) {
-      // Erreur silencieuse
+      toast.error(error instanceof Error ? error.message : 'Impossible de mettre à jour');
+    } finally {
+      setBusy(null);
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const getInitials = (prenom: string, nom: string) => {
-    if (!prenom || !nom) return '?';
-    return `${prenom[0] || '?'}${nom[0] || '?'}`.toUpperCase();
-  };
-
-  if (loading) {
+  if (loading || !course || !me) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-600 mx-auto"></div>
-          <p className="mt-4 text-sm text-muted-foreground">Chargement...</p>
-        </div>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-600" />
       </div>
     );
   }
 
-  if (!course) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg font-medium">Course introuvable</p>
-          <Link href="/photographer/planning" className="mt-4 inline-block">
-            <Button variant="outline">Retour au planning</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const isValidated = disponibilite && (disponibilite.statut === 'validated' || disponibilite.statut === 'teamLeader');
+  const multi = course.tarifs.length > 1;
+  const done = course.statutTraitement === 'done';
+  const slots = course.tarifs.map((tarif) => {
+    const d = mine.find((x) => x.tarifId === tarif.id) ?? null;
+    const decided = !!d?.published && !!d?.decision;
+    const statut: Statut = done && !decided ? defaultDecision(d?.declaration ?? 'pending') : d?.statut ?? 'pending';
+    const editable = !course.archived && !done && !decided;
+    return { tarif, d, statut, editable, amount: amountFor(statut, tarif) };
+  });
+  const working = slots.filter((s) => isWorkingStatut(s.statut));
+  const total = slots.reduce((s, x) => s + x.amount, 0);
+  const teamByTarif = course.tarifs.map((tarif) => ({
+    tarif,
+    members: team.filter((d) => d.tarifId === tarif.id).sort((a, b) => (a.decision === 'teamLeader' ? -1 : 1) - (b.decision === 'teamLeader' ? -1 : 1)),
+  }));
+  const initials = (id: string) => {
+    const u = people.get(id);
+    return u ? `${u.prenom[0] ?? ''}${u.nom[0] ?? ''}`.toUpperCase() : '?';
+  };
+  const name = (id: string) => {
+    const u = people.get(id);
+    return u ? `${u.prenom} ${u.nom}` : id;
+  };
 
   return (
-    <div className="h-full overflow-auto">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-4 mb-2">
-              <Link href="/photographer/planning">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Retour
-                </Button>
-              </Link>
-              {disponibilite && <StatusBadge variant={disponibilite.statut} />}
-            </div>
-            <h1 className="text-2xl font-bold">{course.nom}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{course.localisation}</p>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-start gap-3">
+        <Button variant="ghost" size="sm" asChild className="mt-0.5">
+          <Link href="/photographer/planning"><ArrowLeft className="h-4 w-4" /></Link>
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{course.nom}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            <MapPin className="mr-1 inline h-3.5 w-3.5" />{course.localisation || course.ville}
+            <span className="mx-2">·</span>
+            <Calendar className="mr-1 inline h-3.5 w-3.5" />
+            <span className="capitalize">{format(new Date(course.dateDebut), 'EEEE d MMMM yyyy, HH:mm', { locale: fr })}</span>
+            {format(new Date(course.dateFin), 'dd/MM') !== format(new Date(course.dateDebut), 'dd/MM') && <span className="capitalize"> → {format(new Date(course.dateFin), 'EEEE d MMMM, HH:mm', { locale: fr })}</span>}
+          </p>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="px-4 sm:px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Colonne gauche (2/3) */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Détails de la course */}
+      {working.length > 0 && weekend && (
+        <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">
+          <Users className="h-5 w-5 shrink-0 text-emerald-600" />
+          <span>Week-end du {weekend.label} : <b>{weekend.photographers}</b> photographe{weekend.photographers > 1 ? 's' : ''} travaill{weekend.photographers > 1 ? 'ent' : 'e'} sur <b>{weekend.events}</b> événement{weekend.events > 1 ? 's' : ''}.</span>
+        </div>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Ma disponibilité</CardTitle>
+              <CardDescription>
+                {done
+                  ? 'La course est finalisée : votre statut est définitif.'
+                  : 'Indiquez si vous êtes disponible. L’admin tranche ensuite ; vous serez informé quand la course sera finalisée.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {slots.map((s) => {
+                const meta = STATUT_META[s.statut];
+                return (
+                  <div key={s.tarif.id} className="flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="font-medium">{multi ? s.tarif.nom : 'Prestation'}</div>
+                      <div className="text-xs text-muted-foreground">{s.tarif.tarifPhotographe} € · référent +{s.tarif.bonusChefEquipe} €</div>
+                    </div>
+                    <div className="w-full sm:w-56">
+                      {s.editable ? (
+                        <StatutSelect value={s.statut} options={DECLARATION_OPTIONS} onChange={(v) => changeStatut(s.tarif.id, v)} loading={busy === s.tarif.id} size="md" />
+                      ) : (
+                        <div className={cn('flex h-9 items-center justify-between rounded-md border px-3 text-sm font-medium', meta.chip)}>
+                          <span className="flex items-center gap-1.5"><span className={cn('h-1.5 w-1.5 rounded-full', meta.dot)} />{meta.label}</span>
+                          {isWorkingStatut(s.statut) ? <span className="text-xs">{formatEuros(s.amount)}</span> : <Lock className="h-3 w-3 opacity-50" />}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              {working.length > 0 && (
+                <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">
+                  {working.some((s) => s.statut === 'teamLeader') ? '👑 Vous êtes référent' : '✓ Vous êtes validé'}
+                  {multi ? ` sur ${working.map((s) => s.tarif.nom).join(' et ')}` : ''} · <b>{formatEuros(total)}</b>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {done && (
             <Card>
               <CardHeader>
-                <CardTitle>Détails de la course</CardTitle>
+                <CardTitle>Équipe</CardTitle>
+                <CardDescription>{team.length} photographe{team.length > 1 ? 's' : ''} sur cette course</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Dates</p>
-                    <p className="text-sm text-muted-foreground">
-                      {format(new Date(course.dateDebut), 'd MMMM yyyy à HH:mm', { locale: fr })} -{' '}
-                      {format(new Date(course.dateFin), 'd MMMM yyyy à HH:mm', { locale: fr })}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Localisation</p>
-                    {course.localisation && course.ville && course.localisation !== course.ville ? (
-                      <>
-                        <p className="text-sm text-muted-foreground">{course.localisation}</p>
-                        <p className="text-sm text-muted-foreground">{course.ville}</p>
-                      </>
+              <CardContent className={cn('grid gap-4', multi && 'md:grid-cols-2')}>
+                {teamByTarif.map(({ tarif, members }) => (
+                  <div key={tarif.id}>
+                    {multi && <div className="mb-2 text-sm font-semibold text-sky-800 dark:text-sky-300">{tarif.nom}</div>}
+                    {members.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Personne pour l’instant.</p>
                     ) : (
-                      <p className="text-sm text-muted-foreground">{course.localisation || course.ville}</p>
+                      <ul className="space-y-2">
+                        {members.map((d) => (
+                          <li key={d.id} className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className={cn('text-xs', d.decision === 'teamLeader' ? 'bg-violet-100 text-violet-800' : 'bg-gray-100 text-gray-700')}>{initials(d.photographeId)}</AvatarFallback>
+                            </Avatar>
+                            <div className="text-sm">
+                              <div className={cn('font-medium', d.photographeId === me.id && 'underline')}>{name(d.photographeId)}{d.photographeId === me.id ? ' (moi)' : ''}</div>
+                              <div className="text-xs text-muted-foreground">{d.decision === 'teamLeader' ? '★ Référent' : 'Validé'}{people.get(d.photographeId)?.telephone && d.decision === 'teamLeader' ? ` · ${people.get(d.photographeId)?.telephone}` : ''}</div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
                     )}
                   </div>
-                </div>
-
-                {course.description && (
-                  <div className="flex items-start gap-3">
-                    <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Description</p>
-                      <p className="text-sm text-muted-foreground">{course.description}</p>
-                    </div>
-                  </div>
-                )}
-
-                {course.coureursAttendus && (
-                  <div className="flex items-start gap-3">
-                    <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Coureurs attendus</p>
-                      <p className="text-sm text-muted-foreground">
-                        {course.coureursAttendus.toLocaleString('fr-FR')}
-                      </p>
-                    </div>
-                  </div>
-                )}
+                ))}
               </CardContent>
             </Card>
+          )}
+        </div>
 
-            {/* Équipe assignée */}
-            {team.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Équipe assignée ({team.length})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {team.map((member) => {
-                      const isCurrentUser = member.photographeId === currentUserId;
-                      return (
-                        <div
-                          key={member.id}
-                          className={cn(
-                            "flex items-center justify-between p-3 rounded-lg border transition-colors",
-                            isCurrentUser
-                              ? "bg-blue-50 border-blue-200 dark:bg-blue-950/20"
-                              : "bg-card hover:bg-accent/50"
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarFallback className={member.statut === 'teamLeader' ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-700"}>
-                                {getInitials(member.prenom, member.nom)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium">
-                                {member.prenom} {member.nom}
-                                {isCurrentUser && <span className="text-xs text-blue-600 ml-2 font-semibold">(Vous)</span>}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {member.statut === 'teamLeader' ? (
-                                  <span className="flex items-center gap-1">
-                                    <Star className="h-3 w-3 text-purple-500" />
-                                    Référent
-                                  </span>
-                                ) : (
-                                  'Photographe'
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Détails</CardTitle></CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {course.description && <p className="whitespace-pre-wrap text-muted-foreground">{course.description}</p>}
+              {course.coureursAttendus > 0 && <div><Users className="mr-1 inline h-4 w-4" /> {course.coureursAttendus.toLocaleString('fr-FR')} coureurs attendus</div>}
+              {working.length > 0 && course.briefPdfUrl && (
+                <Button variant="outline" size="sm" asChild className="w-full">
+                  <a href={course.briefPdfUrl} target="_blank" rel="noreferrer"><FileText className="mr-2 h-4 w-4" /> Brief de la course (PDF)</a>
+                </Button>
+              )}
+            </CardContent>
+          </Card>
 
-          {/* Colonne droite (1/3) */}
-          <div className="space-y-6">
-            {/* Récapitulatif */}
+          {working.length > 0 && (course.hotel || course.transport || course.supplementaire) && (
             <Card>
-              <CardHeader>
-                <CardTitle>Récapitulatif</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Statut actuel</span>
-                  {disponibilite ? (
-                    <StatusBadge variant={disponibilite.statut} showIcon={false} />
-                  ) : (
-                    <span className="text-sm text-muted-foreground">Non défini</span>
-                  )}
-                </div>
-                {disponibilite?.dateDeclaration && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Date de déclaration</span>
-                    <span className="font-medium">
-                      {format(new Date(disponibilite.dateDeclaration), 'd MMM yyyy', { locale: fr })}
-                    </span>
-                  </div>
-                )}
+              <CardHeader><CardTitle className="text-base">Logistique</CardTitle></CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {course.hotel && <div><div className="mb-0.5 flex items-center gap-1 font-medium"><Hotel className="h-4 w-4" /> Hôtel</div><p className="whitespace-pre-wrap text-muted-foreground">{course.hotel}</p></div>}
+                {course.transport && <div><div className="mb-0.5 flex items-center gap-1 font-medium"><Train className="h-4 w-4" /> Transport</div><p className="whitespace-pre-wrap text-muted-foreground">{course.transport}</p></div>}
+                {course.supplementaire && <div><div className="mb-0.5 font-medium">Informations</div><p className="whitespace-pre-wrap text-muted-foreground">{course.supplementaire}</p></div>}
               </CardContent>
             </Card>
-
-            {/* Disponibilité */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Ma disponibilité</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {!disponibilite && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-                    <p className="text-sm text-yellow-800">
-                      Aucune disponibilité enregistrée pour cette course
-                    </p>
-                  </div>
-                )}
-                {disponibilite?.statut === 'pending' && (
-                  <div className="space-y-2">
-                    <Button
-                      className="w-full"
-                      onClick={() => handleDeclareAvailability('available')}
-                    >
-                      Je suis disponible
-                    </Button>
-                    <Button
-                      className="w-full"
-                      variant="outline"
-                      onClick={() => handleDeclareAvailability('unavailable')}
-                    >
-                      Pas disponible
-                    </Button>
-                  </div>
-                )}
-
-                {disponibilite?.statut === 'available' && (
-                  <div className="space-y-3">
-                    <p className="text-sm text-gray-600 font-medium">Disponibilité déclarée</p>
-                    <Button
-                      className="w-full"
-                      variant="outline"
-                      onClick={() => handleDeclareAvailability('unavailable')}
-                    >
-                      Annuler ma disponibilité
-                    </Button>
-                  </div>
-                )}
-
-                {disponibilite?.statut === 'unavailable' && (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">Non disponible</p>
-                    <Button
-                      className="w-full"
-                      onClick={() => handleDeclareAvailability('available')}
-                    >
-                      Je suis finalement disponible
-                    </Button>
-                  </div>
-                )}
-
-                {disponibilite?.statut === 'validated' && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
-                    <p className="text-sm text-gray-800 font-medium">
-                      ✓ Vous êtes affecté à cette course
-                    </p>
-                  </div>
-                )}
-
-                {disponibilite?.statut === 'teamLeader' && (
-                  <div className="bg-purple-50 border border-purple-200 rounded-md p-3">
-                    <p className="text-sm text-purple-800 font-medium">
-                      👑 Vous êtes référent
-                    </p>
-                  </div>
-                )}
-
-                {disponibilite?.statut === 'rejected' && (
-                  <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                    <p className="text-sm text-red-800">
-                      Vous n'avez pas été retenu pour cette course
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Brief de course (seulement si validé ET qu'il y a un brief) */}
-            {isValidated && course.briefPdfUrl && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Brief de course</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <a
-                    href={course.briefPdfUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button variant="outline" className="w-full justify-start">
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Voir le brief PDF
-                    </Button>
-                  </a>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>

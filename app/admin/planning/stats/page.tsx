@@ -44,6 +44,8 @@ export default function AdminStatsPage() {
     totalCourses: 0,
     totalPrestations: 0,
     coutTotal: 0,
+    previousYearCost: 0,
+    monthsElapsed: 1,
   });
   const [monthlyBreakdown, setMonthlyBreakdown] = useState<MonthStats[]>([]);
 
@@ -55,12 +57,16 @@ export default function AdminStatsPage() {
     try {
       setLoading(true);
 
-      // Récupérer les vraies statistiques depuis Google Sheets
-      const res = await fetch('/api/statistics/admin');
+      const [res, resPrev] = await Promise.all([
+        fetch('/api/statistics/admin'),
+        fetch(`/api/statistics/admin?year=${new Date().getFullYear() - 1}`),
+      ]);
       if (!res.ok) throw new Error('Erreur lors de la récupération des statistiques');
 
       const data = await res.json();
       const statistics = data.statistics || [];
+      const previousYearStats: any[] = resPrev.ok ? (await resPrev.json()).statistics || [] : [];
+      const previousYearCost = previousYearStats.reduce((sum: number, stat: any) => sum + parseFloat(stat.coutTotal || '0'), 0);
 
       const now = new Date();
       const currentYear = now.getFullYear();
@@ -107,6 +113,8 @@ export default function AdminStatsPage() {
         totalCourses,
         totalPrestations,
         coutTotal,
+        previousYearCost,
+        monthsElapsed: currentMonthNum,
       });
 
       // Détail mois par mois
@@ -250,8 +258,10 @@ export default function AdminStatsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-xs text-muted-foreground">
-                {formatCurrency(180000)} en {new Date().getFullYear() - 1}
-                <PercentBadge value={20.0} />
+                {formatCurrency(yearlyStats.previousYearCost)} en {new Date().getFullYear() - 1}
+                {yearlyStats.previousYearCost > 0 && (
+                  <PercentBadge value={((yearlyStats.coutTotal - yearlyStats.previousYearCost) / yearlyStats.previousYearCost) * 100} />
+                )}
               </div>
             </CardContent>
           </Card>
@@ -260,12 +270,12 @@ export default function AdminStatsPage() {
             <CardHeader className="pb-3">
               <CardDescription>Budget mensuel moyen</CardDescription>
               <CardTitle className="text-3xl">
-                {formatCurrency(Math.round(yearlyStats.coutTotal / 12))}
+                {formatCurrency(Math.round(yearlyStats.coutTotal / Math.max(1, yearlyStats.monthsElapsed)))}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-xs text-muted-foreground">
-                Basé sur {new Date().getFullYear()}
+                Moyenne des {yearlyStats.monthsElapsed} premiers mois de {new Date().getFullYear()}
               </div>
             </CardContent>
           </Card>

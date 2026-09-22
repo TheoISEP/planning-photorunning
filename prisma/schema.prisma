@@ -1,0 +1,256 @@
+// Planning PhotoRunning — schéma Neon (PostgreSQL)
+//
+// Modèle métier :
+//   User          admins et photographes (comptes better-auth + profil)
+//   Course        une course (événement)
+//   Tarif         un créneau tarifé d'une course (1 par défaut, 2+ quand la
+//                 course se joue sur plusieurs jours / plusieurs tarifs)
+//   Disponibilite ce qu'un photographe a déclaré (declaration) et ce que
+//                 l'admin a décidé (decision) pour UN créneau d'UNE course.
+//                 La décision n'est visible du photographe qu'une fois
+//                 publiée (published = passage de la course en « Fait »).
+
+generator client {
+  provider        = "prisma-client-js"
+  // Client sans moteur Rust (query compiler en wasm + driver pg) : rien à
+  // télécharger au build, même comportement partout.
+  engineType = "client"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  photographer
+}
+
+enum CourseStatus {
+  inProgress
+  done
+}
+
+/// Ce que le photographe (ou un admin pour lui) déclare.
+enum Declaration {
+  pending
+  available
+  unavailable
+}
+
+/// Ce que l'admin décide. Null = pas encore tranché.
+enum Decision {
+  validated
+  teamLeader
+  rejected
+  nonPris
+}
+
+// ---------------------------------------------------------------------------
+// Comptes (tables better-auth + profil)
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  role          UserRole
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Profil
+  nom             String   @default("")
+  prenom          String   @default("")
+  telephone       String?
+  adresse         String?
+  ville           String?
+  codePostal      String?
+  dateNaissance   String?
+  dateInscription DateTime @default(now())
+  actif           Boolean  @default(true)
+  cameras         Json     @default("[]")
+  objectifs       Json     @default("[]")
+  cartesMemoire   Json     @default("[]")
+  flashs          Json     @default("[]")
+  flyingBlue      String?
+  flyingBlueExpiry String?
+  sncf            String?
+  sncfExpiry      String?
+  region          String?
+  personUrgency   String?
+  numberUrgency   String?
+  /// Référent : gère des photographes à charge (chargeOne..chargeFive)
+  inCharge        Boolean  @default(false)
+  chargeOne       String?
+  chargeTwo       String?
+  chargeThree     String?
+  chargeFour      String?
+  chargeFive      String?
+  /// Accord (contrat) signé
+  accord          Boolean  @default(false)
+  /// Admin non rémunéré (ancienne colonne « rem ») : compté à 0 € dans les coûts
+  nonRemunere     Boolean  @default(false)
+
+  sessions       Session[]
+  accounts       Account[]
+  disponibilites Disponibilite[]
+
+  @@index([role, actif])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  /// Hash bcrypt (repris tel quel de l'ancien Google Sheet)
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model RateLimit {
+  id          String @id @default(cuid())
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+
+  @@map("rateLimit")
+}
+
+// ---------------------------------------------------------------------------
+// Planning
+// ---------------------------------------------------------------------------
+
+model Course {
+  id               String       @id
+  nom              String
+  description      String       @default("")
+  localisation     String       @default("")
+  ville            String       @default("")
+  dateDebut        DateTime
+  dateFin          DateTime
+  statutTraitement CourseStatus @default(inProgress)
+  /// Date du dernier passage en « Fait » (publication des décisions)
+  doneAt           DateTime?
+  coureursAttendus Int?
+  /// Nombre de photographes attendus (objectif)
+  numberAttended   Int?
+  briefPdfUrl      String?
+  dateCreation     DateTime     @default(now())
+  creePar          String?
+  visible          Boolean      @default(true)
+  archived         Boolean      @default(false)
+  archivedAt       DateTime?
+  archivedBy       String?
+  hotel            String       @default("")
+  transport        String       @default("")
+  supplementaire   String       @default("")
+  hotelValid       Boolean      @default(false)
+  transportValid   Boolean      @default(false)
+  hotelPrice       Float?
+  transportPrice   Float?
+  foodPrice        Float?
+  comOrga          Float?
+
+  tarifs         Tarif[]
+  disponibilites Disponibilite[]
+
+  @@index([dateDebut])
+  @@index([archived, statutTraitement])
+  @@map("course")
+}
+
+/// Un créneau tarifé (« jour ») d'une course. Une course simple en a un seul.
+model Tarif {
+  id               String   @id
+  courseId         String
+  course           Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  /// Libellé du créneau (« Samedi », « Dimanche », « 1 jour »…). Vide = tarif unique.
+  nom              String   @default("")
+  ordre            Int      @default(0)
+  tarifPhotographe Float    @default(0)
+  bonusChefEquipe  Float    @default(0)
+  nombreJours      Int      @default(1)
+  dateCreation     DateTime @default(now())
+  dateModification DateTime @default(now()) @updatedAt
+
+  disponibilites Disponibilite[]
+
+  @@index([courseId, ordre])
+  @@map("tarif")
+}
+
+model Disponibilite {
+  id               String      @id
+  courseId         String
+  course           Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  photographeId    String
+  photographe      User        @relation(fields: [photographeId], references: [id], onDelete: Cascade)
+  tarifId          String
+  tarif            Tarif       @relation(fields: [tarifId], references: [id], onDelete: Cascade)
+  declaration      Declaration @default(pending)
+  decision         Decision?
+  /// true dès que la course a été passée en « Fait » avec ce créneau :
+  /// le photographe voit alors la décision (sinon il ne voit que sa déclaration).
+  published        Boolean     @default(false)
+  publishedAt      DateTime?
+  noteAdmin        String      @default("")
+  dateDeclaration  DateTime    @default(now())
+  dateModification DateTime    @default(now()) @updatedAt
+
+  @@unique([courseId, photographeId, tarifId])
+  @@index([photographeId])
+  @@index([courseId])
+  @@map("disponibilite")
+}
+
+/// Coûts fixes mensuels (ancien onglet « Statistiquesadmin »)
+model MonthlyCost {
+  month    String @id
+  softCost Float  @default(0)
+
+  @@map("monthly_cost")
+}

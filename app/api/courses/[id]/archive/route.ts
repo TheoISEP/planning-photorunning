@@ -1,76 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleSheetsService } from '@/lib/google-sheets';
-import { AuthService } from '@/lib/auth-google-sheets';
-import { cookies } from 'next/headers';
+import { db } from '@/lib/db';
+import { forbidden, getSessionUser, serverError, unauthorized } from '@/lib/api-auth';
 
-// POST /api/courses/[id]/archive - Archiver une course
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+type Params = { params: Promise<{ id: string }> };
+
+// POST /api/courses/[id]/archive — archiver
+export async function POST(_request: NextRequest, { params }: Params) {
   try {
-    // Vérifier l'authentification et le rôle
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
-    }
-
-    const authService = new AuthService();
-    const user = authService.verifyToken(token);
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
-    }
-
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+    if (user.role !== 'admin') return forbidden();
     const { id } = await params;
-    const sheetsService = new GoogleSheetsService();
-
-    // Mettre à jour la course pour l'archiver
-    await sheetsService.updateCourse(id, {
-      archived: 'oui',
-      archivedAt: new Date().toISOString(),
-      archivedBy: user.id,
-    });
-
+    await db.course.update({ where: { id }, data: { archived: true, archivedAt: new Date(), archivedBy: user.id } });
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error('Archive course error:', error);
-    return NextResponse.json({ error: "Erreur lors de l'archivage de la course" }, { status: 500 });
+  } catch (error) {
+    return serverError("Erreur lors de l'archivage de la course", error);
   }
 }
 
-// DELETE /api/courses/[id]/archive - Désarchiver une course
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// DELETE /api/courses/[id]/archive — désarchiver
+export async function DELETE(_request: NextRequest, { params }: Params) {
   try {
-    // Vérifier l'authentification et le rôle
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
-    }
-
-    const authService = new AuthService();
-    const user = authService.verifyToken(token);
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
-    }
-
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+    if (user.role !== 'admin') return forbidden();
     const { id } = await params;
-    const sheetsService = new GoogleSheetsService();
-
-    // Mettre à jour la course pour la désarchiver
-    await sheetsService.updateCourse(id, {
-      archived: 'non',
-      archivedAt: '',
-      archivedBy: '',
-    });
-
+    await db.course.update({ where: { id }, data: { archived: false, archivedAt: null, archivedBy: null } });
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error('Unarchive course error:', error);
-    return NextResponse.json({ error: 'Erreur lors du désarchivage de la course' }, { status: 500 });
+  } catch (error) {
+    return serverError('Erreur lors du désarchivage de la course', error);
   }
 }

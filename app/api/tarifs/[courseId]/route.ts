@@ -1,51 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleSheetsService } from '@/lib/google-sheets';
-import { AuthService } from '@/lib/auth-google-sheets';
-import { cookies } from 'next/headers';
+import { db } from '@/lib/db';
+import { forbidden, getSessionUser, notFound, serverError, unauthorized } from '@/lib/api-auth';
+import { serializeTarif, toNumberOrNull } from '@/lib/serialize';
 
-// PATCH /api/tarifs/[courseId] - Mettre à jour un tarif
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ courseId: string }> }
-) {
+// PATCH /api/tarifs/[courseId] — modifie le premier créneau d'une course (compat)
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
   try {
-    // Vérifier l'authentification et le rôle
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
-    }
-
-    const authService = new AuthService();
-    const user = authService.verifyToken(token);
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
-    }
-
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+    if (user.role !== 'admin') return forbidden();
     const { courseId } = await params;
-    const data = await request.json();
-
-    const sheetsService = new GoogleSheetsService();
-    
-    // Récupérer le tarif existant
-    const existingTarif = await sheetsService.getTarifByCourseId(courseId);
-    
-    if (!existingTarif) {
-      return NextResponse.json({ error: 'Tarif introuvable' }, { status: 404 });
-    }
-
-    // Mettre à jour le tarif
-    const updatedTarif = await sheetsService.updateTarif(existingTarif.id, {
-      tarifPhotographe: data.tarifPhotographe.toString(),
-      bonusChefEquipe: data.bonusChefEquipe.toString(),
-      firstTarifName: data.firstTarifName || '',
-      secondTarifName: data.secondTarifName || '',
-      dateModification: new Date().toISOString(),
+    const data = (await request.json()) as Record<string, unknown>;
+    const first = await db.tarif.findFirst({ where: { courseId }, orderBy: { ordre: 'asc' } });
+    if (!first) return notFound('Tarif introuvable');
+    const tarif = await db.tarif.update({
+      where: { id: first.id },
+      data: {
+        ...(data.tarifPhotographe !== undefined ? { tarifPhotographe: toNumberOrNull(data.tarifPhotographe) ?? 0 } : {}),
+        ...(data.bonusChefEquipe !== undefined ? { bonusChefEquipe: toNumberOrNull(data.bonusChefEquipe) ?? 0 } : {}),
+        ...(typeof data.nom === 'string' ? { nom: data.nom } : typeof data.firstTarifName === 'string' ? { nom: data.firstTarifName } : {}),
+      },
     });
-
-    return NextResponse.json({ tarif: updatedTarif, success: true });
-  } catch (error: any) {
-    console.error('Update tarif error:', error);
-    return NextResponse.json({ error: 'Erreur lors de la mise à jour du tarif' }, { status: 500 });
+    return NextResponse.json({ tarif: serializeTarif(tarif), success: true });
+  } catch (error) {
+    return serverError('Erreur lors de la mise à jour du tarif', error);
   }
 }

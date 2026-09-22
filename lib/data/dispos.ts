@@ -1,6 +1,6 @@
 import type { Disponibilite } from '@prisma/client';
 import { db } from '../db';
-import { applyStatut, dispoId, isDeclaration, type Statut } from '../planning';
+import { dispoId, isDeclaration, type Declaration, type Decision, type Statut } from '../planning';
 
 export interface SetStatutInput {
   courseId: string;
@@ -13,12 +13,9 @@ export interface SetStatutInput {
 
 /** Résout le créneau visé (le premier de la course par défaut). */
 export async function resolveTarifId(courseId: string, tarifId?: string | null): Promise<string | null> {
-  if (tarifId) {
-    const t = await db.tarif.findFirst({ where: { id: tarifId, courseId }, select: { id: true } });
-    if (t) return t.id;
-  }
-  const first = await db.tarif.findFirst({ where: { courseId }, orderBy: { ordre: 'asc' }, select: { id: true } });
-  return first?.id ?? null;
+  const tarifs = await db.tarif.findMany({ where: { courseId }, orderBy: { ordre: 'asc' }, select: { id: true } });
+  if (tarifId && tarifs.some((t) => t.id === tarifId)) return tarifId;
+  return tarifs[0]?.id ?? null;
 }
 
 /**
@@ -29,40 +26,27 @@ export async function setDispoStatut(input: SetStatutInput): Promise<Disponibili
   const tarifId = await resolveTarifId(input.courseId, input.tarifId);
   if (!tarifId) throw new Error('Cette course n’a aucun créneau tarifé');
 
-  const id = dispoId(input.courseId, input.photographeId, tarifId);
-  const existing = await db.disponibilite.findUnique({
-    where: { courseId_photographeId_tarifId: { courseId: input.courseId, photographeId: input.photographeId, tarifId } },
-  });
-
-  const current = existing ?? { declaration: 'pending' as const, decision: null, published: false };
-  const next = applyStatut(current, input.statut);
   const now = new Date();
+  const declaring = isDeclaration(input.statut);
+  const note = input.noteAdmin !== undefined ? { noteAdmin: input.noteAdmin } : {};
 
-  if (existing) {
-    return db.disponibilite.update({
-      where: { id: existing.id },
-      data: {
-        declaration: next.declaration,
-        decision: next.decision,
-        dateModification: now,
-        ...(isDeclaration(input.statut) ? { dateDeclaration: now } : {}),
-        ...(input.noteAdmin !== undefined ? { noteAdmin: input.noteAdmin } : {}),
-      },
-    });
-  }
-
-  return db.disponibilite.create({
-    data: {
-      id,
+  // Un seul aller-retour : upsert sur la clé (course, photographe, créneau).
+  return db.disponibilite.upsert({
+    where: { courseId_photographeId_tarifId: { courseId: input.courseId, photographeId: input.photographeId, tarifId } },
+    create: {
+      id: dispoId(input.courseId, input.photographeId, tarifId),
       courseId: input.courseId,
       photographeId: input.photographeId,
       tarifId,
-      declaration: next.declaration,
-      decision: next.decision,
+      declaration: declaring ? (input.statut as Declaration) : 'pending',
+      decision: declaring ? null : (input.statut as Decision),
       noteAdmin: input.noteAdmin ?? '',
       dateDeclaration: now,
       dateModification: now,
     },
+    update: declaring
+      ? { declaration: input.statut as Declaration, decision: null, dateDeclaration: now, dateModification: now, ...note }
+      : { decision: input.statut as Decision, dateModification: now, ...note },
   });
 }
 

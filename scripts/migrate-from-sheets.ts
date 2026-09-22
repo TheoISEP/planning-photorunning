@@ -29,6 +29,7 @@ loadEnv({ path: '.env.local', override: false });
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID || '18GjRJBkvG7rKj-LpdfP0E1aviKt3gCwE0hxjknpUTAA';
 const DRY_RUN = process.argv.includes('--dry-run');
 const VERIFY = process.argv.includes('--verify');
+const DEBUG = process.argv.includes('--debug');
 
 const SHEETS = {
   PHOTOGRAPHES: 'Photographes',
@@ -85,7 +86,9 @@ function toObjects(values: string[][]): Row[] {
 }
 
 async function readSheetPublic(name: string): Promise<string[][]> {
-  const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`;
+  // headers=1 : une seule ligne d'en-tête (sinon gviz « devine » et peut
+  // fusionner des centaines de lignes dans l'en-tête quand tout est du texte)
+  const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(name)}`;
   const res = await fetch(url, { redirect: 'follow' });
   if (!res.ok) throw new Error(`Lecture de l'onglet « ${name} » impossible (${res.status}). Le Sheet doit être lisible par lien, ou renseigner GOOGLE_SERVICE_ACCOUNT_EMAIL/GOOGLE_PRIVATE_KEY.`);
   const text = await res.text();
@@ -116,6 +119,14 @@ async function readSheet(name: string): Promise<Row[]> {
   }
   const useApi = !!(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY);
   const values = useApi ? await readSheetApi(name) : await readSheetPublic(name);
+  const suspicious = (values[0] ?? []).filter((h) => h.includes(' ') || h.length > 40);
+  if (suspicious.length > 0) {
+    throw new Error(`Onglet « ${name} » : en-têtes suspects (${suspicious[0].slice(0, 60)}…). L'export a fusionné plusieurs lignes ; relancer, ou renseigner GOOGLE_SERVICE_ACCOUNT_EMAIL / GOOGLE_PRIVATE_KEY pour passer par l'API Sheets.`);
+  }
+  if (DEBUG) {
+    console.log(`[debug] onglet ${name} : en-têtes = ${JSON.stringify(values[0] ?? [])}`);
+    console.log(`[debug] onglet ${name} : 1re ligne = ${JSON.stringify(values[1] ?? [])}`);
+  }
   return toObjects(values);
 }
 
@@ -318,12 +329,18 @@ async function main() {
   const dispoRows = new Map<string, DispoRow>();
   let skippedDispos = 0;
   let duplicates = 0;
+  const skipReasons: Record<string, number> = {};
+  const skip = (reason: string, r: Row) => {
+    skippedDispos++;
+    skipReasons[reason] = (skipReasons[reason] ?? 0) + 1;
+    if (DEBUG && skipReasons[reason] <= 2) console.log(`[debug] dispo ignorée (${reason}) : ${JSON.stringify(r)}`);
+  };
   for (const r of dispos) {
-    if (!r.id || !r.courseId || !r.photographeId) { skippedDispos++; continue; }
+    if (!r.id || !r.courseId || !r.photographeId) { skip('id / courseId / photographeId vide', r); continue; }
     const course = courseRows.get(r.courseId);
     const courseTarifs = tarifsByCourse.get(r.courseId) ?? [];
-    if (!course || courseTarifs.length === 0) { skippedDispos++; continue; }
-    if (!users.has(r.photographeId)) { skippedDispos++; continue; }
+    if (!course || courseTarifs.length === 0) { skip('course inconnue', r); continue; }
+    if (!users.has(r.photographeId)) { skip('photographe inconnu', r); continue; }
 
     const explicit = !!r.tarifId && courseTarifs.some((t) => t.id === r.tarifId);
     const tarifId = explicit ? r.tarifId : courseTarifs[0].id;
@@ -378,6 +395,7 @@ async function main() {
   }
 
   console.log(`Préparé : ${users.size} comptes, ${courseRows.size} courses (${[...courseRows.values()].filter((c) => c.archived).length} archivées, ${[...courseRows.values()].filter((c) => c.statutTraitement === 'done').length} faites), ${[...tarifsByCourse.values()].flat().length} créneaux, ${dispoRows.size} disponibilités (${duplicates} doublons fusionnés, ${skippedDispos} ignorées), ${costs.size} mois de coûts`);
+  for (const [reason, n] of Object.entries(skipReasons)) console.log(`  ⚠ ${n} disponibilité(s) ignorée(s) : ${reason}`);
   for (const w of warnings) console.log(`  ⚠ ${w}`);
 
   if (DRY_RUN) { console.log('Lecture seule : rien n’a été écrit.'); return; }

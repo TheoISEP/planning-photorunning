@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -97,6 +97,18 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
   const [statutFilter, setStatutFilter] = useState<'all' | 'inProgress' | 'done'>('all');
   const [zoom, setZoom] = useState(90);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const [headerHeight, setHeaderHeight] = useState(66);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const measure = () => setHeaderHeight(el.offsetHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [loading]);
 
   const [statusDialog, setStatusDialog] = useState<StatusDialogState | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<CourseView | null>(null);
@@ -490,10 +502,13 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
       )}
 
       {/* Grille */}
-      <div className={cn('min-h-0 flex-1 overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-gray-950', viewMode === 'list' && 'hidden md:block')}>
+      <div
+        className={cn('min-h-0 flex-1 overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-gray-950', viewMode === 'list' && 'hidden md:block')}
+        style={{ height: 'calc(100dvh - 230px)', minHeight: 360 }}
+      >
         <div className="h-full overflow-auto" style={{ zoom: `${zoom}%` }}>
           {/* En-tête sticky */}
-          <div className="sticky top-0 z-40 bg-white shadow-sm dark:bg-gray-950">
+          <div ref={headerRef} className="sticky top-0 z-40 bg-white shadow-sm dark:bg-gray-950">
             <div className="grid border-b border-gray-200 bg-gray-100 dark:border-gray-800 dark:bg-gray-900" style={{ gridTemplateColumns: gridTemplate, minWidth: 'max-content' }}>
               <div className="sticky left-0 z-50 bg-gray-100 dark:bg-gray-900" />
               <div className="sticky z-50 bg-gray-100 dark:bg-gray-900" style={{ left: 220 }} />
@@ -537,8 +552,8 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
           {months.map((group) => (
             <div key={group.key}>
               {/* Ligne du mois */}
-              <div className="grid border-b-2 border-orange-200 bg-orange-50 font-semibold dark:border-orange-900 dark:bg-orange-950/60" style={{ gridTemplateColumns: gridTemplate, minWidth: 'max-content' }}>
-                <div className="sticky left-0 z-10 border-r border-orange-200 bg-orange-50 p-3 dark:border-orange-900 dark:bg-orange-950/60">
+              <div className="sticky z-30 grid border-b-2 border-orange-200 bg-orange-50 font-semibold shadow-sm dark:border-orange-900 dark:bg-orange-950/60" style={{ gridTemplateColumns: gridTemplate, minWidth: 'max-content', top: headerHeight }}>
+                <div className="sticky left-0 z-10 border-r border-orange-200 bg-orange-50 p-3 dark:border-orange-900 dark:bg-orange-950/60" style={{ boxShadow: '2px 0 5px rgba(0,0,0,0.06)' }}>
                   <div className="text-sm font-bold capitalize">{format(new Date(group.year, group.month), 'MMMM yyyy', { locale: fr })}</div>
                   <div className="mt-0.5 text-xs text-orange-800 dark:text-orange-200">
                     {formatEuros(group.courses.reduce((s, c) => s + c.cost, 0))}

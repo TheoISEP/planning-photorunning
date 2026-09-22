@@ -43,7 +43,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
     const tarifs = tarifsFromInput(data.tarifs);
     if (tarifs) {
-      const r = await db.$transaction((tx) => syncCourseTarifs(tx, id, tarifs));
+      const r = await db.$transaction((tx) => syncCourseTarifs(tx, id, tarifs), { timeout: 20000 });
       info = { ...info, ...r };
     }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -86,6 +86,17 @@ export function PhotographerBoard({ mode, linkBase = '/photographer/planning', s
   const [weekends, setWeekends] = useState<Record<string, WeekendSummaryJson>>({});
   const [busy, setBusy] = useState<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string>('');
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const [headerHeight, setHeaderHeight] = useState(44);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const measure = () => setHeaderHeight(el.offsetHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [loading]);
 
   const loadDispos = useCallback(async (ids: string[]) => {
     const results = await Promise.all(ids.map((id) => fetchJson<{ disponibilites: DispoJson[] }>(`/api/disponibilites?photographerId=${id}`)));
@@ -313,9 +324,9 @@ export function PhotographerBoard({ mode, linkBase = '/photographer/planning', s
       </div>
 
       {/* Vue desktop : tableau */}
-      <div className="hidden min-h-0 flex-1 overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-gray-950 md:flex">
+      <div className="hidden min-h-0 flex-1 overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-gray-950 md:flex" style={{ height: 'calc(100dvh - 210px)', minHeight: 360 }}>
         <div className="h-full w-full overflow-auto">
-          <div className="sticky top-0 z-20 grid border-b-2 border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900" style={{ gridTemplateColumns: gridTemplate }}>
+          <div ref={headerRef} className="sticky top-0 z-20 grid border-b-2 border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900" style={{ gridTemplateColumns: gridTemplate }}>
             <div className="border-r p-3 text-sm font-semibold">Course</div>
             <div className="border-r p-3 text-center text-sm font-semibold">Date</div>
             {people.map((p) => (
@@ -330,7 +341,7 @@ export function PhotographerBoard({ mode, linkBase = '/photographer/planning', s
             if (visibleCourses.length === 0) return null;
             return (
               <div key={group.key}>
-                <div className="grid border-b-2 border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/60" style={{ gridTemplateColumns: gridTemplate }}>
+                <div className="sticky z-10 grid border-b-2 border-orange-200 bg-orange-50 shadow-sm dark:border-orange-900 dark:bg-orange-950/60" style={{ gridTemplateColumns: gridTemplate, top: headerHeight }}>
                   <div className="border-r border-orange-200 p-3 dark:border-orange-900">
                     <div className="text-base font-bold capitalize">{format(new Date(group.year, group.month), 'MMMM yyyy', { locale: fr })}</div>
                   </div>

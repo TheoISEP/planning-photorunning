@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
         bonusChefEquipe: toNumberOrNull(data.bonusChefEquipe) ?? 0,
       },
     ];
-    const result = await db.$transaction((tx) => syncCourseTarifs(tx, data.courseId as string, wanted));
+    const result = await db.$transaction((tx) => syncCourseTarifs(tx, data.courseId as string, wanted), { timeout: 20000 });
     const tarifs = await db.tarif.findMany({ where: { courseId: data.courseId }, orderBy: { ordre: 'asc' } });
     return NextResponse.json({ tarif: serializeTarif(tarifs[tarifs.length - 1]), tarifs: tarifs.map((t) => serializeTarif(t)), success: true, ...result });
   } catch (error) {

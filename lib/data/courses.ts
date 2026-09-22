@@ -1,6 +1,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { db } from '../db';
-import { dispoId, publishDispo, tarifId as newTarifId } from '../planning';
+import { dispoId, tarifId as newTarifId } from '../planning';
 import { toBool, toDate, toIntOrNull, toNumberOrNull } from '../serialize';
 
 type Tx = Prisma.TransactionClient | PrismaClient;
@@ -64,40 +64,45 @@ export async function ensureDisposForUser(tx: Tx, userId: string) {
  * visible) : seuls les nouveaux créneaux sont en attente de publication.
  */
 export async function setCourseStatus(courseId: string, status: 'inProgress' | 'done') {
-  return db.$transaction(async (tx) => {
-    const course = await tx.course.findUnique({ where: { id: courseId } });
-    if (!course) throw new Error('Course introuvable');
+  return db.$transaction(
+    async (tx) => {
+      const course = await tx.course.findUnique({ where: { id: courseId }, select: { id: true } });
+      if (!course) throw new Error('Course introuvable');
 
-    if (status === 'done') {
-      await ensureDisposForCourse(tx, courseId);
-      const dispos = await tx.disponibilite.findMany({ where: { courseId } });
-      const now = new Date();
-      let changed = 0;
-      for (const d of dispos) {
-        const next = publishDispo(d);
-        if (next.decision !== d.decision || !d.published) {
-          await tx.disponibilite.update({
-            where: { id: d.id },
-            data: { decision: next.decision, published: true, publishedAt: d.publishedAt ?? now },
-          });
-          changed++;
-        }
+      if (status === 'done') {
+        await ensureDisposForCourse(tx, courseId);
+        const now = new Date();
+        // Trois mises à jour groupées (et non une par ligne) : rapide même
+        // avec une base distante.
+        const rejected = await tx.disponibilite.updateMany({
+          where: { courseId, decision: null, declaration: 'available' },
+          data: { decision: 'rejected', dateModification: now },
+        });
+        const nonPris = await tx.disponibilite.updateMany({
+          where: { courseId, decision: null },
+          data: { decision: 'nonPris', dateModification: now },
+        });
+        const published = await tx.disponibilite.updateMany({
+          where: { courseId, published: false },
+          data: { published: true, publishedAt: now },
+        });
+        const updated = await tx.course.update({
+          where: { id: courseId },
+          data: { statutTraitement: 'done', doneAt: now },
+          include: courseInclude,
+        });
+        return { course: updated, published: Math.max(published.count, rejected.count + nonPris.count) };
       }
+
       const updated = await tx.course.update({
         where: { id: courseId },
-        data: { statutTraitement: 'done', doneAt: now },
+        data: { statutTraitement: 'inProgress' },
         include: courseInclude,
       });
-      return { course: updated, published: changed };
-    }
-
-    const updated = await tx.course.update({
-      where: { id: courseId },
-      data: { statutTraitement: 'inProgress' },
-      include: courseInclude,
-    });
-    return { course: updated, published: 0 };
-  });
+      return { course: updated, published: 0 };
+    },
+    { timeout: 20000 }
+  );
 }
 
 /**

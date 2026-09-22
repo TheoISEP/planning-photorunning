@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       await syncCourseTarifs(tx, id, tarifs);
       await ensureDisposForCourse(tx, id);
       return tx.course.findUniqueOrThrow({ where: { id }, include: courseInclude });
-    });
+    }, { timeout: 20000 });
 
     return NextResponse.json({ course: serializeCourse(course), success: true }, { status: 201 });
   } catch (error) {

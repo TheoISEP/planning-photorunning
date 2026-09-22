@@ -28,7 +28,7 @@ export async function userMonthlyStats(userId: string, year: number, viewer: 'ad
   const [user, dispos] = await Promise.all([
     db.user.findUnique({ where: { id: userId }, select: { nonRemunere: true, role: true } }),
     db.disponibilite.findMany({
-      where: { photographeId: userId, decision: { in: ['validated', 'teamLeader'] }, ...(viewer === 'photographer' ? { published: true } : {}) },
+      where: { photographeId: userId, decision: { in: ['validated', 'teamLeader'] }, course: { annulee: false }, ...(viewer === 'photographer' ? { published: true } : {}) },
       include: { course: true, tarif: true },
     }),
   ]);
@@ -83,6 +83,7 @@ export interface MonthlyAdminStat {
 /** Stats globales par mois (toutes courses de l'année, admins non rémunérés à 0 €). */
 export async function adminMonthlyStats(year: number): Promise<MonthlyAdminStat[]> {
   const courses = await db.course.findMany({
+    where: { annulee: false },
     include: { disponibilites: { where: { decision: { in: ['validated', 'teamLeader'] } }, include: { tarif: true, photographe: { select: { nonRemunere: true } } } } },
   });
   const byMonth = new Map<string, MonthlyAdminStat & { set: Set<string> }>();
@@ -121,7 +122,7 @@ export interface WeekendSummary {
  */
 export async function weekendSummaries(): Promise<Record<string, WeekendSummary>> {
   const courses = await db.course.findMany({
-    where: { statutTraitement: 'done', archived: false },
+    where: { statutTraitement: 'done', archived: false, annulee: false },
     select: {
       id: true,
       dateDebut: true,

@@ -179,6 +179,11 @@ export function courseDataFromInput(data: Record<string, unknown>): Prisma.Cours
   if (data.numberAttended !== undefined) out.numberAttended = toIntOrNull(data.numberAttended);
   if (str('briefPdfUrl') !== undefined) out.briefPdfUrl = str('briefPdfUrl') || null;
   if (data.visible !== undefined) out.visible = toBool(data.visible, true);
+  if (data.annulee !== undefined) {
+    const annulee = toBool(data.annulee);
+    out.annulee = annulee;
+    out.annuleeAt = annulee ? new Date() : null;
+  }
   if (str('hotel') !== undefined) out.hotel = str('hotel')!;
   if (str('transport') !== undefined) out.transport = str('transport')!;
   if (str('supplementaire') !== undefined) out.supplementaire = str('supplementaire')!;

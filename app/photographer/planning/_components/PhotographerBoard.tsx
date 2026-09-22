@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ArrowUpDown, CalendarPlus, Info, Lock, Users } from 'lucide-react';
+import { ArrowUpDown, Ban, CalendarPlus, Info, Lock, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -165,10 +165,12 @@ export function PhotographerBoard({ mode, linkBase = '/photographer/planning', s
         // règle de publication côté affichage (dispo → refusé, sinon non pris).
         const statut: Statut =
           course.statutTraitement === 'done' && !decided ? defaultDecision(dispo?.declaration ?? 'pending') : dispo?.statut ?? 'pending';
-        const editable = !course.archived && course.statutTraitement !== 'done' && !decided;
-        return { tarif, dispo, statut, editable, amount: amountFor(statut, tarif) };
+        const editable = !course.archived && !course.annulee && course.statutTraitement !== 'done' && !decided;
+        return { tarif, dispo, statut, editable, amount: course.annulee ? 0 : amountFor(statut, tarif) };
       });
-      const working = slots.some((s) => isWorkingStatut(s.statut));
+      // Une course annulée ne fait travailler personne : pas de bandeau
+      // week-end, pas de montant, pas de mise en avant.
+      const working = !course.annulee && slots.some((s) => isWorkingStatut(s.statut));
       return { course, slots, working, amount: slots.reduce((s, x) => s + x.amount, 0), isPast: new Date(course.dateFin) < now };
     },
     [dispoMap, now]
@@ -378,20 +380,27 @@ export function PhotographerBoard({ mode, linkBase = '/photographer/planning', s
                         className={cn(
                           'grid border-b transition-colors',
                           newWeekend && !showBanner && 'border-t-4 border-t-orange-200 dark:border-t-orange-900',
-                          myView.working ? (leader ? STATUT_META.teamLeader.row : STATUT_META.validated.row) : 'hover:bg-gray-50 dark:hover:bg-gray-900/40',
-                          myView.working && (leader ? 'border-l-4 border-l-violet-500' : 'border-l-4 border-l-emerald-500'),
-                          myView.isPast && mode !== 'archives' && 'opacity-50'
+                          course.annulee
+                            ? 'border-l-4 border-l-red-600 bg-red-100 dark:bg-red-950'
+                            : myView.working ? (leader ? STATUT_META.teamLeader.row : STATUT_META.validated.row) : 'hover:bg-gray-50 dark:hover:bg-gray-900/40',
+                          !course.annulee && myView.working && (leader ? 'border-l-4 border-l-violet-500' : 'border-l-4 border-l-emerald-500'),
+                          myView.isPast && mode !== 'archives' && !course.annulee && 'opacity-50'
                         )}
                         style={{ gridTemplateColumns: gridTemplate }}
                       >
                         <div className="border-r p-3">
+                          {course.annulee && (
+                            <div className="mb-1 inline-flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                              <Ban className="h-3 w-3" /> Course annulée
+                            </div>
+                          )}
                           <div className="flex items-center gap-1.5">
                             {myView.working && <span>{leader ? '👑' : '✓'}</span>}
                             <Link href={`${linkBase}/${course.id}`} className="text-sm font-semibold hover:underline">{course.nom}</Link>
                             <CourseStateDot course={course} />
                           </div>
                           <div className="mt-0.5 text-xs text-muted-foreground">📍 {course.ville || course.localisation}</div>
-                          <SlotsSummary view={myView} multi={multi} />
+                          {!course.annulee && <SlotsSummary view={myView} multi={multi} />}
                         </div>
                         <div className="flex flex-col items-center justify-center border-r p-2">
                           <div className="text-sm font-semibold capitalize">{format(new Date(course.dateDebut), 'EEE dd/MM', { locale: fr })}</div>
@@ -403,7 +412,7 @@ export function PhotographerBoard({ mode, linkBase = '/photographer/planning', s
                           const v = viewFor(course, p.id);
                           const hidden = isHiddenFor(course, p.id);
                           return (
-                            <div key={p.id} className="flex flex-col justify-center gap-1.5 border-r p-2 last:border-r-0">
+                            <div key={p.id} className={cn('flex flex-col justify-center gap-1.5 border-r p-2 last:border-r-0', course.annulee && 'opacity-40')}>
                               {hidden ? (
                                 <span className="text-center text-xs text-muted-foreground">–</span>
                               ) : (
@@ -511,7 +520,12 @@ function CourseCard({ view, personId, busy, onChange, linkBase, fade }: { view: 
   const multi = course.tarifs.length > 1;
   const leader = view.slots.some((s) => s.statut === 'teamLeader');
   return (
-    <div className={cn('rounded-lg border-2 p-3 transition-all', view.working ? (leader ? 'border-violet-300 bg-violet-50 dark:bg-violet-950/30' : 'border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30') : 'border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950', view.isPast && fade && 'opacity-50')}>
+    <div className={cn('rounded-lg border-2 p-3 transition-all', course.annulee ? 'border-red-400 bg-red-100 dark:border-red-900 dark:bg-red-950' : view.working ? (leader ? 'border-violet-300 bg-violet-50 dark:bg-violet-950/30' : 'border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30') : 'border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950', view.isPast && fade && !course.annulee && 'opacity-50')}>
+      {course.annulee && (
+        <div className="mb-1 inline-flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+          <Ban className="h-3 w-3" /> Course annulée
+        </div>
+      )}
       <div className="flex items-start justify-between gap-2">
         <Link href={`${linkBase}/${course.id}`} className="flex-1 text-sm font-semibold hover:underline">{course.nom}</Link>
         <CourseStateDot course={course} />
@@ -520,7 +534,7 @@ function CourseCard({ view, personId, busy, onChange, linkBase, fade }: { view: 
         <div>📍 {course.ville || course.localisation}</div>
         <div className="capitalize">📅 {format(new Date(course.dateDebut), 'EEEE d MMMM', { locale: fr })}{format(new Date(course.dateFin), 'dd/MM') !== format(new Date(course.dateDebut), 'dd/MM') ? ` → ${format(new Date(course.dateFin), 'EEEE d MMMM', { locale: fr })}` : ''}</div>
       </div>
-      <SlotsSummary view={view} multi={multi} />
+      {!course.annulee && <SlotsSummary view={view} multi={multi} />}
       <div className="mt-2 space-y-2">
         {view.slots.map((slot) => (
           <SlotControl key={slot.tarif.id} slot={slot} multi={multi} loading={busy.has(dispoKey(course.id, personId, slot.tarif.id))} onChange={(s) => onChange(course, personId, slot.tarif, s)} />

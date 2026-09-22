@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ArrowLeft, Calendar, FileText, Hotel, Lock, MapPin, Train, Users } from 'lucide-react';
+import { ArrowLeft, Ban, Calendar, FileText, Hotel, Lock, MapPin, Train, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -91,10 +91,10 @@ export default function PhotographerCourseDetailPage() {
     const d = mine.find((x) => x.tarifId === tarif.id) ?? null;
     const decided = !!d?.published && !!d?.decision;
     const statut: Statut = done && !decided ? defaultDecision(d?.declaration ?? 'pending') : d?.statut ?? 'pending';
-    const editable = !course.archived && !done && !decided;
-    return { tarif, d, statut, editable, amount: amountFor(statut, tarif) };
+    const editable = !course.archived && !course.annulee && !done && !decided;
+    return { tarif, d, statut, editable, amount: course.annulee ? 0 : amountFor(statut, tarif) };
   });
-  const working = slots.filter((s) => isWorkingStatut(s.statut));
+  const working = course.annulee ? [] : slots.filter((s) => isWorkingStatut(s.statut));
   const total = slots.reduce((s, x) => s + x.amount, 0);
   const teamByTarif = course.tarifs.map((tarif) => ({
     tarif,
@@ -126,6 +126,13 @@ export default function PhotographerCourseDetailPage() {
           </p>
         </div>
       </div>
+
+      {course.annulee && (
+        <div className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-100 p-3 text-sm font-semibold text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-100">
+          <Ban className="h-5 w-5 shrink-0 text-red-600" />
+          <span>Course annulée : cet événement n’a plus lieu, aucune affectation ne s’applique.</span>
+        </div>
+      )}
 
       {working.length > 0 && weekend && (
         <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">

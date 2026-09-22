@@ -185,6 +185,9 @@ model Course {
   archived         Boolean      @default(false)
   archivedAt       DateTime?
   archivedBy       String?
+  /// Course annulée : visible en rouge, ne compte plus (coûts, week-ends, stats)
+  annulee          Boolean      @default(false)
+  annuleeAt        DateTime?
   hotel            String       @default("")
   transport        String       @default("")
   supplementaire   String       @default("")

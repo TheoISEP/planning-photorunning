@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Archive, ArchiveRestore, ArrowUpDown, CheckCircle2, Clock, Filter, LayoutGrid, List, Plus, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
+import { Archive, ArchiveRestore, ArrowUpDown, CheckCircle2, Clock, Filter, LayoutGrid, List, Ban, Plus, Trash2, Undo2, ZoomIn, ZoomOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -25,7 +25,7 @@ const REGION_BG: Record<string, string> = {
   'Ile-de-France': 'bg-gray-50 dark:bg-gray-900/40',
   'Zone Lyon': 'bg-blue-50 dark:bg-blue-950/30',
   'Zone Centre': 'bg-amber-50 dark:bg-amber-950/30',
-  'Sud-Est': 'bg-emerald-50 dark:bg-emerald-950/30',
+  'Sud-Est': 'bg-green-200 dark:bg-green-900/50',
   'Sud-Ouest': 'bg-purple-50 dark:bg-purple-950/30',
   'Nord': 'bg-rose-50 dark:bg-rose-950/30',
 };
@@ -113,6 +113,7 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
   const [statusDialog, setStatusDialog] = useState<StatusDialogState | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<CourseView | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CourseView | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<CourseView | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   // ---- Chargement ---------------------------------------------------------
@@ -200,7 +201,7 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
         tarifStats,
         validated: tarifStats.reduce((s, t) => s + t.validated, 0),
         available: tarifStats.reduce((s, t) => s + t.available, 0),
-        cost: tarifStats.reduce((s, t) => s + t.cost, 0),
+        cost: course.annulee ? 0 : tarifStats.reduce((s, t) => s + t.cost, 0),
         isPast: new Date(course.dateFin) < now,
       };
     });
@@ -240,6 +241,7 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
       let count = 0;
       let amount = 0;
       for (const course of group.courses) {
+        if (course.annulee) continue;
         let worked = false;
         for (const tarif of course.tarifs) {
           const d = dispoMap.get(dispoKey(course.id, user.id, tarif.id));
@@ -344,6 +346,24 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
       });
     } catch (error) {
       setCourses((prev) => prev.map((c) => (c.id === course.id ? { ...c, [field]: !next } : c)));
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la mise à jour');
+    }
+  };
+
+  const confirmCancel = async () => {
+    if (!cancelTarget) return;
+    const course = cancelTarget;
+    const annulee = !course.annulee;
+    setCancelTarget(null);
+    try {
+      await fetchJson(`/api/courses/${course.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ annulee }),
+      });
+      setCourses((prev) => prev.map((c) => (c.id === course.id ? { ...c, annulee, annuleeAt: annulee ? new Date().toISOString() : '' } : c)));
+      toast.success(annulee ? `${course.nom} marquée comme annulée` : `${course.nom} rétablie`);
+    } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erreur lors de la mise à jour');
     }
   };
@@ -492,7 +512,12 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
                 </div>
               </div>
               {group.courses.map((course) => (
-                <div key={course.id} className={cn('rounded-lg border bg-white p-3 shadow-sm dark:bg-gray-950', course.isPast && mode !== 'archives' && 'opacity-50')}>
+                <div key={course.id} className={cn('rounded-lg border p-3 shadow-sm', course.annulee ? 'border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950' : 'bg-white dark:bg-gray-950', course.isPast && mode !== 'archives' && !course.annulee && 'opacity-50')}>
+                  {course.annulee && (
+                    <div className="mb-1 inline-flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                      <Ban className="h-3 w-3" /> Course annulée
+                    </div>
+                  )}
                   <div className="flex items-start justify-between gap-2">
                     <Link href={`/admin/planning/${course.id}`} className="flex-1 text-sm font-semibold hover:underline">
                       {course.nom}
@@ -600,20 +625,31 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
                 const prev = idx > 0 ? group.courses[idx - 1] : null;
                 const newWeekend = prev ? weekendKey(course.dateDebut) !== weekendKey(prev.dateDebut) : false;
                 const multi = course.tarifs.length > 1;
-                const stripe = idx % 2 === 0 ? 'bg-white dark:bg-gray-950' : 'bg-gray-50/70 dark:bg-gray-900/40';
+                // Fonds OPAQUES : les colonnes Course / Date sont figées à gauche et
+                // doivent masquer les cellules qui passent dessous.
+                const stripe = course.annulee
+                  ? 'bg-red-100 dark:bg-red-950'
+                  : idx % 2 === 0 ? 'bg-white dark:bg-gray-950' : 'bg-gray-50 dark:bg-gray-900';
+                // L'estompage des courses passées se fait cellule par cellule (une
+                // opacité sur la ligne rendrait les colonnes figées transparentes).
+                const faded = course.isPast && mode !== 'archives' && !course.annulee;
                 return (
                   <div
                     key={course.id}
                     className={cn(
                       'group grid border-b border-gray-200/70 transition-colors dark:border-gray-800',
                       stripe,
-                      newWeekend && 'border-t-4 border-t-sky-300 dark:border-t-sky-700',
-                      course.isPast && mode !== 'archives' && 'opacity-50'
+                      newWeekend && 'border-t-4 border-t-sky-300 dark:border-t-sky-700'
                     )}
                     style={{ gridTemplateColumns: gridTemplate, minWidth: 'max-content' }}
                   >
                     {/* Colonne course */}
-                    <div className={cn('sticky left-0 z-30 border-r border-gray-300 p-2 pr-1.5', stripe)} style={{ boxShadow: '2px 0 5px rgba(0,0,0,0.06)' }}>
+                    <div className={cn('sticky left-0 z-30 border-r border-gray-300 p-2 pr-1.5', stripe, faded && 'opacity-50')} style={{ boxShadow: '2px 0 5px rgba(0,0,0,0.06)' }}>
+                      {course.annulee && (
+                        <div className="mb-1 inline-flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                          <Ban className="h-3 w-3" /> Annulée
+                        </div>
+                      )}
                       <div className="mb-1 flex items-start justify-between gap-1">
                         <div className="min-w-0">
                           <Link href={`/admin/planning/${course.id}`} className="line-clamp-2 text-xs font-semibold leading-tight hover:underline" title={course.nom}>
@@ -632,6 +668,15 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
                           title={course.archived ? 'Remettre dans le calendrier' : 'Archiver la course'}
                         >
                           {course.archived ? <ArchiveRestore className="h-3 w-3" /> : <Archive className="h-3 w-3" />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={cn('h-5 w-5 shrink-0 p-0', course.annulee ? 'text-red-600 hover:text-emerald-600' : 'text-muted-foreground/50 hover:text-red-600')}
+                          onClick={() => setCancelTarget(course)}
+                          title={course.annulee ? 'Rétablir la course' : 'Marquer la course comme annulée'}
+                        >
+                          {course.annulee ? <Undo2 className="h-3 w-3" /> : <Ban className="h-3 w-3" />}
                         </Button>
                         <Button
                           variant="ghost"
@@ -678,13 +723,13 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
                     </div>
 
                     {/* Colonne date */}
-                    <div className={cn('sticky z-30 flex flex-col justify-start gap-0.5 border-r border-gray-300 p-2', stripe)} style={{ left: 220, boxShadow: '2px 0 5px rgba(0,0,0,0.06)' }}>
+                    <div className={cn('sticky z-30 flex flex-col justify-start gap-0.5 border-r border-gray-300 p-2', stripe, faded && 'opacity-50')} style={{ left: 220, boxShadow: '2px 0 5px rgba(0,0,0,0.06)' }}>
                       <CourseDates course={course} />
                     </div>
 
                     {/* Cellules */}
                     {columns.map((u) => (
-                      <div key={u.id} className={cn('flex flex-col justify-end gap-1 p-1.5', u.role === 'photographer' && regionBg(u.region))}>
+                      <div key={u.id} className={cn('flex flex-col justify-end gap-1 p-1.5', u.role === 'photographer' && regionBg(u.region), faded && 'opacity-50', course.annulee && 'opacity-40')}>
                         {course.tarifs.map((tarif) => {
                           const d = dispoMap.get(dispoKey(course.id, u.id, tarif.id));
                           const statut: Statut = d?.statut ?? 'pending';
@@ -770,6 +815,29 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
             <Button variant="outline" onClick={() => setArchiveTarget(null)}>Annuler</Button>
             <Button onClick={confirmArchive} className={archiveTarget?.archived ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-orange-600 hover:bg-orange-700'}>
               {archiveTarget?.archived ? 'Remettre' : 'Archiver'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog annulation */}
+      <Dialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {cancelTarget?.annulee ? <Undo2 className="h-5 w-5 text-emerald-600" /> : <Ban className="h-5 w-5 text-red-600" />}
+              {cancelTarget?.annulee ? 'Rétablir la course' : 'Marquer la course comme annulée'}
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              {cancelTarget?.annulee
+                ? <><span className="font-semibold text-foreground">{cancelTarget?.nom}</span> redevient une course normale : les affectations et les montants comptent de nouveau.</>
+                : <><span className="font-semibold text-foreground">{cancelTarget?.nom}</span> apparaîtra en rouge « Course annulée » chez les photographes. Les réponses sont conservées mais ne comptent plus (coûts, week-ends, statistiques).</>}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelTarget(null)}>Annuler</Button>
+            <Button onClick={confirmCancel} className={cancelTarget?.annulee ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 text-white hover:bg-red-700'}>
+              {cancelTarget?.annulee ? 'Rétablir' : 'Marquer annulée'}
             </Button>
           </DialogFooter>
         </DialogContent>

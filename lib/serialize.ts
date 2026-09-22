@@ -92,6 +92,8 @@ export function serializeCourse(c: Course & { tarifs?: Tarif[] }) {
     archived: c.archived,
     archivedAt: iso(c.archivedAt),
     archivedBy: c.archivedBy ?? '',
+    annulee: c.annulee,
+    annuleeAt: iso(c.annuleeAt),
     hotel: c.hotel,
     transport: c.transport,
     supplementaire: c.supplementaire,

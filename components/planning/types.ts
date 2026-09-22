@@ -28,6 +28,8 @@ export interface CourseJson {
   visible: boolean;
   archived: boolean;
   archivedAt: string;
+  annulee: boolean;
+  annuleeAt: string;
   hotel: string;
   transport: string;
   supplementaire: string;

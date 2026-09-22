@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ArrowLeft, Calendar, CheckCircle2, Clock, Edit, Euro, EyeOff, FileText, Hotel, MapPin, Star, Train, Trash2, Users } from 'lucide-react';
+import { ArrowLeft, Calendar, CheckCircle2, Clock, Edit, Euro, EyeOff, FileText, Hotel, MapPin, Ban, Star, Train, Trash2, Undo2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,6 +29,24 @@ export default function AdminCourseDetailPage() {
   const [statusTarget, setStatusTarget] = React.useState<'done' | 'inProgress' | null>(null);
   const [busy, setBusy] = React.useState<Set<string>>(new Set());
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [cancelOpen, setCancelOpen] = React.useState(false);
+
+  const confirmCancel = async () => {
+    if (!course) return;
+    const annulee = !course.annulee;
+    setCancelOpen(false);
+    try {
+      const r = await fetchJson<{ course: CourseJson }>(`/api/courses/${course.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ annulee }),
+      });
+      setCourse(r.course);
+      toast.success(annulee ? 'Course marquée comme annulée' : 'Course rétablie');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la mise à jour');
+    }
+  };
   const [deleting, setDeleting] = React.useState(false);
 
   const confirmDelete = async () => {
@@ -171,6 +189,7 @@ export default function AdminCourseDetailPage() {
                 <span className={cn('h-1.5 w-1.5 rounded-full', done ? 'bg-emerald-500' : 'bg-orange-500')} />
                 {done ? 'Fait' : 'En cours'}
               </span>
+              {course.annulee && <span className="inline-flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-white"><Ban className="h-3 w-3" /> Annulée</span>}
               {course.archived && <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">Archivée</span>}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -189,13 +208,23 @@ export default function AdminCourseDetailPage() {
           <Button size="sm" onClick={() => setStatusTarget(done ? 'inProgress' : 'done')} className={done ? 'bg-orange-500 hover:bg-orange-600' : 'bg-emerald-600 hover:bg-emerald-700'}>
             {done ? <><Clock className="mr-2 h-4 w-4" /> Repasser en cours</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Passer en Fait</>}
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setCancelOpen(true)} className={course.annulee ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-300' : 'border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950'}>
+            {course.annulee ? <><Undo2 className="mr-2 h-4 w-4" /> Rétablir</> : <><Ban className="mr-2 h-4 w-4" /> Course annulée</>}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setDeleteOpen(true)} className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950">
             <Trash2 className="mr-2 h-4 w-4" /> Supprimer
           </Button>
         </div>
       </div>
 
-      {!done && (
+      {course.annulee && (
+        <div className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-100">
+          <Ban className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>Course annulée{course.annuleeAt ? ` le ${format(new Date(course.annuleeAt), 'd MMMM yyyy', { locale: fr })}` : ''} : elle apparaît en rouge chez les photographes et ne compte plus dans les coûts, les week-ends et les statistiques.</span>
+        </div>
+      )}
+
+      {!done && !course.annulee && (
         <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
           <EyeOff className="mt-0.5 h-4 w-4 shrink-0" />
           <span>Course en cours : les photographes ne voient que leur propre réponse. Vos validations et refus seront visibles au passage en « Fait ».</span>
@@ -390,6 +419,27 @@ export default function AdminCourseDetailPage() {
             <Button variant="outline" onClick={() => setStatusTarget(null)}>Annuler</Button>
             <Button onClick={confirmStatus} className={statusTarget === 'done' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-orange-500 hover:bg-orange-600'}>
               {statusTarget === 'done' ? 'Passer en Fait et publier' : 'Repasser en cours'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog annulation */}
+      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>{course.annulee ? 'Rétablir la course' : 'Marquer la course comme annulée'}</DialogTitle>
+            <DialogDescription>{course.nom}</DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {course.annulee
+              ? 'La course redevient normale : les affectations et les montants comptent de nouveau.'
+              : 'La course apparaîtra en rouge « Course annulée » chez les photographes. Les réponses sont conservées mais ne comptent plus (coûts, week-ends, statistiques).'}
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelOpen(false)}>Annuler</Button>
+            <Button onClick={confirmCancel} className={course.annulee ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 text-white hover:bg-red-700'}>
+              {course.annulee ? 'Rétablir' : 'Marquer annulée'}
             </Button>
           </DialogFooter>
         </DialogContent>

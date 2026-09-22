@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Archive, ArchiveRestore, ArrowUpDown, CheckCircle2, Clock, Filter, LayoutGrid, List, Plus, ZoomIn, ZoomOut } from 'lucide-react';
+import { Archive, ArchiveRestore, ArrowUpDown, CheckCircle2, Clock, Filter, LayoutGrid, List, Plus, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -112,6 +112,8 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
 
   const [statusDialog, setStatusDialog] = useState<StatusDialogState | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<CourseView | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CourseView | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // ---- Chargement ---------------------------------------------------------
 
@@ -346,6 +348,23 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
     }
   };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const course = deleteTarget;
+    setDeleting(true);
+    try {
+      await fetchJson(`/api/courses/${course.id}`, { method: 'DELETE' });
+      setCourses((prev) => prev.filter((c) => c.id !== course.id));
+      setDispos((prev) => prev.filter((d) => d.courseId !== course.id));
+      toast.success(`${course.nom} supprimée`);
+      setDeleteTarget(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la suppression');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const confirmArchive = async () => {
     if (!archiveTarget) return;
     const course = archiveTarget;
@@ -551,14 +570,14 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
           {months.map((group) => (
             <div key={group.key}>
               {/* Ligne du mois */}
-              <div className="sticky z-30 grid border-b-2 border-orange-200 bg-orange-50 font-semibold shadow-sm dark:border-orange-900 dark:bg-orange-950/60" style={{ gridTemplateColumns: gridTemplate, minWidth: 'max-content', top: headerHeight }}>
-                <div className="sticky left-0 z-10 border-r border-orange-200 bg-orange-50 p-3 dark:border-orange-900 dark:bg-orange-950/60" style={{ boxShadow: '2px 0 5px rgba(0,0,0,0.06)' }}>
+              <div className="sticky z-[35] grid border-b-2 border-orange-200 bg-orange-50 font-semibold shadow-sm dark:border-orange-900 dark:bg-orange-950" style={{ gridTemplateColumns: gridTemplate, minWidth: 'max-content', top: headerHeight }}>
+                <div className="sticky left-0 z-10 border-r border-orange-200 bg-orange-50 p-3 dark:border-orange-900 dark:bg-orange-950" style={{ boxShadow: '2px 0 5px rgba(0,0,0,0.06)' }}>
                   <div className="text-sm font-bold capitalize">{format(new Date(group.year, group.month), 'MMMM yyyy', { locale: fr })}</div>
                   <div className="mt-0.5 text-xs text-orange-800 dark:text-orange-200">
                     {formatEuros(group.courses.reduce((s, c) => s + c.cost, 0))}
                   </div>
                 </div>
-                <div className="sticky z-10 border-r border-orange-200 bg-orange-50 p-3 text-xs dark:border-orange-900 dark:bg-orange-950/60" style={{ left: 220 }}>
+                <div className="sticky z-10 border-r border-orange-200 bg-orange-50 p-3 text-xs dark:border-orange-900 dark:bg-orange-950" style={{ left: 220 }}>
                   {group.courses.length} course{group.courses.length > 1 ? 's' : ''}
                 </div>
                 {columns.map((u) => {
@@ -613,6 +632,15 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
                           title={course.archived ? 'Remettre dans le calendrier' : 'Archiver la course'}
                         >
                           {course.archived ? <ArchiveRestore className="h-3 w-3" /> : <Archive className="h-3 w-3" />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-5 shrink-0 p-0 text-muted-foreground/50 hover:text-red-600"
+                          onClick={() => setDeleteTarget(course)}
+                          title="Supprimer la course"
+                        >
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                       <div className="mb-1 flex items-center gap-1">
@@ -742,6 +770,26 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
             <Button variant="outline" onClick={() => setArchiveTarget(null)}>Annuler</Button>
             <Button onClick={confirmArchive} className={archiveTarget?.archived ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-orange-600 hover:bg-orange-700'}>
               {archiveTarget?.archived ? 'Remettre' : 'Archiver'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog suppression */}
+      <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && !deleting && setDeleteTarget(null)}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-red-600" /> Supprimer la course
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              <span className="font-semibold text-foreground">{deleteTarget?.nom}</span>, ses créneaux et toutes les réponses des photographes seront supprimés définitivement. Pour seulement la retirer du calendrier, préférez l’archivage.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>Annuler</Button>
+            <Button onClick={confirmDelete} disabled={deleting} className="bg-red-600 text-white hover:bg-red-700">
+              {deleting ? 'Suppression…' : 'Supprimer définitivement'}
             </Button>
           </DialogFooter>
         </DialogContent>

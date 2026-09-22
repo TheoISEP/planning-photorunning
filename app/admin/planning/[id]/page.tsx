@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ArrowLeft, Calendar, CheckCircle2, Clock, Edit, Euro, EyeOff, FileText, Hotel, MapPin, Star, Train, Users } from 'lucide-react';
+import { ArrowLeft, Calendar, CheckCircle2, Clock, Edit, Euro, EyeOff, FileText, Hotel, MapPin, Star, Train, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +28,21 @@ export default function AdminCourseDetailPage() {
   const [dispos, setDispos] = React.useState<DispoJson[]>([]);
   const [statusTarget, setStatusTarget] = React.useState<'done' | 'inProgress' | null>(null);
   const [busy, setBusy] = React.useState<Set<string>>(new Set());
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+
+  const confirmDelete = async () => {
+    if (!course) return;
+    setDeleting(true);
+    try {
+      await fetchJson(`/api/courses/${course.id}`, { method: 'DELETE' });
+      toast.success('Course supprimée');
+      router.push('/admin/planning');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la suppression');
+      setDeleting(false);
+    }
+  };
 
   const load = React.useCallback(async () => {
     try {
@@ -173,6 +188,9 @@ export default function AdminCourseDetailPage() {
           </Button>
           <Button size="sm" onClick={() => setStatusTarget(done ? 'inProgress' : 'done')} className={done ? 'bg-orange-500 hover:bg-orange-600' : 'bg-emerald-600 hover:bg-emerald-700'}>
             {done ? <><Clock className="mr-2 h-4 w-4" /> Repasser en cours</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Passer en Fait</>}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setDeleteOpen(true)} className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950">
+            <Trash2 className="mr-2 h-4 w-4" /> Supprimer
           </Button>
         </div>
       </div>
@@ -372,6 +390,25 @@ export default function AdminCourseDetailPage() {
             <Button variant="outline" onClick={() => setStatusTarget(null)}>Annuler</Button>
             <Button onClick={confirmStatus} className={statusTarget === 'done' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-orange-500 hover:bg-orange-600'}>
               {statusTarget === 'done' ? 'Passer en Fait et publier' : 'Repasser en cours'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog suppression */}
+      <Dialog open={deleteOpen} onOpenChange={(o) => !deleting && setDeleteOpen(o)}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Supprimer la course</DialogTitle>
+            <DialogDescription>{course.nom}</DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            La course, ses créneaux et toutes les réponses des photographes seront supprimés définitivement. Si vous voulez seulement la retirer du calendrier, préférez l’archivage.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>Annuler</Button>
+            <Button onClick={confirmDelete} disabled={deleting} className="bg-red-600 text-white hover:bg-red-700">
+              {deleting ? 'Suppression…' : 'Supprimer définitivement'}
             </Button>
           </DialogFooter>
         </DialogContent>

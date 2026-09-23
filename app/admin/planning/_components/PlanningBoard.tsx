@@ -25,7 +25,7 @@ const REGION_BG: Record<string, string> = {
   'Ile-de-France': 'bg-gray-50 dark:bg-gray-900/40',
   'Zone Lyon': 'bg-blue-50 dark:bg-blue-950/30',
   'Zone Centre': 'bg-amber-50 dark:bg-amber-950/30',
-  'Sud-Est': 'bg-green-200 dark:bg-green-900/50',
+  'Sud-Est': 'bg-stone-200 dark:bg-stone-800/60',
   'Sud-Ouest': 'bg-purple-50 dark:bg-purple-950/30',
   'Nord': 'bg-rose-50 dark:bg-rose-950/30',
 };
@@ -35,11 +35,16 @@ const regionRank = (region: string) => {
   return i === -1 ? REGION_ORDER.length : i;
 };
 
+/** Comptes de test (prénom « Test ») : relégués en fin de région. */
+const isTestAccount = (u: UserJson) => u.prenom.trim().toLowerCase() === 'test';
+
 function sortByRegion(users: UserJson[]) {
   return [...users].sort((a, b) => {
     const r = regionRank(a.region) - regionRank(b.region);
     if (r !== 0) return r;
     if (a.region !== b.region) return a.region.localeCompare(b.region);
+    const t = Number(isTestAccount(a)) - Number(isTestAccount(b));
+    if (t !== 0) return t;
     return `${a.prenom} ${a.nom}`.localeCompare(`${b.prenom} ${b.nom}`, 'fr');
   });
 }

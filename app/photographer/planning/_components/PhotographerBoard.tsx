@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ArrowUpDown, Ban, CalendarPlus, Info, Lock, Users } from 'lucide-react';
+import { ArrowUpDown, Ban, CalendarPlus, Info, Lock, Maximize2, Minimize2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -88,6 +88,17 @@ export function PhotographerBoard({ mode, linkBase = '/photographer/planning', s
   const [selectedId, setSelectedId] = useState<string>('');
   const headerRef = useRef<HTMLDivElement | null>(null);
   const [headerHeight, setHeaderHeight] = useState(44);
+  const [fullscreen, setFullscreen] = useState(false);
+
+  // Plein écran : Échap pour revenir
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFullscreen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [fullscreen]);
   useEffect(() => {
     const el = headerRef.current;
     if (!el) return;
@@ -265,7 +276,7 @@ export function PhotographerBoard({ mode, linkBase = '/photographer/planning', s
   const gridTemplate = `minmax(240px, 2fr) 90px ${people.map(() => 'minmax(150px, 1fr)').join(' ')}`;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden">
+    <div className={cn('flex min-h-0 flex-col gap-2 overflow-hidden', fullscreen ? 'fixed inset-0 z-[100] bg-background p-3 md:p-4' : 'h-full')}>
       {/* En-tête */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -290,6 +301,15 @@ export function PhotographerBoard({ mode, linkBase = '/photographer/planning', s
             {mode === 'archives'
               ? <Link href={archivesHref}><ArrowUpDown className="mr-2 h-4 w-4" /> Retour au calendrier</Link>
               : <Link href={statsHref}><ArrowUpDown className="mr-2 h-4 w-4" /> Mes statistiques</Link>}
+          </Button>
+          <Button
+            variant={fullscreen ? 'default' : 'outline'}
+            size="sm"
+            className="hidden h-9 md:inline-flex"
+            onClick={() => setFullscreen((f) => !f)}
+            title={fullscreen ? 'Quitter le plein écran (Échap)' : 'Planning en plein écran'}
+          >
+            {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
         </div>
       </div>

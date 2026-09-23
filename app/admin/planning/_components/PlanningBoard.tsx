@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Archive, ArchiveRestore, ArrowUpDown, CheckCircle2, Clock, Filter, LayoutGrid, List, Ban, Plus, Trash2, Undo2, ZoomIn, ZoomOut } from 'lucide-react';
+import { Archive, ArchiveRestore, ArrowUpDown, CheckCircle2, Clock, Filter, LayoutGrid, List, Ban, Maximize2, Minimize2, Plus, Trash2, Undo2, ZoomIn, ZoomOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -96,6 +96,17 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
 
   const [statutFilter, setStatutFilter] = useState<'all' | 'inProgress' | 'done'>('all');
   const [zoom, setZoom] = useState(90);
+  const [fullscreen, setFullscreen] = useState(false);
+
+  // Plein écran : Échap pour revenir
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFullscreen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [fullscreen]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const headerRef = useRef<HTMLDivElement | null>(null);
@@ -424,7 +435,14 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
   }
 
   return (
-    <div className="-mx-3 -my-4 flex h-[calc(100%+2rem)] min-h-0 flex-col gap-2 overflow-hidden px-3 py-3 md:-mx-6 md:-my-8 md:h-[calc(100%+4rem)] md:px-6 md:py-5">
+    <div
+      className={cn(
+        'flex min-h-0 flex-col gap-2 overflow-hidden',
+        fullscreen
+          ? 'fixed inset-0 z-[100] bg-background p-3 md:p-4'
+          : '-mx-3 -my-4 h-[calc(100%+2rem)] px-3 py-3 md:-mx-6 md:-my-8 md:h-[calc(100%+4rem)] md:px-6 md:py-5'
+      )}
+    >
       {/* En-tête */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -495,6 +513,14 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
             </button>
             <Button variant="outline" size="sm" onClick={() => setZoom((z) => Math.min(z + 10, 150))} disabled={zoom >= 150}>
               <ZoomIn className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={fullscreen ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFullscreen((f) => !f)}
+              title={fullscreen ? 'Quitter le plein écran (Échap)' : 'Planning en plein écran'}
+            >
+              {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </Button>
           </div>
         </div>
@@ -644,7 +670,9 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
                     style={{ gridTemplateColumns: gridTemplate, minWidth: 'max-content' }}
                   >
                     {/* Colonne course */}
-                    <div className={cn('sticky left-0 z-30 border-r border-gray-300 p-2 pr-1.5', stripe, faded && 'opacity-50')} style={{ boxShadow: '2px 0 5px rgba(0,0,0,0.06)' }}>
+                    {/* Le fond de la cellule figée reste opaque : seul son contenu est estompé */}
+                    <div className={cn('sticky left-0 z-30 border-r border-gray-300 p-2 pr-1.5', stripe)} style={{ boxShadow: '2px 0 5px rgba(0,0,0,0.06)' }}>
+                    <div className={cn(faded && 'opacity-50')}>
                       {course.annulee && (
                         <div className="mb-1 inline-flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
                           <Ban className="h-3 w-3" /> Annulée
@@ -721,10 +749,13 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
                         ))}
                       </div>
                     </div>
+                    </div>
 
                     {/* Colonne date */}
-                    <div className={cn('sticky z-30 flex flex-col justify-start gap-0.5 border-r border-gray-300 p-2', stripe, faded && 'opacity-50')} style={{ left: 220, boxShadow: '2px 0 5px rgba(0,0,0,0.06)' }}>
-                      <CourseDates course={course} />
+                    <div className={cn('sticky z-30 border-r border-gray-300 p-2', stripe)} style={{ left: 220, boxShadow: '2px 0 5px rgba(0,0,0,0.06)' }}>
+                      <div className={cn('flex flex-col justify-start gap-0.5', faded && 'opacity-50')}>
+                        <CourseDates course={course} />
+                      </div>
                     </div>
 
                     {/* Cellules */}

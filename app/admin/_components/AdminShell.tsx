@@ -71,6 +71,10 @@ function getAdminMeta(pathname: string): { title: string; crumbs: Crumb[]; prima
 			crumbs.push({ label: "Nouveau" });
 			return { title: "Nouveau photographe", crumbs };
 		}
+		if (parts[2] === "ranking") {
+			crumbs.push({ label: "Classement" });
+			return { title: "Classement des photographes", crumbs };
+		}
 		crumbs.push({ label: `Photographe` });
 		return { title: "Détails du photographe", crumbs };
 	}

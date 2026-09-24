@@ -145,3 +145,87 @@ export async function weekendSummaries(): Promise<Record<string, WeekendSummary>
   }
   return result;
 }
+
+// ---------------------------------------------------------------------------
+// Classement des photographes
+// ---------------------------------------------------------------------------
+
+export interface RankingCourse {
+  courseId: string;
+  nom: string;
+  ville: string;
+  date: string;
+  statut: 'validated' | 'teamLeader';
+  montant: number;
+  tarif: string;
+}
+
+export interface RankingEntry {
+  id: string;
+  prenom: string;
+  nom: string;
+  region: string;
+  role: 'admin' | 'photographer';
+  actif: boolean;
+  /** true = regroupement de tous les comptes « Test » */
+  test: boolean;
+  courses: number;
+  referent: number;
+  valide: number;
+  montant: number;
+  details: RankingCourse[];
+}
+
+/**
+ * Classement des photographes par courses validées (validé + référent) et CA
+ * réalisé. Toutes les décisions (publiées ou non) sont comptées, hors courses
+ * annulées et archivées-supprimées. Les comptes dont le prénom est « Test »
+ * sont regroupés sous une seule ligne.
+ */
+export async function photographerRanking(year?: number): Promise<RankingEntry[]> {
+  const [users, dispos] = await Promise.all([
+    db.user.findMany({ select: { id: true, prenom: true, nom: true, region: true, role: true, actif: true, nonRemunere: true } }),
+    db.disponibilite.findMany({
+      where: { decision: { in: ['validated', 'teamLeader'] }, course: { annulee: false } },
+      include: { course: { select: { id: true, nom: true, ville: true, dateDebut: true } }, tarif: true },
+    }),
+  ]);
+  const byUser = new Map(users.map((u) => [u.id, u]));
+  const entries = new Map<string, RankingEntry>();
+
+  for (const d of dispos) {
+    const u = byUser.get(d.photographeId);
+    if (!u) continue;
+    if (year && parisYearMonth(d.course.dateDebut).year !== year) continue;
+    const isTest = u.prenom.trim().toLowerCase() === 'test';
+    const key = isTest ? '__test__' : u.id;
+    let e = entries.get(key);
+    if (!e) {
+      e = isTest
+        ? { id: key, prenom: 'Test', nom: '(tous les comptes de test)', region: '', role: 'photographer', actif: true, test: true, courses: 0, referent: 0, valide: 0, montant: 0, details: [] }
+        : { id: u.id, prenom: u.prenom, nom: u.nom, region: u.region ?? '', role: u.role, actif: u.actif, test: false, courses: 0, referent: 0, valide: 0, montant: 0, details: [] };
+      entries.set(key, e);
+    }
+    const statut = d.decision as 'validated' | 'teamLeader';
+    const montant = amountFor(statut, d.tarif, { nonRemunere: !!u.nonRemunere });
+    e.details.push({ courseId: d.course.id, nom: d.course.nom, ville: d.course.ville, date: d.course.dateDebut.toISOString(), statut, montant, tarif: d.tarif.nom });
+  }
+
+  for (const e of entries.values()) {
+    // Une course = un événement, même avec plusieurs créneaux validés.
+    const perCourse = new Map<string, { ref: boolean; montant: number }>();
+    for (const c of e.details) {
+      const cur = perCourse.get(c.courseId) ?? { ref: false, montant: 0 };
+      cur.ref = cur.ref || c.statut === 'teamLeader';
+      cur.montant += c.montant;
+      perCourse.set(c.courseId, cur);
+    }
+    e.courses = perCourse.size;
+    e.referent = [...perCourse.values()].filter((c) => c.ref).length;
+    e.valide = e.courses - e.referent;
+    e.montant = [...perCourse.values()].reduce((s, c) => s + c.montant, 0);
+    e.details.sort((a, b) => b.date.localeCompare(a.date));
+  }
+
+  return [...entries.values()].sort((a, b) => b.courses - a.courses || b.montant - a.montant || `${a.prenom} ${a.nom}`.localeCompare(`${b.prenom} ${b.nom}`, 'fr'));
+}

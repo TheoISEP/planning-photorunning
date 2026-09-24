@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, ChevronLeft, ChevronRight, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Search, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -115,12 +115,20 @@ export default function PhotographersListPage() {
               Gérez les comptes photographes
             </p>
           </div>
-          <Link href="/admin/photographers/new">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Créer un photographe
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/admin/photographers/ranking">
+              <Button variant="outline">
+                <Trophy className="h-4 w-4 mr-2" />
+                Classement
+              </Button>
+            </Link>
+            <Link href="/admin/photographers/new">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Créer un photographe
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 

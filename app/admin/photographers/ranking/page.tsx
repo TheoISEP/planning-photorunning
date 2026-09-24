@@ -68,7 +68,8 @@ export default function PhotographerRankingPage() {
     [rows, sort]
   );
   const totals = React.useMemo(
-    () => rows.reduce((s, r) => ({ courses: s.courses + r.courses, referent: s.referent + r.referent, montant: s.montant + r.montant }), { courses: 0, referent: 0, montant: 0 }),
+    // Les admins restent dans le tableau mais ne comptent pas dans les totaux.
+    () => rows.filter((r) => r.role !== 'admin').reduce((s, r) => ({ n: s.n + 1, courses: s.courses + r.courses, referent: s.referent + r.referent, montant: s.montant + r.montant }), { n: 0, courses: 0, referent: 0, montant: 0 }),
     [rows]
   );
   const years = Array.from({ length: currentYear + 1 - 2019 }, (_, i) => String(currentYear + 1 - i));
@@ -113,9 +114,9 @@ export default function PhotographerRankingPage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Photographes classés</div><div className="text-2xl font-bold">{rows.length}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Photographes classés <span className="opacity-70">(hors admins)</span></div><div className="text-2xl font-bold">{totals.n}</div></CardContent></Card>
         <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Prestations (validé + référent)</div><div className="text-2xl font-bold">{totals.courses} <span className="text-sm font-medium text-muted-foreground">dont {totals.referent} en référent</span></div></CardContent></Card>
-        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Montant total versé</div><div className="text-2xl font-bold">{formatEuros(totals.montant)}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Montant total versé <span className="opacity-70">(hors admins)</span></div><div className="text-2xl font-bold">{formatEuros(totals.montant)}</div></CardContent></Card>
       </div>
 
       <Card>

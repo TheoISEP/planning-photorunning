@@ -227,5 +227,5 @@ export async function photographerRanking(year?: number): Promise<RankingEntry[]
     e.details.sort((a, b) => b.date.localeCompare(a.date));
   }
 
-  return [...entries.values()].sort((a, b) => b.courses - a.courses || b.montant - a.montant || `${a.prenom} ${a.nom}`.localeCompare(`${b.prenom} ${b.nom}`, 'fr'));
+  return [...entries.values()].sort((a, b) => b.montant - a.montant || b.courses - a.courses || `${a.prenom} ${a.nom}`.localeCompare(`${b.prenom} ${b.nom}`, 'fr'));
 }

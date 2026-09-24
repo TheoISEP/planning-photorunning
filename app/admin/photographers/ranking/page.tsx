@@ -42,7 +42,7 @@ type SortKey = 'courses' | 'referent' | 'montant';
 export default function PhotographerRankingPage() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = React.useState<string>('all');
-  const [sort, setSort] = React.useState<SortKey>('courses');
+  const [sort, setSort] = React.useState<SortKey>('montant');
   const [loading, setLoading] = React.useState(true);
   const [rows, setRows] = React.useState<RankingEntry[]>([]);
   const [open, setOpen] = React.useState<Set<string>>(new Set());

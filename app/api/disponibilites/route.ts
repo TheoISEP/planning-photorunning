@@ -5,6 +5,7 @@ import { photographerCanEdit, resolveTarifId, setDispoStatut } from '@/lib/data/
 import { courseInclude } from '@/lib/data/courses';
 import { isDeclaration, isStatut } from '@/lib/planning';
 import { serializeCourse, serializeDispo } from '@/lib/serialize';
+import { synchroniserSansEchec } from '@/lib/briefs-integration';
 
 /**
  * GET /api/disponibilites?courseId=&photographerId=
@@ -92,6 +93,8 @@ async function applyChange(user: SessionUser, body: Record<string, unknown>): Pr
     statut,
     noteAdmin: user.role === 'admin' && typeof body.noteAdmin === 'string' ? body.noteAdmin : undefined,
   });
+  // Course déjà « Fait » : une décision qui change doit se voir dans le brief.
+  if (user.role === 'admin' && dispo.published) await synchroniserSansEchec(courseId);
   return NextResponse.json({ disponibilite: serializeDispo(dispo, user.role), success: true });
 }
 
@@ -135,6 +138,7 @@ export async function PUT(request: NextRequest) {
       const d = await setDispoStatut({ courseId: body.courseId, photographeId: item.photographeId, tarifId: item.tarifId ?? null, statut: body.statut });
       results.push(serializeDispo(d, 'admin'));
     }
+    if (results.some((r) => r.published)) await synchroniserSansEchec(body.courseId);
     return NextResponse.json({ success: true, count: results.length, disponibilites: results });
   } catch (error) {
     return serverError('Erreur lors de la mise à jour en masse', error);

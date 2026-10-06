@@ -179,6 +179,9 @@ model Course {
   /// Nombre de photographes attendus (objectif)
   numberAttended   Int?
   briefPdfUrl      String?
+  /// Brief créé dans l'app des briefs (briefs-photorunning) à la création de la course
+  briefId          String?
+  briefUrl         String?
   dateCreation     DateTime     @default(now())
   creePar          String?
   visible          Boolean      @default(true)

@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { badRequest, forbidden, getSessionUser, serverError, unauthorized } from '@/lib/api-auth';
 import { courseDataFromInput, courseInclude, ensureDisposForCourse, syncCourseTarifs, tarifsFromInput } from '@/lib/data/courses';
 import { serializeCourse, toDate } from '@/lib/serialize';
+import { creerBriefPourCourse } from '@/lib/briefs-integration';
 
 // GET /api/courses — toutes les courses (avec leurs créneaux)
 export async function GET() {
@@ -55,7 +56,17 @@ export async function POST(request: NextRequest) {
       return tx.course.findUniqueOrThrow({ where: { id }, include: courseInclude });
     }, { timeout: 20000 });
 
-    return NextResponse.json({ course: serializeCourse(course), success: true }, { status: 201 });
+    // Le brief de la course, créé depuis le template « hôtel et transport »
+    // (nom et date remplis, à finaliser à la main). En échec, la course
+    // existe quand même : le bouton « Créer le brief » de la fiche rattrape.
+    let brief: { briefId: string; briefUrl: string } | null = null;
+    try {
+      brief = await creerBriefPourCourse(id);
+    } catch (err) {
+      console.error(`[briefs] création du brief en échec (course ${id})`, err);
+    }
+    const final = brief ? await db.course.findUniqueOrThrow({ where: { id }, include: courseInclude }) : course;
+    return NextResponse.json({ course: serializeCourse(final), success: true, brief }, { status: 201 });
   } catch (error) {
     return serverError('Erreur lors de la création de la course', error);
   }

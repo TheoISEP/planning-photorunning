@@ -48,6 +48,23 @@ export default function AdminCourseDetailPage() {
     }
   };
   const [deleting, setDeleting] = React.useState(false);
+  const [briefBusy, setBriefBusy] = React.useState(false);
+
+  // Brief dans l'app des briefs : créé à la création de la course ; ce bouton
+  // rattrape (brief absent) ou renvoie les photographes validés au tableau.
+  const syncBrief = async () => {
+    if (!course) return;
+    setBriefBusy(true);
+    try {
+      const r = await fetchJson<{ briefUrl: string; photographes: number }>(`/api/courses/${course.id}/brief`, { method: 'POST' });
+      setCourse({ ...course, briefUrl: r.briefUrl });
+      toast.success(`Brief à jour : ${r.photographes} photographe(s) dans le tableau`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la création du brief');
+    } finally {
+      setBriefBusy(false);
+    }
+  };
 
   const confirmDelete = async () => {
     if (!course) return;
@@ -268,11 +285,16 @@ export default function AdminCourseDetailPage() {
             <FileText className="h-8 w-8 text-gray-500" />
             <div>
               <div className="text-xs text-muted-foreground">Brief</div>
-              {course.briefPdfUrl ? (
+              {course.briefUrl ? (
+                <a href={course.briefUrl} target="_blank" rel="noreferrer" className="text-sm font-semibold text-sky-700 hover:underline">Ouvrir le brief</a>
+              ) : course.briefPdfUrl ? (
                 <a href={course.briefPdfUrl} target="_blank" rel="noreferrer" className="text-sm font-semibold text-sky-700 hover:underline">Ouvrir le PDF</a>
               ) : (
                 <div className="text-sm text-muted-foreground">Aucun</div>
               )}
+              <button type="button" onClick={syncBrief} disabled={briefBusy} className="mt-1 block text-xs text-muted-foreground underline disabled:opacity-50">
+                {briefBusy ? 'En cours…' : course.briefUrl ? 'Renvoyer les photographes validés' : 'Créer le brief'}
+              </button>
             </div>
           </CardContent>
         </Card>

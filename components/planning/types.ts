@@ -25,6 +25,8 @@ export interface CourseJson {
   coureursAttendus: number;
   numberAttended: number;
   briefPdfUrl: string;
+  briefId?: string;
+  briefUrl?: string;
   visible: boolean;
   archived: boolean;
   archivedAt: string;

@@ -86,6 +86,8 @@ export function serializeCourse(c: Course & { tarifs?: Tarif[] }) {
     coureursAttendus: c.coureursAttendus ?? 0,
     numberAttended: c.numberAttended ?? 0,
     briefPdfUrl: c.briefPdfUrl ?? '',
+    briefId: c.briefId ?? '',
+    briefUrl: c.briefUrl ?? '',
     dateCreation: iso(c.dateCreation),
     creePar: c.creePar ?? '',
     visible: c.visible,

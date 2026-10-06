@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { badRequest, forbidden, getSessionUser, notFound, serverError, unauthorized } from '@/lib/api-auth';
 import { courseDataFromInput, courseInclude, setCourseStatus, syncCourseTarifs, tarifsFromInput } from '@/lib/data/courses';
 import { serializeCourse } from '@/lib/serialize';
+import { synchroniserSansEchec } from '@/lib/briefs-integration';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -54,6 +55,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       } else {
         const r = await setCourseStatus(id, data.statutTraitement);
         info.published = r.published;
+        // Décisions publiées : les validés partent dans le tableau du brief.
+        if (data.statutTraitement === 'done') await synchroniserSansEchec(id);
       }
     } else if (data.statutTraitement !== undefined) {
       return badRequest('statutTraitement invalide');

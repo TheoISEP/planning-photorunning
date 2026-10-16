@@ -333,7 +333,7 @@ export function AdminShell({ children, user }: { children: React.ReactNode; user
 				{/* Main column */}
 				<div className="flex min-w-0 flex-1 flex-col pr-3 py-3 pl-0 md:pr-3 md:py-3 md:pl-0 p-2">
 					<header className="z-40 shrink-0 mb-3 rounded-2xl border bg-card shadow-md md:mb-3 mb-2">
-						<div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-2 px-3 py-3 md:px-6 md:gap-3">
+						<div className="flex w-full items-center justify-between gap-2 px-3 py-3 md:px-6 md:gap-3">
 							<div className="flex min-w-0 items-center gap-3">
 								{/* Mobile menu - only render Dialog after mount to prevent hydration mismatch */}
 								<div className="md:hidden">
@@ -406,7 +406,8 @@ export function AdminShell({ children, user }: { children: React.ReactNode; user
 					</header>
 
 					<AdminMain className="min-w-0 flex-1 overflow-y-auto rounded-2xl border bg-card shadow-md">
-						<div className="mx-auto h-full w-full max-w-[1440px] px-3 py-4 md:px-6 md:py-8">{children}</div>
+						{/* Pleine largeur (Théo, 16/10/2026, grand écran) : plus de bandes vides sur les côtés. */}
+						<div className="h-full w-full px-3 py-4 md:px-6 md:py-8">{children}</div>
 					</AdminMain>
 				</div>
 			</div>

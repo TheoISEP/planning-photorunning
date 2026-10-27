@@ -113,6 +113,17 @@ export function serializeCourse(c: Course & { tarifs?: Tarif[] }) {
 
 export type CourseJson = ReturnType<typeof serializeCourse>;
 
+/**
+ * Les coûts d'une course (hôtel, transport, repas, commission organisateur)
+ * ne regardent que les admins : retirés pour tout autre viewer (site et app
+ * mobile, 27/10/2026).
+ */
+export function serializeCourseFor(c: Parameters<typeof serializeCourse>[0], viewer: Viewer) {
+  const json = serializeCourse(c);
+  if (viewer === 'admin') return json;
+  return { ...json, hotelPrice: null, transportPrice: null, foodPrice: null, comOrga: null };
+}
+
 export function serializeDispo(d: Disponibilite, viewer: Viewer) {
   const statut: Statut = effectiveStatut(d, viewer);
   return {

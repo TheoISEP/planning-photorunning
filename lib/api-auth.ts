@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { auth } from './auth';
 import { db } from './db';
+import { appareilDeLEntete, estRefus } from './mobile/appareils';
 
 export interface SessionUser {
   id: string;
@@ -13,7 +14,16 @@ export interface SessionUser {
 
 /** Utilisateur connecté (session better-auth), ou null. */
 export async function getSessionUser(): Promise<SessionUser | null> {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const h = await headers();
+  // App mobile équipe : jeton d'appareil (« Bearer prm_… »), voir lib/mobile.
+  // Toutes les routes existantes acceptent ainsi l'app sans autre changement.
+  const authorization = h.get('authorization');
+  if (authorization?.startsWith('Bearer prm_')) {
+    const appareil = await appareilDeLEntete(authorization);
+    if (!appareil || estRefus(appareil)) return null;
+    return appareil.user;
+  }
+  const session = await auth.api.getSession({ headers: h });
   if (!session?.user) return null;
   const u = session.user as unknown as {
     id: string;

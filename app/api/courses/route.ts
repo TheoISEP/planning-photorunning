@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { badRequest, forbidden, getSessionUser, serverError, unauthorized } from '@/lib/api-auth';
 import { courseDataFromInput, courseInclude, ensureDisposForCourse, syncCourseTarifs, tarifsFromInput } from '@/lib/data/courses';
-import { serializeCourse, toDate } from '@/lib/serialize';
+import { serializeCourse, serializeCourseFor, toDate } from '@/lib/serialize';
 import { creerBriefPourCourse } from '@/lib/briefs-integration';
 
 // GET /api/courses — toutes les courses (avec leurs créneaux)
@@ -11,7 +11,7 @@ export async function GET() {
     const user = await getSessionUser();
     if (!user) return unauthorized();
     const courses = await db.course.findMany({ include: courseInclude, orderBy: { dateDebut: 'asc' } });
-    return NextResponse.json({ courses: courses.map(serializeCourse) });
+    return NextResponse.json({ courses: courses.map((c) => serializeCourseFor(c, user.role)) });
   } catch (error) {
     return serverError('Erreur lors de la récupération des courses', error);
   }

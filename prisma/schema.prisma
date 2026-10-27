@@ -98,6 +98,7 @@ model User {
   sessions       Session[]
   accounts       Account[]
   disponibilites Disponibilite[]
+  mobileDevices  MobileDevice[]
 
   @@index([role, actif])
   @@map("user")
@@ -259,4 +260,51 @@ model MonthlyCost {
   softCost Float  @default(0)
 
   @@map("monthly_cost")
+}
+
+// ---------------------------------------------------------------------------
+// App mobile équipe (iPhone / Android) — 27/10/2026
+// ---------------------------------------------------------------------------
+
+/// Un téléphone connecté à l'app. Le jeton (aléatoire, 256 bits) n'est jamais
+/// stocké en clair : seulement son empreinte SHA-256. Révoquer = l'app est
+/// déconnectée et vide ses données à sa prochaine connexion au réseau.
+model MobileDevice {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique
+  platform    String    @default("")
+  deviceName  String    @default("")
+  model       String    @default("")
+  osVersion   String    @default("")
+  appVersion  String    @default("")
+  buildNumber String    @default("")
+  /// Mise à jour à chaud (EAS Update) en cours sur le téléphone
+  updateId    String?
+  createdAt   DateTime  @default(now())
+  lastSeenAt  DateTime  @default(now())
+  lastSyncAt  DateTime?
+  revokedAt   DateTime?
+  revokedBy   String?
+
+  @@index([userId])
+  @@index([revokedAt, lastSeenAt])
+  @@map("mobile_device")
+}
+
+/// Réglage unique (id = "singleton") : versions de l'app et liens des stores.
+///  - en dessous de minVersion : écran bloquant « mets à jour pour continuer »
+///  - en dessous de latestVersion : bandeau « nouvelle version disponible »
+model MobileAppConfig {
+  id            String   @id @default("singleton")
+  latestVersion String   @default("1.0.0")
+  minVersion    String   @default("1.0.0")
+  message       String   @default("")
+  iosUrl        String   @default("")
+  androidUrl    String   @default("")
+  updatedAt     DateTime @default(now()) @updatedAt
+  updatedBy     String?
+
+  @@map("mobile_app_config")
 }

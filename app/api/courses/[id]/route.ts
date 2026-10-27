@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { badRequest, forbidden, getSessionUser, notFound, serverError, unauthorized } from '@/lib/api-auth';
 import { courseDataFromInput, courseInclude, setCourseStatus, syncCourseTarifs, tarifsFromInput } from '@/lib/data/courses';
-import { serializeCourse } from '@/lib/serialize';
+import { serializeCourse, serializeCourseFor } from '@/lib/serialize';
 import { synchroniserSansEchec } from '@/lib/briefs-integration';
 
 type Params = { params: Promise<{ id: string }> };
@@ -15,7 +15,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
     const { id } = await params;
     const course = await db.course.findUnique({ where: { id }, include: courseInclude });
     if (!course) return notFound('Course introuvable');
-    return NextResponse.json({ course: serializeCourse(course) });
+    return NextResponse.json({ course: serializeCourseFor(course, user.role) });
   } catch (error) {
     return serverError('Erreur lors de la récupération de la course', error);
   }

@@ -15,6 +15,7 @@ import {
 	Menu,
 	Plus,
 	Shield,
+	Smartphone,
 	UserCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,7 @@ const NAV_ITEMS: NavItem[] = [
 	{ href: "/admin/archives", label: "Archives", icon: Archive },
 	{ href: "/admin/photographers", label: "Photographes", icon: Camera },
 	{ href: "/admin/admins", label: "Admins", icon: Shield },
+	{ href: "/admin/mobile", label: "App mobile", icon: Smartphone },
 	{ href: "/admin/account", label: "Mon compte", icon: UserCircle },
 ];
 
@@ -139,6 +141,11 @@ function getAdminMeta(pathname: string): { title: string; crumbs: Crumb[]; prima
 		}
 
 		return { title: "Mon calendrier", crumbs };
+	}
+
+	if (section === "mobile") {
+		crumbs.push({ label: "App mobile" });
+		return { title: "App mobile", crumbs };
 	}
 
 	if (section === "account") {

@@ -100,8 +100,9 @@ export async function updateUser(id: string, data: Record<string, unknown>, opti
       const acc = await tx.account.findFirst({ where: { userId: id, providerId: 'credential' } });
       if (acc) await tx.account.update({ where: { id: acc.id }, data: { password: hashed } });
       else await tx.account.create({ data: { id: `acc-${id}`, accountId: id, providerId: 'credential', userId: id, password: hashed } });
-      // Changement de mot de passe : on ferme les autres sessions
+      // Changement de mot de passe : on ferme les autres sessions, téléphones compris
       await tx.session.deleteMany({ where: { userId: id } });
+      await tx.mobileDevice.updateMany({ where: { userId: id, revokedAt: null }, data: { revokedAt: new Date(), revokedBy: 'mot-de-passe' } });
     }
     if (update.actif === true && current.actif === false) {
       await ensureDisposForUser(tx, id);

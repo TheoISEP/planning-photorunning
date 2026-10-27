@@ -1,0 +1,96 @@
+{
+  "expo": {
+    "name": "PhotoRunning Équipe",
+    "slug": "photorunning-equipe",
+    "scheme": "photorunning-equipe",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "ios": {
+      "bundleIdentifier": "com.photorunning.equipe",
+      "supportsTablet": false,
+      "associatedDomains": [
+        "applinks:briefs-photorunning.vercel.app",
+        "applinks:www.jecourse.fr",
+        "applinks:jecourse.fr"
+      ],
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.photorunning.equipe",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F172A",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "allowBackup": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "briefs-photorunning.vercel.app",
+              "pathPrefix": "/share/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.jecourse.fr",
+              "pathPrefix": "/photographer/"
+            },
+            {
+              "scheme": "https",
+              "host": "jecourse.fr",
+              "pathPrefix": "/photographer/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#0F172A"
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Face ID protège l’annuaire PhotoRunning gardé sur ce téléphone."
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Face ID protège l’annuaire PhotoRunning gardé sur ce téléphone.",
+          "configureAndroidBackup": true
+        }
+      ],
+      "expo-web-browser",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

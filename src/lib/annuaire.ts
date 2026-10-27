@@ -66,6 +66,9 @@ export async function connecterAnnuaire(email: string, motDePasse: string) {
 export async function deverrouillerAnnuaire(): Promise<'ok' | 'annule' | 'indisponible'> {
   // NONE : ni biométrie ni code sur le téléphone. Sinon Face ID / empreinte,
   // avec repli sur le code du téléphone.
+  // Copie trop ancienne : effacée, on redemande la connexion à l'annuaire.
+  await verifierExpirationAnnuaire();
+  if (!lire().annuaire.connecte) return 'annule';
   const niveau = await LocalAuthentication.getEnrolledLevelAsync();
   if (niveau === LocalAuthentication.SecurityLevel.NONE) return 'indisponible';
   const r = await LocalAuthentication.authenticateAsync({

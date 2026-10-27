@@ -136,7 +136,7 @@ export function nettoyerFichiers(clesGardees: Set<string>): number {
   const garder = new Set([...clesGardees].map(nomDeCle));
   let n = 0;
   for (const x of d.list()) {
-    if (x instanceof File && !garder.has(x.name)) {
+    if (x instanceof File && !garder.has(x.name) && !x.name.endsWith('.part')) {
       x.delete();
       n++;
     }

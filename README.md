@@ -19,7 +19,7 @@ Téléphone ──► planning (jecourse.fr)  /api/mobile/*      jeton d'apparei
 Téléphone ──► admin  /api/annuaire/mobile/*   (admins, compte de l'annuaire, Bearer)
 ```
 
-Le téléphone n'a jamais les clés de liaison. Le planning décide qui voit quoi (un photographe : les briefs des courses où il est retenu, et ceux dont le tableau le nomme ; jamais les coûts des courses).
+Le téléphone n'a jamais les clés de liaison. Le planning décide qui voit quoi : un photographe voit les briefs des courses où il est retenu (décision publiée), et ceux qu'on lui envoie par lien ; jamais les coûts des courses. Aucun rapprochement par le nom (un photographe peut changer le sien dans son profil).
 
 ## Développer
 

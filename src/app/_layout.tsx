@@ -6,7 +6,7 @@ import { useEffect, useRef } from 'react';
 import { AppState, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ANNUAIRE_VERROU_ARRIERE_PLAN_MS } from '@/lib/config';
-import { synchroniserAnnuaire, verrouillerAnnuaire } from '@/lib/annuaire';
+import { synchroniserAnnuaire, verifierExpirationAnnuaire, verrouillerAnnuaire } from '@/lib/annuaire';
 import { verifierMiseAJourAChaud } from '@/lib/majChaud';
 import { useEtat } from '@/lib/store';
 import { demarrer, fermerAvis, marquerHorsLigne, rafraichirConfig, synchroniser, versionBloquee } from '@/lib/synchro';
@@ -47,6 +47,7 @@ export default function Racine() {
       if (etat === 'active') {
         if (quitteeA.current && Date.now() - quitteeA.current > ANNUAIRE_VERROU_ARRIERE_PLAN_MS) verrouillerAnnuaire();
         quitteeA.current = null;
+        void verifierExpirationAnnuaire();
         void rafraichirConfig();
         void synchroniser();
         void verifierMiseAJourAChaud();

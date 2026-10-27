@@ -131,7 +131,7 @@ export function groupesParMois(courses: Course[], mode: 'actives' | 'archives', 
     g.courses.push(c);
   }
   const liste = [...groupes.values()].map((g) => ({ ...g, courses: g.courses.sort((a, b) => a.dateDebut.localeCompare(b.dateDebut)) }));
-  liste.sort((a, b) => (mode === 'archives' ? b.annee - a.annee || b.mois - a.mois : a.annee - b.annee || a.mois - b.mois));
+  liste.sort((a, b) => a.annee - b.annee || a.mois - b.mois);
   return liste;
 }
 

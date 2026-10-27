@@ -10,8 +10,8 @@ import type { BriefIndex } from '@/lib/types';
 import { Texte, Vide } from '@/components/ui';
 
 /**
- * Les briefs : ceux des courses où l'on est retenu (et ceux où l'on figure
- * dans le tableau), plus ceux ouverts par un lien. Chez un admin, tous.
+ * Les briefs : ceux des courses où l'on est retenu, plus ceux ouverts par un
+ * lien. Chez un admin, tous.
  * Chaque ligne dit si le brief est complet sur le téléphone.
  */
 export default function OngletBriefs() {

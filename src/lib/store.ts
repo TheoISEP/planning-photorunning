@@ -31,6 +31,8 @@ export interface BriefLocal {
   fichiers: 'complets' | 'partiels' | 'aucun';
   /** Gardé hors ligne à la demande (admins), même loin de sa date */
   epingle?: boolean;
+  /** Quand le brief a été chargé (ses adresses de fichiers valent 6 h) */
+  chargeLe?: string;
 }
 
 export interface EtatApp {

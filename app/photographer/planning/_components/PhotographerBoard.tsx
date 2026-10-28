@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { amountFor, defaultDecision, weekendKey, type Statut } from '@/lib/planning';
+import { amountFor, defaultDecision, estAuxArchives, weekendKey, type Statut } from '@/lib/planning';
 import { StatutSelect } from '@/components/planning/StatutSelect';
 import { DECLARATION_OPTIONS, STATUT_META, formatEuros, isWorkingStatut } from '@/components/planning/statuts';
 import { dispoKey, fetchJson, type CourseJson, type DispoJson, type TarifJson, type UserJson, type WeekendSummaryJson } from '@/components/planning/types';
@@ -197,12 +197,13 @@ export function PhotographerBoard({ mode, linkBase = '/photographer/planning', s
   );
 
   const months = useMemo<MonthGroup[]>(() => {
-    const visible = courses.filter((c) => {
-      if (mode === 'archives') return c.archived;
-      if (!c.archived) return true;
-      const d = new Date(c.dateDebut);
-      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-    });
+    /*
+     * ⚠ LA MÊME RÈGLE QUE LE CALENDRIER DE L'ADMIN (lib/planning.ts) : une
+     * course part aux archives cinq jours après sa fin. Deux règles
+     * différentes pour un seul calendrier, et le photographe ne voit pas la
+     * même chose que celui qui l'a affecté.
+     */
+    const visible = courses.filter((c) => estAuxArchives(c, now) === (mode === 'archives'));
     const groups = new Map<string, MonthGroup>();
     for (const c of visible) {
       const d = new Date(c.dateDebut);

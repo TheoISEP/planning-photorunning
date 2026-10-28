@@ -143,3 +143,67 @@ export function dispoId(courseId: string, photographeId: string, tarifId: string
 export function tarifId(courseId: string, ordre: number): string {
   return `tarif-${courseId}-${ordre + 1}-${Date.now().toString(36)}`;
 }
+
+/* -------------------------------------------------------------------------- */
+/* CALENDRIER OU ARCHIVES                                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * COMBIEN DE TEMPS UNE COURSE RESTE AU CALENDRIER APRÈS SA FIN
+ * (28/10/2026, Théo : « à J+5 de l'event ça part du planning et ça va dans
+ * archives »).
+ *
+ * ⚠ AVANT, RIEN NE PARTAIT TOUT SEUL. Une course passée restait au
+ * calendrier indéfiniment, simplement grisée, tant que personne ne cliquait
+ * « Archiver » ; et une course archivée à la main continuait de s'afficher
+ * jusqu'à la fin du mois en cours. De l'extérieur, ça ressemblait à une
+ * fenêtre d'un mois — c'est ce que Théo a pris pour un bug de 30 jours.
+ *
+ * ⚠ LA DATE DÉCIDE, PAS UN CLIC. Le rangement se déduit de la date de fin :
+ * il n'y a donc rien à lancer, rien qui puisse oublier de tourner, et la
+ * règle vaut aussi pour les courses d'il y a six mois sans qu'on ait à
+ * rattraper quoi que ce soit. Le bouton « Archiver » sert encore à ranger
+ * une course PLUS TÔT que le délai.
+ */
+export const JOURS_AVANT_ARCHIVAGE = 5;
+
+/**
+ * Nombre de jours de calendrier écoulés entre deux dates, minuit à minuit.
+ *
+ * ⚠ ON COMPTE DES JOURS, PAS DES HEURES. Une course finie dimanche à 14 h
+ * ne doit pas être rangée une demi-journée plus tôt qu'une course finie
+ * dimanche à 23 h : c'est la même journée. Passer par minuit local évite
+ * aussi qu'un changement d'heure décale le compte d'un jour.
+ */
+export function joursEcoules(depuis: Date, maintenant: Date): number {
+  const a = new Date(depuis.getFullYear(), depuis.getMonth(), depuis.getDate()).getTime();
+  const b = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate()).getTime();
+  return Math.round((b - a) / 86_400_000);
+}
+
+/** La course est-elle rangée aux archives ? Sinon, elle est au calendrier. */
+export function estAuxArchives(
+  course: { dateFin: string | Date; archived?: boolean | null },
+  maintenant: Date = new Date(),
+): boolean {
+  // Archivée à la main : elle part tout de suite, sans attendre le délai.
+  if (course.archived) return true;
+  const fin = course.dateFin instanceof Date ? course.dateFin : new Date(course.dateFin);
+  if (Number.isNaN(fin.getTime())) return false;
+  return joursEcoules(fin, maintenant) >= JOURS_AVANT_ARCHIVAGE;
+}
+
+/**
+ * Peut-on encore la remettre au calendrier ? Non si la course est de toute
+ * façon au-delà du délai : le bouton mentirait, la date la renverrait
+ * aussitôt aux archives.
+ */
+export function peutRevenirAuCalendrier(
+  course: { dateFin: string | Date; archived?: boolean | null },
+  maintenant: Date = new Date(),
+): boolean {
+  if (!course.archived) return false;
+  const fin = course.dateFin instanceof Date ? course.dateFin : new Date(course.dateFin);
+  if (Number.isNaN(fin.getTime())) return true;
+  return joursEcoules(fin, maintenant) < JOURS_AVANT_ARCHIVAGE;
+}

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  adminStatut, amountFor, applyStatut, defaultDecision, photographerStatut, publishDispo, weekendKey, weekendLabel,
+  JOURS_AVANT_ARCHIVAGE,
+  adminStatut, amountFor, applyStatut, defaultDecision, estAuxArchives, peutRevenirAuCalendrier,
+  photographerStatut, publishDispo, weekendKey, weekendLabel,
 } from '../planning';
 
 describe('statut vu par chacun', () => {
@@ -77,5 +79,59 @@ describe('week-ends (jeudi → lundi)', () => {
   it('libellé lisible', () => {
     expect(weekendLabel('2026-10-01')).toBe('3 et 4 octobre');
     expect(weekendLabel('2026-10-29')).toBe('31 octobre et 1 novembre');
+  });
+});
+
+describe('calendrier ou archives', () => {
+  const jour = (iso: string) => new Date(iso);
+
+  it('garde la course le jour de la course et les quatre jours suivants', () => {
+    const c = { dateFin: '2026-11-01T14:00:00.000Z' };
+    for (const d of ['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05']) {
+      expect(estAuxArchives(c, jour(`${d}T10:00:00`))).toBe(false);
+    }
+  });
+
+  it('la range aux archives à J+5', () => {
+    const c = { dateFin: '2026-11-01T14:00:00.000Z' };
+    expect(estAuxArchives(c, jour('2026-11-06T00:30:00'))).toBe(true);
+    expect(estAuxArchives(c, jour('2026-12-20T10:00:00'))).toBe(true);
+  });
+
+  it('compte des jours entiers, pas des heures', () => {
+    // Deux courses du même dimanche, l'une finie à 14 h, l'autre à 23 h :
+    // elles doivent partir le même jour.
+    const tot = { dateFin: '2026-11-01T13:00:00' };
+    const tard = { dateFin: '2026-11-01T23:30:00' };
+    const vendredi = jour('2026-11-05T23:00:00');
+    expect(estAuxArchives(tot, vendredi)).toBe(estAuxArchives(tard, vendredi));
+  });
+
+  it('une course à venir n’est jamais aux archives', () => {
+    expect(estAuxArchives({ dateFin: '2027-03-01T10:00:00' }, jour('2026-11-06T10:00:00'))).toBe(false);
+  });
+
+  it('un archivage à la main part tout de suite', () => {
+    const c = { dateFin: '2027-03-01T10:00:00', archived: true };
+    expect(estAuxArchives(c, jour('2026-11-06T10:00:00'))).toBe(true);
+  });
+
+  it('on peut remettre au calendrier une course archivée trop tôt, pas une vieille', () => {
+    expect(
+      peutRevenirAuCalendrier({ dateFin: '2026-11-01T10:00:00', archived: true }, jour('2026-11-03T10:00:00')),
+    ).toBe(true);
+    expect(
+      peutRevenirAuCalendrier({ dateFin: '2026-11-01T10:00:00', archived: true }, jour('2026-11-20T10:00:00')),
+    ).toBe(false);
+    // Une course qui n'est pas archivée n'a rien à « remettre ».
+    expect(peutRevenirAuCalendrier({ dateFin: '2026-11-01T10:00:00' }, jour('2026-11-03T10:00:00'))).toBe(false);
+  });
+
+  it('une date illisible ne fait pas disparaître la course', () => {
+    expect(estAuxArchives({ dateFin: 'n’importe quoi' }, jour('2026-11-06T10:00:00'))).toBe(false);
+  });
+
+  it('le délai est de cinq jours', () => {
+    expect(JOURS_AVANT_ARCHIVAGE).toBe(5);
   });
 });

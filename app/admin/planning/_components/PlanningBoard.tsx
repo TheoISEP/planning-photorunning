@@ -11,7 +11,14 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { amountFor, weekendKey, type Statut } from '@/lib/planning';
+import {
+  JOURS_AVANT_ARCHIVAGE,
+  amountFor,
+  estAuxArchives,
+  peutRevenirAuCalendrier,
+  weekendKey,
+  type Statut,
+} from '@/lib/planning';
 import { StatutSelect } from '@/components/planning/StatutSelect';
 import { ALL_OPTIONS, formatEuros, isWorkingStatut } from '@/components/planning/statuts';
 import { dispoKey, fetchJson, type CourseJson, type DispoJson, type TarifJson, type UserJson } from '@/components/planning/types';
@@ -224,15 +231,17 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
   }, [courses, columns, dispoMap, now]);
 
   const months = useMemo<MonthGroup[]>(() => {
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+    /*
+     * ⚠ C'EST LA DATE QUI RANGE, PAS UN CLIC (Théo, 28/10/2026 : « à J+5 de
+     * l'event ça part du planning et ça va dans archives »). Avant : une
+     * course passée restait au calendrier indéfiniment tant que personne ne
+     * l'archivait à la main, et une course archivée continuait de s'afficher
+     * jusqu'à la fin du mois — d'où l'impression d'une fenêtre de 30 jours.
+     * Voir estAuxArchives() dans lib/planning.ts, qui porte la règle et ses
+     * tests.
+     */
     const visible = courseViews.filter((c) => {
-      if (mode === 'archives') {
-        if (!c.archived) return false;
-      } else if (c.archived) {
-        const d = new Date(c.dateDebut);
-        if (d.getFullYear() !== currentYear || d.getMonth() !== currentMonth) return false;
-      }
+      if (estAuxArchives(c, now) !== (mode === 'archives')) return false;
       return statutFilter === 'all' || c.statutTraitement === statutFilter;
     });
     const groups = new Map<string, MonthGroup>();
@@ -454,8 +463,8 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
           <h1 className="text-base font-bold tracking-tight sm:text-lg">{mode === 'archives' ? 'Archives des courses' : 'Calendrier des courses'}</h1>
           <p className="text-xs text-muted-foreground">
             {mode === 'archives'
-              ? 'Courses archivées (passées). Vous pouvez encore corriger une affectation ou remettre une course dans le calendrier.'
-              : <>Ce que vous validez ici n’est visible des photographes qu’une fois la course passée en <span className="font-medium">Fait</span>.</>}
+              ? `Les courses terminées depuis ${JOURS_AVANT_ARCHIVAGE} jours ou plus, et celles archivées à la main. Vous pouvez encore y corriger une affectation.`
+              : <>Une course quitte le calendrier {JOURS_AVANT_ARCHIVAGE} jours après sa fin et part aux archives. Ce que vous validez ici n’est visible des photographes qu’une fois la course passée en <span className="font-medium">Fait</span>.</>}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -843,8 +852,12 @@ export function PlanningBoard({ mode }: PlanningBoardProps) {
             </DialogTitle>
             <DialogDescription className="pt-2">
               {archiveTarget?.archived
-                ? <><span className="font-semibold text-foreground">{archiveTarget?.nom}</span> sera de nouveau visible dans le calendrier principal.</>
-                : <><span className="font-semibold text-foreground">{archiveTarget?.nom}</span> sera retirée du calendrier principal et déplacée dans les archives. Vous pourrez la désarchiver à tout moment.</>}
+                ? peutRevenirAuCalendrier(archiveTarget, now)
+                  ? <><span className="font-semibold text-foreground">{archiveTarget?.nom}</span> sera de nouveau visible dans le calendrier principal, jusqu’à {JOURS_AVANT_ARCHIVAGE} jours après sa fin.</>
+                  /* ⚠ ON NE PROMET PAS CE QUI N'ARRIVERA PAS : passé le délai,
+                     la date la renvoie aux archives aussitôt. */
+                  : <><span className="font-semibold text-foreground">{archiveTarget?.nom}</span> est terminée depuis plus de {JOURS_AVANT_ARCHIVAGE} jours : elle restera dans les archives, c’est la date qui décide. Vous pouvez quand même la corriger ici.</>
+                : <><span className="font-semibold text-foreground">{archiveTarget?.nom}</span> sera retirée du calendrier principal et déplacée dans les archives, sans attendre les {JOURS_AVANT_ARCHIVAGE} jours.</>}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

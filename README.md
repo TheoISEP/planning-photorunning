@@ -10,6 +10,17 @@ L'app iPhone et Android de l'équipe PhotoRunning (photographes et admins).
 
 Aucun compte en plus : on se connecte avec les identifiants du planning.
 
+## Où vit le code
+
+L'app est la branche `app-mobile` du dépôt `planning-photorunning`. Cette branche ne partage rien avec `master` (le site du planning) : on ne la fusionne jamais. Sur le Mac, elle a son propre dossier :
+
+```bash
+cd ~/Desktop/DEV/photorunning-equipe     # branche app-mobile
+git pull --ff-only
+```
+
+Le `vercel.json` de la branche coupe les déploiements Vercel : pousser ici ne touche jamais au site du planning. Les builds de l'app passent par EAS (Expo).
+
 ## Comment c'est branché
 
 ```
